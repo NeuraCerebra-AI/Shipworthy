@@ -37,7 +37,7 @@ all_text = "\n".join([skill, pressure, html, exports, waves, lanes, readme, arch
 frontmatter = skill.split("---", 2)[1]
 description = next((line.split(":", 1)[1].strip() for line in frontmatter.splitlines() if line.startswith("description:")), "")
 
-for phrase in ["shipworthy", "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness"]:
+for phrase in ["shipworthy", "are we shipworthy?", "are we shipready?", "is this shipworthy?", "shipworthy this", "check shipworthiness"]:
     ck(f"T1 trigger phrase present: {phrase}", phrase in skill.lower())
 
 ck("T0 frontmatter description stays concise", len(description) <= 500, f"chars={len(description)}")
@@ -59,11 +59,18 @@ ck("P5 visual contract documents severity aliases", "p0 blocker" in html.lower()
 
 ck("H1 mandatory HTML report in orchestrator", "mandatory html report" in skill.lower())
 ck("H2 default external report path", "~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html" in all_text)
-ck("H3 visual report no longer optional-only", "generate it by default" in html.lower())
+ck("H3 visual report no longer optional-only", "Shipworthy invocation means HTML report, always" in html)
 ck("H3 full runs do not call HTML optional", "optional deliverables" not in skill.lower())
-ck("H3 exports force mandatory HTML for full runs", "force the html render" in exports.lower())
+ck("H3 exports force mandatory HTML for runs", "part of the completion contract" in exports.lower())
 ck("H4 report is renderer/template driven", "compact ledger json" in html.lower() and "never generate full html by hand" in html.lower())
-ck("H5 exports doc reflects mandatory full-blast report", "full shipworthy invocation" in exports.lower())
+ck("H5 exports doc reflects mandatory operational report", "every operational shipworthy invocation" in exports.lower())
+ck("H6 operational invocation always produces HTML", "Every operational Shipworthy invocation must produce a self-contained HTML readiness report" in skill)
+ck("H7 downgrade keeps report requirement", "Downgrade status changes the report contents and verdict language; it does not remove the report requirement" in skill)
+ck("H8 pre-final verifies report file exists", "Before final response, verify that `readiness-report.html` exists" in skill)
+ck("H9 visual report mandatory for downgraded runs", "Shipworthy invocation means HTML report, always" in html)
+ck("H10 constrained reports not optional by default", "For rapid, narrow, or static constrained passes, generate it when requested" not in html)
+ck("H11 final answer requires HTML path", "Every Shipworthy final answer must include" in read(ORCH / "references" / "final-report-contract.md"))
+ck("H12 report contract includes generation fields", all(x in html for x in ["report_generation_status", "report_path", "ledger_path", "evidence_locations"]))
 
 ck("A1 shared runtime agent rule", "single coordinated runtime driver" in skill.lower())
 ck("A2 isolated contexts allow parallel runtime drivers", "isolated" in skill.lower() and "browser profiles" in skill.lower())
@@ -100,6 +107,7 @@ ck("D4 pressure tests shared runtime", "shared runtime" in pressure.lower() and 
 ck("D5 install prompt uses flagship phrase", "are we shipworthy?" in install.lower())
 ck("D6 pressure tests include authorization gate", "multi-agent authorization gate" in pressure.lower() and "parallel subagents authorized" in pressure.lower())
 ck("D7 installer explains ask-and-stop gate", "ask for authorization and stop" in install.lower())
+ck("D8 pressure test catches missing HTML report", "are we shipready?" in pressure.lower() and "readiness-report.html" in pressure and "html report: missing/blocked" in pressure.lower())
 
 print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
 if FAIL:

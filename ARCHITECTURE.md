@@ -59,9 +59,11 @@ extra waves instead of stopping because the minimum happened.
 Every full Shipworthy run must reach path-universe closure before readiness
 language: each material expected intent and discovered path is covered, sampled
 with justification, blocked, avoided, inferred, missing, out_of_scope, or
-evidence_debt. It must also generate the mandatory HTML report from the final
-ledger at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html`
-unless the user explicitly requests repo-local artifacts.
+evidence_debt. Every operational Shipworthy run, full or downgraded, must also
+generate the mandatory HTML report from the final ledger at
+`~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the
+user explicitly requests repo-local artifacts. Downgrade status changes the
+report contents, not the report requirement.
 
 Every full Shipworthy run also records the Frontend Path-Walk Gate. If a
 runnable UI, hosted app, local dev server, browser-hosted prototype, desktop app,

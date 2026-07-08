@@ -1,6 +1,6 @@
 ---
 name: ship-readiness-orchestrator
-description: Use when the user mentions Shipworthy operationally; asks "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness"; uses bare "shipworthy"; or asks for product/release readiness, full safe user-path audit, missing/overcomplicated UX paths, deployability, usability/design teardown, or making an app robust, clearer, simpler, attention-retaining, beloved, viral, or effective.
+description: Use when the user mentions Shipworthy operationally; asks "are we shipworthy?", "are we shipready?", "is this shipworthy?", "shipworthy this", "check shipworthiness"; uses bare "shipworthy"; or asks for product/release readiness, full safe user-path audit, missing/overcomplicated UX paths, deployability, usability/design teardown, or making an app robust, clearer, simpler, beloved, viral, or effective.
 ---
 
 # Shipworthy Readiness Orchestrator
@@ -11,7 +11,7 @@ Run a repo-agnostic, evidence-heavy product readiness investigation that combine
 
 ## Shipworthy Invocation Contract
 
-Any operational mention of `shipworthy` triggers this orchestrator in full blast unless the user explicitly narrows scope, asks for a rapid/narrow/static pass, or is clearly discussing the Shipworthy skill system itself rather than asking to audit a target. The canonical trigger phrase is **"are we shipworthy?"**. Equivalent triggers include `shipworthy`, `is this shipworthy?`, `shipworthy this`, `make this shipworthy`, and `check shipworthiness`.
+Any operational mention of `shipworthy` triggers this orchestrator in full blast unless the user explicitly narrows scope, asks for a rapid/narrow/static pass, or is clearly discussing the Shipworthy skill system itself rather than asking to audit a target. The canonical trigger phrase is **"are we shipworthy?"**. Equivalent triggers include `shipworthy`, `is this shipworthy?`, `shipworthy this`, `make this shipworthy`, `check shipworthiness`, and readiness variants such as `are we shipready?`.
 
 If no target is obvious, still treat the invocation as a Shipworthy run: complete the Sub-Skill Load Gate, then ask for or infer the target as the first Start Gate item. Do not silently downshift to a generic chat answer just because the trigger was short.
 
@@ -75,6 +75,14 @@ Source, CLI, HTTP, tests, logs, docs, Railway/provider checks, and database prob
 
 If no actual frontend path-walking occurred, the result is not a full Shipworthy run. Label it as `bounded conditional audit`, `static constrained pass`, `changed-only pass`, or `source/CLI readiness audit`, record the downgrade reason, and do not use full flagship language. The final report must include frontend path-walk status, frontend tool, runtime target, path-walk status, and downgrade reason when applicable.
 
+## HTML Report Gate
+
+Every operational Shipworthy invocation must produce a self-contained HTML readiness report from the final ledger, regardless of whether the run is full flagship, conditional, static constrained, changed-only, source/CLI-only, or downgraded. Downgrade status changes the report contents and verdict language; it does not remove the report requirement.
+
+Generate `readiness-report.json` and `readiness-report.html` from the final ledger after verification. Default to `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` so the audited repo stays read-only. Use repo-local `.shipworthy/reports/<timestamp>/readiness-report.html` only when the user explicitly requests repo artifacts or the target's instructions require repo-local audit artifacts.
+
+Before final response, verify that `readiness-report.html` exists, was rendered from the final ledger/report JSON, and is linked in the final answer. If report generation fails, file writes are impossible, or the user explicitly forbids artifact creation, lead the final answer with **`HTML report: MISSING/BLOCKED`**, explain why, record it as deliverable debt, and do not imply the Shipworthy run is complete.
+
 ## Full-Blast Agent Rules
 
 For a full readiness run, use agents when the platform exposes agent tooling, the work decomposes into independent non-overlapping lanes, and the Multi-Agent Authorization Gate has explicit authorization. Before launch, write a lane roster with each lane's scope, excluded overlap, required sub-skill body, expected output packet, evidence artifact location, safe-test boundary, and multi-agent authorization status. Each lane prompt must require reading the applicable `SKILL.md` body before acting. The final report must include or point to this roster; otherwise the full-blast run is incomplete.
@@ -130,8 +138,9 @@ Every material claim, missing path, blocked check, avoided check, rejected claim
 16. Retarget each later wave from verified findings, contradictions, coverage gaps, missing expected paths, overcomplicated paths, and evidence debt, not from the original lane split.
 17. Run a fix-cascade check on major recommendations: compare against the no-change baseline, identify what the fix could break downstream, and preserve proof, governance, recovery, accessibility, expert controls, and necessary friction. Write fix-cascade notes to the ledger.
 18. Before final synthesis, run a final no-overclaim verifier against the final claim ledger, evidence debt, coverage gaps, frontend path-walk status, and readiness language. Downgrade claims such as ready, works, accessible, robust, secure, deployable, beloved, viral, complete, or full Shipworthy unless directly supported.
-19. Generate the mandatory HTML report from the final ledger for full Shipworthy invocations. Default to `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` so the audited repo stays read-only. Use repo-local `.shipworthy/reports/<timestamp>/` only when the user explicitly requests repo artifacts.
-20. Write the final report only after the final claim ledger, evidence debt, coverage gaps, verified wave summaries, verifier outputs, fix-cascade notes, final drift check, multi-agent authorization status, frontend path-walk status, and mandatory HTML report path are complete.
+19. Run the HTML Report Gate for every operational Shipworthy invocation. Generate `readiness-report.json` and `readiness-report.html` from the final ledger even when the run is conditional, static constrained, changed-only, source/CLI-only, or downgraded. Default to `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` so the audited repo stays read-only. Use repo-local `.shipworthy/reports/<timestamp>/` only when the user explicitly requests repo artifacts.
+20. Run the Pre-Final Artifact Assertion: final ledger exists or an inline ledger snapshot exists; `readiness-report.json` exists unless artifact writes are blocked; `readiness-report.html` exists unless artifact writes are blocked; final answer includes the absolute HTML path; and if any item is missing, the final answer leads with missing artifact debt instead of implying completion.
+21. Write the final report only after the final claim ledger, evidence debt, coverage gaps, verified wave summaries, verifier outputs, fix-cascade notes, final drift check, multi-agent authorization status, frontend path-walk status, HTML report generation status, mandatory HTML report path, and ledger/evidence paths are complete.
 
 ## Design Critique Mandate
 
@@ -162,21 +171,21 @@ Load only the references needed for the current pass:
 - Read `references/final-report-contract.md` before writing the final report or roadmap.
 - Read `references/archetype-overlays.md` when the target matches a known product archetype (checkout, auth, ai-chat, dashboard, …). The `profiles/*.json` seed path discovery with priors — expected intents, common failure modes, and frequently-missing paths — as **hypotheses to confirm or disprove with evidence, never a pass/fail checklist**.
 - Read `references/changed-scope.md` for a delta / in-session re-audit ("is my change ready?"): scope to the changed surface **plus its blast radius**, label untouched paths `out_of_scope`, and return a verdict scoped to the change — not the whole product.
-- Read `references/visual-html-report.md` for every full Shipworthy invocation and whenever the user wants a shareable visual report. It documents the mandatory HTML dashboard, `scripts/render_report.py`, and the JSON contract.
-- Read `references/exports-and-ci.md` when the user wants to share, archive, gate, or automate: the mandatory HTML render for full runs, the SARIF export (`scripts/to_sarif.py`), the tamper-evident evidence bundle (`scripts/make_bundle.py`), the confirmed-only merge gate, the opt-in `--interactive` report, and the optional GitHub code-scanning recipe. All local-first; all renders of the finished ledger.
+- Read `references/visual-html-report.md` for every operational Shipworthy invocation. It documents the mandatory HTML dashboard, `scripts/render_report.py`, and the JSON contract.
+- Read `references/exports-and-ci.md` when the user wants to share, archive, gate, or automate: the mandatory HTML render, the SARIF export (`scripts/to_sarif.py`), the tamper-evident evidence bundle (`scripts/make_bundle.py`), the confirmed-only merge gate, the opt-in `--interactive` report, and the optional GitHub code-scanning recipe. All local-first; all renders of the finished ledger.
 - Read `references/pressure-tests.md` when validating or forward-testing this skill, or when the user asks whether the orchestration is strong enough.
 
 ## Output Contract
 
 Lead with findings and readiness truth. Separate confirmed findings, strong findings, provisional hypotheses, needs-proof items, blocked checks, avoided checks, false positives, rejected claims, and untested paths. Do not claim ready, safe, correct, accessible, persistent, secure, beloved, viral, passing, or fixed without evidence.
 
-For full-blast runs, include an **Orchestration Checkpoint** in the report: skill bodies read, references read, target fingerprint, safe-test boundary, ledger location or inline snapshot, multi-agent authorization status, frontend path-walk status, actual agent/tool execution mode, runtime driver mode, verifier status, omitted gates, mandatory HTML report path, and where raw outputs/evidence live. Under that checkpoint, include a lane roster table with one row per planned lane and columns for lane, scope, required skill/reference, execution status, output/evidence location, and skipped/collapsed/blocking reason. If agent dispatch was skipped because authorization was denied, unavailable, or not received, state **"sequential fallback because multi-agent authorization was not granted"**. If actual frontend path-walking did not occur, state the downgrade reason and do not call the report a full Shipworthy run. If the checkpoint, roster table, path-universe closure, verifier certificates, frontend path-walk status, or HTML report path is missing, the report is not complete.
+For operational Shipworthy runs, include an **Orchestration Checkpoint** in the report: skill bodies read, references read, target fingerprint, safe-test boundary, ledger location or inline snapshot, multi-agent authorization status, frontend path-walk status, actual agent/tool execution mode, runtime driver mode, verifier status, omitted gates, HTML report generation status, mandatory HTML report path, and where raw outputs/evidence live. Under that checkpoint, include a lane roster table with one row per planned lane and columns for lane, scope, required skill/reference, execution status, output/evidence location, and skipped/collapsed/blocking reason. If agent dispatch was skipped because authorization was denied, unavailable, or not received, state **"sequential fallback because multi-agent authorization was not granted"**. If actual frontend path-walking did not occur, state the downgrade reason and do not call the report a full Shipworthy run. If the checkpoint, roster table, path-universe closure, verifier certificates, frontend path-walk status, report generation status, or HTML report path is missing, the report is not complete.
 
 For each finding include evidence, user consequence, likely cause, smallest useful fix, counterfactual/no-change baseline when relevant, downstream regression or simplification risk, and exact verification step. For full runs, include a coverage table for every discovered material path and expected user intent, including paths covered, sampled, blocked, avoided, inferred, missing, out of scope, and still carrying evidence debt.
 
 Do not implement fixes unless the user explicitly asks for implementation after the review.
 
-**Ledger-derived deliverables (local-first; never a second source of truth).** The inline report and self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, severity-grouped findings, checkpoint) are required for full Shipworthy invocations and are generated only after the ledger is final. The HTML report defaults to no JS; `--interactive` is an opt-in variant that adds client-side filter/search/collapse. Additional optional exports, when the user wants to share, archive, gate, or automate, are:
+**Ledger-derived deliverables (local-first; never a second source of truth).** The inline report and self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, severity-grouped findings, checkpoint) are required for every operational Shipworthy invocation and are generated only after the ledger is final. The HTML report defaults to no JS; `--interactive` is an opt-in variant that adds client-side filter/search/collapse. Additional optional exports, when the user wants to share, archive, gate, or automate, are:
 - a **SARIF 2.1.0** file (`scripts/to_sarif.py`) for GitHub code scanning, with an optional **merge gate** (`--gate`) that fails on confirmed blockers only;
 - a tamper-evident **evidence bundle** (`scripts/make_bundle.py`; ledger + report + SARIF + a SHA-256 manifest) for a defensible audit trail — see `references/exports-and-ci.md`.
 The ledger JSON is itself the canonical machine-readable export.
@@ -191,6 +200,8 @@ The ledger JSON is itself the canonical machine-readable export.
 - Hiding sequential fallback caused by missing multi-agent authorization instead of recording it as orchestration debt.
 - Delaying ledger creation until the end, treating the final prose as the ledger, or letting lane agents create competing ledgers.
 - Omitting the Orchestration Checkpoint from the final report, leaving agent/sequential fallback, lane roster, or verifier status invisible.
+- Omitting `readiness-report.html` because the run was downgraded, static constrained, changed-only, or source/CLI-only. Shipworthy invocation means HTML report, always, unless the user forbids file creation or writes are impossible.
+- Sending a final answer without first verifying that `readiness-report.html` exists and linking its absolute path.
 - Starting with visual judgment before workflow cartography.
 - Defaulting to top-task/high-risk sampling when the user invoked this skill for a full readiness run.
 - Treating "try every path" as omniscience instead of coverage mapping, actual safe execution, labels, and exclusions.

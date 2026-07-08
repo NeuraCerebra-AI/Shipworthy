@@ -12,6 +12,7 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - Scenario 0B: Explicit Multi-Agent Authorization Proceeds Without Re-Asking
 - Scenario 0C: Provider Caveat Is Not Agent Authorization
 - Scenario 0D: Source-Only Readiness Is Not Flagship
+- Scenario 0E: Downgraded Shipready Run Still Emits HTML Report
 - Scenario 1: Broad Local App Readiness
 - Scenario 2: Screenshot-Only UX Teardown
 - Scenario 3: High-Risk Workflow
@@ -50,6 +51,9 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent makes final findings, readiness claims, or recommendations that do not map to ledger rows or explicit evidence gaps.
 - The agent says "all paths" without coverage labels and exclusions.
 - The agent does not produce the mandatory HTML report for a full Shipworthy invocation.
+- The agent does not produce `readiness-report.html` because it downgraded the run to conditional/static/source-CLI-only.
+- The agent confuses some other HTML artifact from the target repo with the Shipworthy `readiness-report.html`.
+- The agent sends a final answer without an absolute `readiness-report.html` path, ledger path, evidence locations, omitted gates, and report generation status.
 - The agent ends after exactly three waves even though major coverage gaps remain.
 - The agent lets several agents click the same shared runtime without isolated users, resettable fixtures, independent browser profiles, or a single coordinated runtime driver.
 - The agent maps paths but never actually attempts the safe discoverable runtime paths.
@@ -124,6 +128,7 @@ Expected behavior:
 - Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
 - Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
 - Generates a mandatory HTML report from compact ledger JSON at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the user explicitly requests repo-local artifacts.
+- Verifies `readiness-report.html` exists before the final answer and links its path in the final answer. If the file cannot be created, the final answer leads with `HTML report: MISSING/BLOCKED` and treats the run as incomplete.
 - Uses agents for discovery and verification only after explicit authorization when platform policy requires it, and uses a single coordinated runtime driver for a shared runtime unless isolated contexts are proven safe.
 - If no actual frontend path-walking occurs, labels the output conditional/static/limited and says `source/CLI/HTTP-only readiness audit is not a full Shipworthy run` when that is the evidence mode.
 
@@ -172,7 +177,28 @@ Expected behavior:
 - If the frontend cannot be launched, is unsafe, is out of scope, or is not tested, the report is downgraded to conditional/static/limited.
 - The independent verifier must fail the full-run claim if no browser/computer-use/frontend path-walk occurred while the report claims full Shipworthy.
 - The final Orchestration Checkpoint includes frontend path-walk status, frontend tool, runtime target, path-walk status, and downgrade reason.
+- The final Orchestration Checkpoint includes report generation status, HTML report path, ledger path, and evidence locations.
 - A source/CLI/HTTP-only readiness audit is not a full Shipworthy run.
+- A downgraded/source-only run still renders `readiness-report.html` unless the user explicitly forbids file creation or writes are blocked.
+
+## Scenario 0E: Downgraded Shipready Run Still Emits HTML Report
+
+```text
+/goal are we shipready?
+```
+
+Fixture: a repo whose evidence is mostly tests, CLI gates, source docs, and a limited static/frontend-ish inspection surface. The run is likely conditional or downgraded rather than full flagship.
+
+Expected behavior:
+
+- Routes to the Shipworthy readiness orchestrator because `are we shipready?` is an operational readiness invocation.
+- If multi-agent authorization is not granted after the gate question, records `sequential fallback because multi-agent authorization was not granted`.
+- If no broad actual frontend path-walk occurred, labels the result conditional/static/limited and records the downgrade reason.
+- Still generates a distinct Shipworthy `readiness-report.html` from the final ledger/report JSON.
+- Does not treat target-owned HTML artifacts, screenshots, Markdown ledgers, or app-generated inspectors as the Shipworthy HTML report.
+- Before final response, verifies that `readiness-report.html` exists and includes its absolute path in the final answer.
+- Final answer also includes the ledger path, evidence path(s), omitted gates, downgrade reason, multi-agent authorization status, frontend path-walk status, and report generation status.
+- If the HTML report is missing or blocked, the final answer starts with `HTML report: MISSING/BLOCKED` and does not imply the Shipworthy run is complete.
 
 ## Scenario 1: Broad Local App Readiness
 

@@ -7,6 +7,7 @@ Write a findings-first readiness report that a senior engineering/design team ca
 ## Contents
 
 - Required Pre-Synthesis Gate
+- Pre-Final Artifact Assertion
 - Report Structure
 - Finding Template
 - Design Finding Template
@@ -23,6 +24,7 @@ Before writing the final report, assemble:
 - lane roster with launched, sequential, skipped, collapsed, or blocked lanes;
 - multi-agent authorization status, agent/tool execution status, and any platform limits that affected the run;
 - frontend path-walk status: whether actual frontend path-walking occurred, the frontend tool used, runtime target, path-walk status, and downgrade reason if absent or partial;
+- report generation status, readiness-report HTML path, readiness-report JSON or ledger path, and evidence locations;
 - final claim ledger;
 - final coverage matrix;
 - evidence debt register with each item closed, blocked, scoped out, or carried as an explicit gap;
@@ -36,6 +38,19 @@ The final synthesis must be written by the orchestrator, not by a verifier or la
 
 Store artifact references or redacted snippets by default. Do not include secrets, credentials, tokens, private customer payloads, raw production records, personal health/financial data, or external-message contents in the report unless the user explicitly authorized that handling.
 
+## Pre-Final Artifact Assertion
+
+Before any final answer for an operational Shipworthy invocation, assert:
+
+- final ledger exists or an inline ledger snapshot exists;
+- `readiness-report.json` exists unless artifact writes are blocked;
+- `readiness-report.html` exists unless artifact writes are blocked;
+- `readiness-report.html` was rendered from the final ledger/report JSON;
+- final answer includes the absolute HTML report path, ledger path or inline-ledger marker, and evidence locations;
+- if any item is missing, the final answer leads with `HTML report: MISSING/BLOCKED`, explains why, and records missing artifacts as deliverable debt.
+
+Every Shipworthy final answer must include: verdict, report HTML path, ledger path, evidence path(s), omitted gates, downgrade reason when applicable, multi-agent authorization status, frontend path-walk status, and report generation status. If `readiness-report.html` is missing, do not imply the Shipworthy run is complete.
+
 ## Report Structure
 
 1. **Verdict**
@@ -48,6 +63,7 @@ Store artifact references or redacted snippets by default. Do not include secret
    - Ledger location or inline snapshot, including claim, coverage, evidence-debt, and fix-cascade ID ranges.
    - Multi-agent authorization status: explicitly authorized, denied, unavailable, not received, or not required for this constrained pass.
    - Frontend path-walk status: performed or not performed, frontend tool, runtime target, path-walk status, and downgrade reason.
+   - Report generation status: rendered, blocked, failed, or intentionally not generated because the user forbade file creation; include HTML report path, JSON/ledger path, and evidence locations.
    - Lane roster table with columns: lane, scope, required skill/reference, execution status, output/evidence location, skipped/collapsed/blocking reason.
    - Actual agent/tool execution mode, verifier status, raw output/evidence locations, omitted gates, and evidence debt created by unavailable agents, missing authorization, or runtime limits.
    - If subagent dispatch was skipped because authorization was absent, denied, unavailable, or not received, state: `sequential fallback because multi-agent authorization was not granted`.
@@ -154,6 +170,7 @@ Monitor: signal to watch after shipping, if relevant
 - Say "sequential fallback" when full-blast lanes were run in the main session because agent tooling was unavailable, unsafe, overlapping, or multi-agent authorization was not granted. If authorization was the reason, include `sequential fallback because multi-agent authorization was not granted`.
 - Say "source/CLI/HTTP-only readiness audit is not a full Shipworthy run" when no browser/computer-use/frontend path-walk occurred and the work relied on repo, command, HTTP, provider, database, or docs proof.
 - Say "actual frontend path-walk not performed" and use conditional/static/limited readiness language when the frontend was unavailable, out of scope, blocked by safety, or not tested.
+- Say "HTML report: MISSING/BLOCKED" when the mandatory `readiness-report.html` file does not exist or could not be written before the final answer.
 - Say "not in ledger" or remove the claim when a final conclusion cannot be mapped to a claim, coverage, evidence-debt, or fix-cascade row.
 - Say "static constrained pass" when only screenshots, docs, README, package scripts, or source snippets were available.
 - Say "cannot determine" when evidence is missing.

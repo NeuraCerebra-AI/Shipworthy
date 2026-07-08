@@ -50,6 +50,11 @@ VERDICT_NEUTRAL = ("#141A28", "#2A3654", "#AEBAD4")  # unknown verdict -> neutra
 
 def esc(x): return html.escape("" if x is None else str(x))
 
+def row_text(x):
+    if isinstance(x, list):
+        return " · ".join(str(v) for v in x)
+    return x
+
 def title_case(x):
     return " ".join(w[:1].upper() + w[1:].lower() for w in str(x).split())
 
@@ -210,6 +215,15 @@ def render(data, interactive=False):
     if ck.get("runtime_target"): ck_rows.append(("runtime target", ck["runtime_target"]))
     if ck.get("path_walk_status"): ck_rows.append(("path walk status", ck["path_walk_status"]))
     if ck.get("downgrade_reason"): ck_rows.append(("downgrade reason", ck["downgrade_reason"]))
+    if ck.get("report_generation_status") or data.get("report_generation_status"):
+        ck_rows.append(("report generation", ck.get("report_generation_status") or data.get("report_generation_status")))
+    if ck.get("report_path") or data.get("report_path"):
+        ck_rows.append(("report path", ck.get("report_path") or data.get("report_path")))
+    if ck.get("ledger_path") or data.get("ledger_path"):
+        ck_rows.append(("ledger path", ck.get("ledger_path") or data.get("ledger_path")))
+    evidence_locations = ck.get("evidence_locations") or data.get("evidence_locations")
+    if evidence_locations:
+        ck_rows.append(("evidence locations", row_text(evidence_locations)))
     if ck.get("mode"):     ck_rows.append(("mode", ck["mode"]))
     if ck.get("verifier"): ck_rows.append(("verifier", ck["verifier"]))
     if isinstance(ck.get("omitted"), list):

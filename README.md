@@ -87,7 +87,7 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 
 <sub>*Illustrative — the report format is real; the contents are a sample, not a live run. A recorded asciinema/GIF walkthrough → `docs/demo.gif`; PRs welcome.*</sub>
 
-> Full Shipworthy runs also render to a self-contained **HTML report** by default (verdict stamp, coverage bar, severity-grouped findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
+> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, severity-grouped findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
 
 <details><summary><b>See the same report as raw text</b></summary>
 

@@ -150,6 +150,22 @@ h=render({"checkpoint":{"frontend_path_walk_performed":False,
 check("20 checkpoint renders frontend path-walk fields",
       ">frontend path-walk<" in h and "not_performed" in h and "not a full Shipworthy run" in h)
 
+# 21 downgraded/source-cli report still carries deliverable proof fields
+h=render({"target":"TraceFlow EDA Lab",
+          "verdict":"CONDITIONAL",
+          "checkpoint":{"frontend_path_walk_performed":False,
+                        "path_walk_status":"not_performed",
+                        "downgrade_reason":"source/CLI/HTTP-only readiness audit is not a full Shipworthy run",
+                        "report_generation_status":"rendered",
+                        "report_path":"/tmp/shipworthy/readiness-report.html",
+                        "ledger_path":"/tmp/shipworthy/readiness-report.json",
+                        "evidence_locations":["/tmp/shipworthy/evidence", "/tmp/shipworthy/screenshot.png"],
+                        "mode":"sequential fallback"}})
+check("21 downgraded report renders deliverable fields",
+      "report generation" in h and "/tmp/shipworthy/readiness-report.html" in h
+      and "ledger path" in h and "evidence locations" in h
+      and "source/CLI/HTTP-only readiness audit is not a full Shipworthy run" in h)
+
 # ---- new-feature assertions: grouping, coverage %, a11y, print ----
 hb = render(full)
 check("F1 blocker section +count",        'class="section tier-blockers"' in hb and '<h2>Blockers</h2><span class="count">2</span>' in hb)

@@ -1,4 +1,4 @@
-# Visual HTML readiness report (mandatory for full Shipworthy)
+# Visual HTML readiness report (mandatory for Shipworthy)
 
 The audit already produces structured data — the coverage matrix and the finding
 ledger. `scripts/render_report.py` turns compact ledger JSON into **one
@@ -33,8 +33,15 @@ Only after the final claim ledger, coverage, verifier outputs, and checkpoint ar
 complete (i.e., after the Mandatory Flow final ledger and verifier gates). It is
 a *rendering* of the canonical ledger, never a second source of truth.
 
-For a full Shipworthy invocation, generate it by default. The default output path
-is outside the audited repo so read-only target behavior is preserved:
+Shipworthy invocation means HTML report, always. Every operational Shipworthy
+invocation must produce a self-contained HTML readiness report from the final
+ledger, whether the run is full flagship, conditional, static constrained,
+changed-only, source/CLI-only, or downgraded. Downgrade status changes the
+report contents, checkpoint, and verdict language; it does not remove the report
+requirement.
+
+The default output path is outside the audited repo so read-only target behavior
+is preserved:
 
 ```text
 ~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html
@@ -43,8 +50,10 @@ is outside the audited repo so read-only target behavior is preserved:
 Use a repo-local path such as `.shipworthy/reports/<timestamp>/readiness-report.html`
 only when the user explicitly asks for repo artifacts.
 
-For rapid, narrow, or static constrained passes, generate it when requested or
-when the result is being shared, archived, or handed off.
+The only normal exceptions are: the user explicitly says not to create files, or
+the environment cannot write artifacts. In those cases, the final answer must
+lead with `HTML report: MISSING/BLOCKED`, explain why, and mark the run
+incomplete as a normal artifacted Shipworthy run.
 
 Agents should emit compact ledger JSON only and never generate full HTML by hand.
 The renderer fills a fixed template. This keeps token use low and prevents
@@ -101,6 +110,10 @@ report style drift.
     "runtime_target": "URL, app/window, or local launch target",
     "path_walk_status": "full | partial | blocked | not_performed",
     "downgrade_reason": "required when the full-run claim is downgraded",
+    "report_generation_status": "rendered | blocked | failed | intentionally_not_generated_by_user_constraint",
+    "report_path": "absolute path to readiness-report.html, or missing/blocked reason",
+    "ledger_path": "absolute path to readiness-report.json or ledger, or inline snapshot marker",
+    "evidence_locations": ["absolute paths or redacted artifact references"],
     "mode": "e.g. 5 authorized parallel agents | sequential fallback",
     "verifier": "e.g. Opus → APPROVED",
     "omitted": ["gate skipped → logged as evidence debt, not passed"]
@@ -113,8 +126,12 @@ Field notes: checkpoint frontend fields make the human-style path-walk explicit.
 If `frontend_path_walk_performed` is false or `path_walk_status` is
 `not_performed`, the report must not claim to be a full Shipworthy run. Use
 `downgrade_reason` for language such as `source/CLI/HTTP-only readiness audit is
-not a full Shipworthy run`. `findings` are sorted by severity automatically;
-every text field is HTML-escaped; coverage segment widths are proportional to `value`; `verdict` selects
+not a full Shipworthy run`. `report_generation_status`, `report_path`,
+`ledger_path`, and `evidence_locations` make the deliverable invariant auditable.
+If `report_generation_status` is not `rendered`, the final answer must say
+`HTML report: MISSING/BLOCKED` and treat the run as incomplete. `findings` are
+sorted by severity automatically; every text field is HTML-escaped; coverage
+segment widths are proportional to `value`; `verdict` selects
 the banner color (rose / amber / emerald). Coverage kind aliases are normalized:
 `debt` renders as `evidence_debt`, and mixed-case kinds such as `COVERED` are accepted.
 Severity aliases are normalized too: `P0 Blocker`, `critical`, and `blocker`

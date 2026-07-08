@@ -51,6 +51,10 @@
     "frontend_tool": "Playwright/browser",
     "runtime_target": "checkout demo local runtime",
     "path_walk_status": "full",
+    "report_generation_status": "rendered",
+    "report_path": "~/.shipworthy/runs/checkout-demo/2026-07-08/readiness-report.html",
+    "ledger_path": "~/.shipworthy/runs/checkout-demo/2026-07-08/readiness-report.json",
+    "evidence_locations": ["~/.shipworthy/runs/checkout-demo/2026-07-08/evidence/"],
     "mode": "5 authorized parallel agents",
     "verifier": "Opus → APPROVED",
     "omitted": ["load test (no safe env) → logged as evidence debt, NOT as \"passed\""]
