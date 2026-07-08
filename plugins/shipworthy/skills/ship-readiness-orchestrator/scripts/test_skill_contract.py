@@ -79,6 +79,10 @@ ck("A11 final report exposes skipped agent dispatch", "authorization status" in 
 ck("A12 architecture includes authorization gate", "multi-agent authorization gate" in arch.lower())
 ck("A13 README says agents require authorization", "uses agents where authorized" in readme.lower())
 ck("A14 HTML checkpoint carries authorization", "multi_agent_authorization" in html and "authorization" in read(ORCH / "scripts" / "sample-report.json").lower())
+ck("A15 plain trigger must ask then stop", "ask the authorization question and stop" in skill.lower())
+ck("A16 no same-turn sequential fallback before asking", "do not continue sequentially in the same response" in skill.lower())
+ck("A17 not received only after unanswered gate", "not received means the user failed to answer after the authorization question was asked" in skill.lower())
+ck("A18 screenshot caveat pressure test", "ignore claude/anthropic as llm provider" in pressure.lower() and "asks the authorization question and stops" in pressure.lower())
 
 ck("D1 README flagship phrase", "are we shipworthy?" in readme.lower())
 ck("D2 ARCHITECTURE full-blast gates", "mandatory html report" in arch.lower() and "minimum of three verified waves" in arch.lower())
@@ -86,6 +90,7 @@ ck("D3 pressure tests trigger and report", "are we shipworthy?" in pressure.lowe
 ck("D4 pressure tests shared runtime", "shared runtime" in pressure.lower() and "single coordinated runtime driver" in pressure.lower())
 ck("D5 install prompt uses flagship phrase", "are we shipworthy?" in install.lower())
 ck("D6 pressure tests include authorization gate", "multi-agent authorization gate" in pressure.lower() and "parallel subagents authorized" in pressure.lower())
+ck("D7 installer explains ask-and-stop gate", "ask for authorization and stop" in install.lower())
 
 print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
 if FAIL:

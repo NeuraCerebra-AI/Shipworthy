@@ -33,8 +33,10 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent dispatches subagents in Codex or another tool-policy-constrained platform without explicit user authorization for subagents, delegation, or parallel-agent work.
 - The agent treats "Shipworthy full blast uses agents" as overriding platform tool policy.
 - The agent receives a plain `are we shipworthy?` prompt and silently falls back sequentially without first asking the Multi-Agent Authorization Gate question.
+- The agent receives a plain `are we shipworthy?` prompt plus unrelated caveats, asks no authorization question, and proceeds to repo analysis or sequential fallback in the same response.
 - The agent receives `Run Shipworthy full blast with parallel subagents authorized` and asks the same authorization question again instead of recording the explicit authorization and proceeding when safe.
-- The agent runs sequentially because authorization was denied or not received, but fails to report `sequential fallback because multi-agent authorization was not granted`.
+- The agent treats missing authorization in the initial prompt as "not received" instead of asking the gate question and stopping.
+- The agent runs sequentially because authorization was denied or not received after the gate was asked, but fails to report `sequential fallback because multi-agent authorization was not granted`.
 - The agent does not build a lane roster or under-launches independent agents in a full-blast run when agent tooling is available.
 - The agent launches lanes without giving each lane the required sub-skill body, safe-test boundary, scope, excluded scope, and output packet contract.
 - The agent omits the Orchestration Checkpoint or gives only prose without a lane roster table, making the lane roster, agent/tool execution mode, or verifier status hard to audit.
@@ -67,13 +69,13 @@ Expected behavior:
 
 - Treats the request as a full Deep Review unless the target is unclear, static-only, genuinely tiny, or the user narrows scope.
 - Reads the full `SKILL.md` bodies for ship-deep-review, ship-product-workflows, and ship-workflow-clarity before target analysis or lane dispatch.
-- Runs the Multi-Agent Authorization Gate before deciding whether to dispatch subagents or use sequential fallback.
+- Runs the Multi-Agent Authorization Gate before deciding whether to dispatch subagents or use sequential fallback. If authorization is absent or ambiguous in the initial request, asks the authorization question and stops instead of continuing sequentially in the same response.
 - Defaults product workflow routing to audit_all plus audit_top_tasks plus audit_high_risk.
 - Builds a concrete lane roster before dispatching agents or running lanes sequentially.
 - Establishes the canonical evidence state before lane dispatch, path testing, or design judgment.
 - Writes target fingerprint, safe-test boundary, lane roster, path universe, path attempts, evidence debt, verifier decisions, and fix-cascade notes into the ledger as the run proceeds.
 - Launches independent, non-overlapping lanes when the platform exposes agent tooling and the scopes do not conflict; otherwise records the tool limitation.
-- Launches subagents only after explicit authorization for parallel subagents, delegation, or multi-agent work; if not authorized, runs the same lane roster sequentially and records the limitation.
+- Launches subagents only after explicit authorization for parallel subagents, delegation, or multi-agent work; if authorization is denied or not received after the gate question, runs the same lane roster sequentially and records the limitation.
 - Includes an Orchestration Checkpoint in the final report with skill bodies read, references read, ledger location or inline snapshot, a lane roster table, agent/tool execution mode, verifier status, and omitted gates.
 - Discovers the path universe before judging design.
 - Attempts or safely traces every safe discoverable material path inside the declared boundary.
@@ -106,7 +108,8 @@ Expected behavior:
 - If the target is not obvious, still triggers the orchestrator and asks for or infers the target as the first Start Gate item.
 - Runs the Sub-Skill Load Gate before target analysis or dispatch.
 - Runs the Multi-Agent Authorization Gate after the Sub-Skill Load Gate. For this plain trigger, asks: `Shipworthy full blast is designed to use parallel subagents for independent product, clarity, release, accessibility, state, and verifier lanes. Do you authorize parallel subagents / delegation / multi-agent work for this Shipworthy run?`
-- If the user says no or does not explicitly grant authorization, continues sequentially and records `sequential fallback because multi-agent authorization was not granted` as evidence debt / orchestration debt.
+- For the response where it asks that question, stops there. It does not proceed to target analysis, tool work, repo reading, lane planning, or sequential fallback in the same response.
+- If the user later says no or fails to answer after the gate was asked, continues sequentially and records `sequential fallback because multi-agent authorization was not granted` as evidence debt / orchestration debt.
 - Plans at least three verified waves and records that three is a floor, not a ceiling.
 - Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
 - Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
@@ -127,6 +130,21 @@ Expected behavior:
 - Does not ask the Multi-Agent Authorization Gate question again unless the authorization is contradicted or scoped ambiguously.
 - Builds the full lane roster and dispatches subagents when platform tooling is available, scopes are independent, and the safe-test boundary permits it.
 - Still respects platform limits and safety boundaries; the authorization permits subagent dispatch, not unsafe runtime mutation.
+
+## Scenario 0C: Provider Caveat Is Not Agent Authorization
+
+```text
+are we shipworthy? (ignore claude/anthropic as LLM provider, we are using openai as default for the record. that is the only caveat)
+```
+
+Expected behavior:
+
+- Routes to `ship-readiness-orchestrator` full blast.
+- Treats the provider caveat as unrelated to subagent authorization.
+- Recognizes that no parallel subagents / delegation / multi-agent work authorization has been granted.
+- Asks the authorization question and stops.
+- Does not say it is proceeding as a bounded sequential verdict.
+- Does not read repo docs, run tools, build lanes, or start sequential fallback in the same response.
 
 ## Scenario 1: Broad Local App Readiness
 
