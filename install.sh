@@ -19,7 +19,7 @@ else
 fi
 mkdir -p "$DEST"
 
-echo "Tip: in Claude Code the one-command route is:  /plugin marketplace add NeuraCerebra-AI/shipworthy  &&  /plugin install shipworthy@shipworthy"
+echo "Tip: in Claude Code the one-command route is:  /plugin marketplace add NeuraCerebra-AI/Shipworthy  &&  /plugin install shipworthy@shipworthy"
 echo ""
 echo "Installing Shipworthy skills -> $DEST"
 for skill in ship-readiness-orchestrator ship-deep-review ship-product-workflows ship-workflow-clarity; do

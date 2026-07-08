@@ -34,10 +34,16 @@ Shipworthy finds all of the above **and refuses the last one.** It treats "try e
 
 ## ⚡ Install in 30 seconds
 
-In **Claude Code**, add the marketplace and install the plugin (bundles all four skills):
+Paste this into **Claude Code** or **Codex**:
+
+```text
+Go to https://github.com/NeuraCerebra-AI/Shipworthy and install the Shipworthy skills into this app's skills directory. Install all four skills, use the repo instructions, and reload skills if your app supports it.
+```
+
+Want the exact **Claude Code** commands instead? The plugin bundles all four skills:
 
 ```bash
-/plugin marketplace add NeuraCerebra-AI/shipworthy
+/plugin marketplace add NeuraCerebra-AI/Shipworthy
 /plugin install shipworthy@shipworthy
 /reload-skills
 ```
@@ -59,7 +65,7 @@ ledger.
 <summary><b>Prefer a manual install (Codex, or copy the folders)?</b></summary>
 
 ```bash
-git clone https://github.com/NeuraCerebra-AI/shipworthy.git
+git clone https://github.com/NeuraCerebra-AI/Shipworthy.git
 cd shipworthy && ./install.sh   # copies the 4 skills into ~/.claude/skills or ~/.codex/skills
 ```
 Or copy any single skill folder from `plugins/shipworthy/skills/` into your skills directory — each one works on its own.
