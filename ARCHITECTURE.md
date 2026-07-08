@@ -60,10 +60,11 @@ evidence_debt. It must also generate the mandatory HTML report from the final
 ledger at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html`
 unless the user explicitly requests repo-local artifacts.
 
-Every full run also records the Multi-Agent Authorization Gate. If the current
-platform requires explicit permission for subagents, delegation, or parallel
-agent work, Shipworthy asks for it before dispatch. When authorization is not
-granted, the same lane roster runs sequentially and the final report records
+Every full run also records the Multi-Agent Authorization Gate. Best results
+come from answering `yes` when Shipworthy asks to authorize parallel subagents /
+delegation / multi-agent work. Codex has to ask before dispatching subagents;
+Claude Code generally does not have that Codex barrier. When authorization is
+not granted, the same lane roster runs sequentially and the final report records
 `sequential fallback because multi-agent authorization was not granted` as
 orchestration debt. Shipworthy instructions do not override platform tool
 policy.

@@ -75,7 +75,7 @@
     <rect width="928" height="118" rx="11" fill="#0C1220" stroke="#1E2840"/>
     <text x="20" y="30" class="sans" font-size="12.5" font-weight="700" letter-spacing="2" fill="#6C7C9E">ORCHESTRATION CHECKPOINT</text>
     <text x="20" y="56" class="mono" font-size="12.5" fill="#8494B6">lanes:  ship-deep-review · ship-product-workflows · ship-workflow-clarity</text>
-    <text x="20" y="80" class="mono" font-size="12.5" fill="#8494B6">mode:   5 parallel agents   ·   verifier: <tspan fill="#34D399">Opus → APPROVED</tspan></text>
+    <text x="20" y="80" class="mono" font-size="12.5" fill="#8494B6">auth:   yes   ·   mode: 5 lane agents   ·   verifier: <tspan fill="#34D399">Opus → APPROVED</tspan></text>
     <text x="20" y="104" class="mono" font-size="12.5" fill="#8494B6">omitted: load test (no safe env) → logged as <tspan fill="#F0B67A">evidence debt</tspan>, NOT as &quot;passed&quot;</text>
   </g>
 

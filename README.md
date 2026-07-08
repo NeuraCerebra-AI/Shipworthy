@@ -54,6 +54,10 @@ Then just ask:
 Are we shipworthy?
 ```
 
+Best results: if Shipworthy asks to authorize parallel subagents / delegation /
+multi-agent work, say `yes`. Codex has to ask; Claude Code generally does not
+have that Codex barrier, but `yes` makes the full-lane run explicit.
+
 That phrase is the flagship trigger: Shipworthy runs the full readiness
 orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
 static-only pass. It maps the path universe, tries every safe discoverable user
@@ -101,8 +105,8 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 
 ── ORCHESTRATION CHECKPOINT ─────────────────────────────────────────────────
   lanes: ship-deep-review, ship-product-workflows, ship-workflow-clarity
-  authorization: parallel subagents authorized
-  mode: 5 authorized parallel agents · verifier: Opus, APPROVED
+  authorization: yes
+  mode: 5 lane agents · verifier: Opus, APPROVED
   omitted: load test (no safe env) → logged as evidence debt, NOT as "passed"
 ```
 </details>

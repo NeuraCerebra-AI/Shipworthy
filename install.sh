@@ -43,10 +43,9 @@ Try it in Claude Code or Codex:
 
 That flagship phrase triggers the full Shipworthy orchestrator by default:
 minimum verified waves, all safe discoverable user paths, evidence debt, verifier
-gates, and the mandatory self-contained HTML report. If parallel subagents are
-not already explicitly authorized, it should ask for authorization and stop
-before running tools, reading the target, or falling back sequentially. Do not
-implement fixes unless the user asks after the audit.
+gates, and the mandatory self-contained HTML report. Codex may ask for authorization and stop; say "yes" for best results.
+Claude Code generally does not have that Codex barrier. Do not implement fixes
+unless the user asks after the audit.
 
 Or run a single lane, e.g. ship-workflow-clarity on one confusing screen.
 NEXT

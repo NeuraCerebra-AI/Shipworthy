@@ -40,7 +40,7 @@
     <text x="70" y="342" class="mono" font-size="16.5" font-weight="700" fill="#FCD9A0">ship-deep-review</text>
     <text x="70" y="366" class="sans" font-size="12.5" fill="#8A99B8">the evidence engine</text>
     <line x1="70" y1="382" x2="330" y2="382" stroke="#20293F"/>
-    <text x="70" y="408" class="sans" font-size="13" fill="#AAB6D0">· multi-wave agent dispatch</text>
+    <text x="70" y="408" class="sans" font-size="13" fill="#AAB6D0">· auth-gated agent dispatch</text>
     <text x="70" y="431" class="sans" font-size="13" fill="#AAB6D0">· independent verifier gates</text>
     <text x="70" y="454" class="sans" font-size="13" fill="#AAB6D0">· no-overclaim final synthesis</text>
     <text x="70" y="477" class="sans" font-size="12" fill="#67769A">owns wave barriers</text>
