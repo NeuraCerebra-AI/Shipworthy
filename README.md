@@ -45,7 +45,7 @@ In **Claude Code**, add the marketplace and install the plugin (bundles all four
 Then just ask:
 
 ```text
-Use ship-readiness-orchestrator in full blast on ./my-app.
+Use ship-readiness-orchestrator in full blast on our app.
 Try every safe user path, find missing and overcomplicated paths,
 critique clutter, and report ledger-backed readiness. Do not implement fixes.
 ```
