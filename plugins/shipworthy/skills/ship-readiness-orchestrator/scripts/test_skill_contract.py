@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[3]
+ORCH = ROOT / "skills" / "ship-readiness-orchestrator"
+SKILL = ORCH / "SKILL.md"
+PRESSURE = ORCH / "references" / "pressure-tests.md"
+HTML = ORCH / "references" / "visual-html-report.md"
+EXPORTS = ORCH / "references" / "exports-and-ci.md"
+WAVES = ROOT / "skills" / "ship-deep-review" / "references" / "wave-protocol.md"
+LANES = ORCH / "references" / "lane-prompts.md"
+README = ROOT.parents[1] / "README.md"
+ARCH = ROOT.parents[1] / "ARCHITECTURE.md"
+INSTALL = ROOT.parents[1] / "install.sh"
+
+PASS = []
+FAIL = []
+
+def read(path):
+    return path.read_text(encoding="utf-8")
+
+def ck(name, cond, detail=""):
+    (PASS if cond else FAIL).append(name)
+    print(f"  {'PASS' if cond else 'FAIL'}  {name}{'' if cond else '  -> '+detail}")
+
+skill = read(SKILL)
+pressure = read(PRESSURE)
+html = read(HTML)
+exports = read(EXPORTS)
+waves = read(WAVES)
+lanes = read(LANES)
+readme = read(README)
+arch = read(ARCH)
+install = read(INSTALL)
+all_text = "\n".join([skill, pressure, html, exports, waves, lanes, readme, arch, install])
+
+for phrase in ["shipworthy", "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness"]:
+    ck(f"T1 trigger phrase present: {phrase}", phrase in skill.lower())
+
+ck("T2 invocation contract section", "## Shipworthy Invocation Contract" in skill)
+ck("T3 operational mention means full blast", "operational mention of `shipworthy`" in skill and "full blast" in skill.lower())
+ck("T4 explicit narrow-scope exception", "unless the user explicitly narrows" in skill.lower())
+ck("T5 no target still triggers target gate", "If no target is obvious" in skill)
+
+ck("W1 minimum three verified waves in orchestrator", "minimum of three verified waves" in skill.lower())
+ck("W2 adaptive continuation in orchestrator", "adaptive continuation" in skill.lower())
+ck("W3 wave protocol minimum three", "minimum of three verified waves" in waves.lower())
+ck("W4 wave protocol extra waves", "additional waves" in waves.lower() and "coverage" in waves.lower())
+
+ck("P1 path-universe closure", "path-universe closure" in skill.lower())
+ck("P2 all safe discoverable paths stressed", "all safe discoverable" in skill.lower())
+ck("P3 closure labels include sampled justification", "sampled with justification" in all_text.lower())
+
+ck("H1 mandatory HTML report in orchestrator", "mandatory html report" in skill.lower())
+ck("H2 default external report path", "~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html" in all_text)
+ck("H3 visual report no longer optional-only", "generate it by default" in html.lower())
+ck("H3 full runs do not call HTML optional", "optional deliverables" not in skill.lower())
+ck("H3 exports force mandatory HTML for full runs", "force the html render" in exports.lower())
+ck("H4 report is renderer/template driven", "compact ledger json" in html.lower() and "never generate full html by hand" in html.lower())
+ck("H5 exports doc reflects mandatory full-blast report", "full shipworthy invocation" in exports.lower())
+
+ck("A1 shared runtime agent rule", "single coordinated runtime driver" in skill.lower())
+ck("A2 isolated contexts allow parallel runtime drivers", "isolated" in skill.lower() and "browser profiles" in skill.lower())
+ck("A3 lane prompts include runtime coordination", "runtime driver" in lanes.lower())
+
+ck("D1 README flagship phrase", "are we shipworthy?" in readme.lower())
+ck("D2 ARCHITECTURE full-blast gates", "mandatory html report" in arch.lower() and "minimum of three verified waves" in arch.lower())
+ck("D3 pressure tests trigger and report", "are we shipworthy?" in pressure.lower() and "mandatory html report" in pressure.lower())
+ck("D4 pressure tests shared runtime", "shared runtime" in pressure.lower() and "single coordinated runtime driver" in pressure.lower())
+ck("D5 install prompt uses flagship phrase", "are we shipworthy?" in install.lower())
+
+print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
+if FAIL:
+    print("FAILURES:", FAIL)
+    sys.exit(1)
+print("ALL SKILL CONTRACT TESTS PASSED")

@@ -3,17 +3,20 @@
 Everything here is a **render or transform of the finished ledger** — never a second source
 of truth, and generated only after Mandatory Flow step 17. All of it runs **locally**: the
 audit and its evidence never leave the machine (a real ZDR / data-sovereignty property for
-regulated or enterprise use). Offer these; don't force them.
+regulated or enterprise use). For full Shipworthy invocations, force the HTML render because
+it is part of the completion contract; offer SARIF, bundles, gates, and CI only when useful.
 
 Primary usage is a human running a pre-flight audit inside Codex / Claude Code (desktop or
-CLI). So the default deliverable is an **inline report**; these files are for when the user
-wants to **share, archive, gate, or automate**.
+CLI). For a full Shipworthy invocation, the default deliverables are an **inline
+report plus a mandatory self-contained HTML report** rendered from the final
+ledger. Other files are for when the user wants to **share, archive, gate, or
+automate**.
 
 ## The scripts (all take the ledger JSON)
 
 | Script | Produces | Use when |
 |---|---|---|
-| `scripts/render_report.py in.json out.html` | self-contained HTML report (verdict, coverage %, grouped findings, checkpoint); `--interactive` adds client-side filter/search/collapse | a shareable/printable human report |
+| `scripts/render_report.py in.json out.html` | self-contained HTML report (verdict stamp, coverage %, grouped findings, collapsible Evidence/Fix/Verify details, checkpoint); `--interactive` adds client-side filter/search/collapse | mandatory for full Shipworthy runs; optional/shareable for narrow runs |
 | `scripts/to_sarif.py in.json out.sarif [--gate]` | SARIF 2.1.0 for GitHub code scanning; `--gate` exits non-zero per policy | machine-readable findings / a merge gate |
 | `scripts/make_bundle.py in.json out.zip [--include PATH ...]` | a tamper-evident evidence bundle (ledger + report + SARIF + `manifest.json` with per-file SHA-256) | a defensible audit trail for a client/stakeholder |
 

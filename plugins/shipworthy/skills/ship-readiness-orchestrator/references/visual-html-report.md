@@ -1,33 +1,68 @@
-# Visual HTML readiness report (optional final artifact)
+# Visual HTML readiness report (mandatory for full Shipworthy)
 
 The audit already produces structured data — the coverage matrix and the finding
-ledger. `scripts/render_report.py` turns that data into **one self-contained HTML
-report** in the Shipworthy design system: a verdict banner, a coverage bar with a
-**covered-percentage** summary, findings **grouped by severity** (Blockers / Strong /
-Provisional / Notes, each with a count), and the orchestration checkpoint. It **prints
-cleanly to PDF** (a light print stylesheet keeps cards whole) and is **accessible**
-(the coverage bar carries an `aria-label`; each segment has a `title`). The output is a single
-file: inline CSS, system fonts, **no network calls and no JavaScript** — so it opens
-offline, renders identically in browsers and `wkhtmltopdf`, and prints cleanly.
+ledger. `scripts/render_report.py` turns compact ledger JSON into **one
+self-contained HTML report** in the Shipworthy design system: masthead, verdict
+stamp, stats chips, a coverage bar with a **covered-percentage** summary,
+findings **grouped by severity** (Blockers / Strong / Provisional / Notes, each
+with a count), collapsible Evidence / Fix / Verify details, and the
+orchestration checkpoint. It **prints cleanly to PDF** (a light print stylesheet
+keeps findings whole) and is **accessible** (the coverage bar carries an
+`aria-label`; each segment has a `title`). The output is a single file: inline
+CSS, system fonts, **no network calls and no JavaScript by default** — so it
+opens offline, renders consistently in browsers and `wkhtmltopdf`, and prints
+cleanly.
+
+## Migration decision
+
+The preferred visual direction came from a stronger hand-authored report style:
+compact premium dark layout, clearer Shipworthy masthead, rotated verdict stamp,
+stats chips, coverage legend, severity-grouped findings, numbered finding cards,
+confidence pills, and collapsible Evidence / Fix / Verify rows. Those traits are
+the template target.
+
+The older renderer remains the operational model: JSON-driven, deterministic,
+small, escaped, partial-data tolerant, self-contained, and simulation-tested. Do
+not import the hand-authored report's Google Fonts dependency or make agents
+write HTML prose by hand. Agents emit compact ledger JSON; `render_report.py`
+fills the fixed template.
 
 ## When to generate it
 
 Only after the final claim ledger, coverage, verifier outputs, and checkpoint are
-complete (i.e., after step 17 of the Mandatory Flow). It is a *rendering* of the
-canonical ledger, never a second source of truth. Offer it; don't force it.
+complete (i.e., after the Mandatory Flow final ledger and verifier gates). It is
+a *rendering* of the canonical ledger, never a second source of truth.
+
+For a full Shipworthy invocation, generate it by default. The default output path
+is outside the audited repo so read-only target behavior is preserved:
+
+```text
+~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html
+```
+
+Use a repo-local path such as `.shipworthy/reports/<timestamp>/readiness-report.html`
+only when the user explicitly asks for repo artifacts.
+
+For rapid, narrow, or static constrained passes, generate it when requested or
+when the result is being shared, archived, or handed off.
+
+Agents should emit compact ledger JSON only and never generate full HTML by hand.
+The renderer fills a fixed template. This keeps token use low and prevents
+report style drift.
 
 ## How to generate it
 
-1. Serialize the completed ledger into the JSON contract below (write it next to the
-   evidence, e.g. `readiness-report.json`).
+1. Serialize the completed ledger into the JSON contract below (write it next to
+   the evidence, e.g. `readiness-report.json`).
 2. Run:
 
    ```bash
    python3 scripts/render_report.py readiness-report.json readiness-report.html
    ```
 
-   Add `--interactive` for a client-side filter/search/collapse version (opt-in inline
-   JS, no network; print-safe). Other formats — SARIF, evidence bundle, merge gate — are in
+   Add `--interactive` for a client-side filter/search/collapse version (opt-in
+   inline JS, no network; print-safe). The mandatory default report remains
+   no-JS. Other formats — SARIF, evidence bundle, merge gate — are in
    `references/exports-and-ci.md`.
 
 3. Point the user to `readiness-report.html`. A worked example ships as
@@ -76,7 +111,7 @@ to a neutral slate so the report never breaks on partial data. Setting
 
 ## Robustness
 
-The generator degrades gracefully rather than crashing on partial or hostile data: every text field is HTML-escaped (XSS-safe), unknown severity/verdict/kind values fall back to neutral styling, missing sections render a muted note, non-numeric coverage values are ignored, long unbroken strings wrap, and file I/O is UTF-8 (emoji/CJK/RTL safe). This is enforced by `scripts/test_render_report.py` — 124 assertions across 18 scenarios (empty input, XSS payloads in every field, unicode, unknown verdicts, 40 findings, degenerate coverage, wrong types, nulls). Run it with:
+The generator degrades gracefully rather than crashing on partial or hostile data: every text field is HTML-escaped (XSS-safe), unknown severity/verdict/kind values fall back to neutral styling, missing sections render a muted note, non-numeric coverage values are ignored, long unbroken strings wrap, and file I/O is UTF-8 (emoji/CJK/RTL safe). This is enforced by `scripts/test_render_report.py` across empty input, XSS payloads in every field, unicode, unknown verdicts, 40 findings, degenerate coverage, wrong types, nulls, premium layout anatomy, details rows, and default no-network/no-JS behavior. Run it with:
 
 ```bash
 python3 scripts/test_render_report.py

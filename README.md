@@ -45,10 +45,15 @@ In **Claude Code**, add the marketplace and install the plugin (bundles all four
 Then just ask:
 
 ```text
-Use ship-readiness-orchestrator in full blast on our app.
-Try every safe user path, find missing and overcomplicated paths,
-critique clutter, and report ledger-backed readiness. Do not implement fixes.
+Are we shipworthy?
 ```
+
+That phrase is the flagship trigger: Shipworthy runs the full readiness
+orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
+static-only pass. It maps the path universe, tries every safe discoverable user
+path, hunts for missing and overcomplicated paths, uses agents where safe, runs
+verified waves, and generates a self-contained HTML report from the final
+ledger.
 
 <details>
 <summary><b>Prefer a manual install (Codex, or copy the folders)?</b></summary>
@@ -66,7 +71,7 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 
 <sub>*Illustrative — the report format is real; the contents are a sample, not a live run. A recorded asciinema/GIF walkthrough → `docs/demo.gif`; PRs welcome.*</sub>
 
-> **Want it shareable?** The same run renders to a self-contained **HTML report** (verdict, coverage bar, severity-grouped findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
+> Full Shipworthy runs also render to a self-contained **HTML report** by default (verdict stamp, coverage bar, severity-grouped findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
 
 <details><summary><b>See the same report as raw text</b></summary>
 

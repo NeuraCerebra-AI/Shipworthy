@@ -34,6 +34,7 @@ jobs:
       - name: Deliverable generators — simulation suites
         run: |
           cd plugins/shipworthy/skills/ship-readiness-orchestrator
+          python3 scripts/test_skill_contract.py
           python3 scripts/test_render_report.py
           python3 scripts/test_to_sarif.py
           python3 scripts/test_make_bundle.py

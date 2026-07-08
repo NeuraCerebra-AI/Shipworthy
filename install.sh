@@ -39,9 +39,12 @@ conduct the other three when present (it fails loudly, not silently, if one is m
 
 Try it in Claude Code or Codex:
 
-  Use ship-readiness-orchestrator in full blast on ./my-app.
-  Try every safe user path, find missing/overcomplicated paths, and report
-  ledger-backed readiness. Do not implement fixes.
+  Are we shipworthy? Target: ./my-app
+
+That flagship phrase triggers the full Shipworthy orchestrator by default:
+minimum verified waves, all safe discoverable user paths, evidence debt, verifier
+gates, and the mandatory self-contained HTML report. Do not implement fixes
+unless the user asks after the audit.
 
 Or run a single lane, e.g. ship-workflow-clarity on one confusing screen.
 NEXT

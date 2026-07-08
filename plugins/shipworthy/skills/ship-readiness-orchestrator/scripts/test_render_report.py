@@ -24,14 +24,14 @@ def self_contained(h):
     if '@import' in hl: bad.append('@import')
     if re.search(r'url\(\s*["\']?https?://', hl): bad.append('css url()')
     return (not bad), bad
-def cards(h): return h.count('class="card"')
-def vpill_bg(h):
-    m=re.search(r'\.v-pill\{[^}]*background:(#[0-9A-Fa-f]{6})', h); return m.group(1) if m else None
+def cards(h): return h.count('class="finding"')
+def stamp_color(h):
+    m=re.search(r'\.stamp\{[^}]*border:3px solid (#[0-9A-Fa-f]{6})', h); return m.group(1) if m else None
 
 PASS=[]; FAIL=[]
 def check(name, cond, detail=""):
     (PASS if cond else FAIL).append(name)
-    print(f"  {'PASS' if cond else 'FAIL'}  {name}{'' if cond else '  -> '+detail}")
+    print(f"  {'PASS' if cond else 'FAIL'}  {name}{'' if cond else '  -> '+str(detail)}")
 
 def base_ok(name, data, expect_cards=None, expect_verdict=None):
     try: h=render(data)
@@ -45,8 +45,8 @@ def base_ok(name, data, expect_cards=None, expect_verdict=None):
     if expect_cards is not None:
         check(name+f": {expect_cards} finding-cards", cards(h)==expect_cards, f"got {cards(h)}")
     if expect_verdict is not None:
-        want=VERDICT.get(expect_verdict, VERDICT_NEUTRAL)[0]
-        check(name+f": verdict color {expect_verdict}", vpill_bg(h)==want, f"got {vpill_bg(h)} want {want}")
+        want=VERDICT.get(expect_verdict, VERDICT_NEUTRAL)[2]
+        check(name+f": verdict stamp color {expect_verdict}", stamp_color(h)==want, f"got {stamp_color(h)} want {want}")
     return h
 
 # ---- scenarios --------------------------------------------------------------
@@ -62,8 +62,8 @@ check("02: shows clean-note", "No blocking or open findings" in h)
 base_ok("03 READY WITH RISKS", {**ready,"verdict":"READY WITH RISKS"}, expect_verdict="READY WITH RISKS")
 base_ok("04 CONDITIONAL", {**ready,"verdict":"CONDITIONAL"}, expect_verdict="CONDITIONAL")
 h=base_ok("05 unknown verdict -> neutral", {**ready,"verdict":"ship it maybe"}, expect_verdict="__unknown__")
-check("05: neutral bg used", vpill_bg(h)==VERDICT_NEUTRAL[0], vpill_bg(h))
-check("05: verdict uppercased", ">SHIP IT MAYBE<" in h)
+check("05: neutral stamp used", stamp_color(h)==VERDICT_NEUTRAL[2], stamp_color(h))
+check("05: verdict title-cased", ">Ship It Maybe<" in h)
 
 h=base_ok("06 empty {}", {})
 check("06: empty renders coverage note", "Coverage not recorded" in h)
@@ -122,7 +122,7 @@ check("13: no flex:nan/inf in bar", "flex:nan" not in h.lower() and "flex:inf" n
 # 14 missing summary -> derived
 h=base_ok("14 derived summary", {"findings":[{"severity":"blocker","title":"a"},{"severity":"blocker","title":"b"},
                                              {"severity":"provisional","title":"c"}]}, expect_cards=3)
-check("14: derived counts shown (2 blockers ... 1 provisional)", "2 blockers · 0 strong · 1 provisional" in h)
+check("14: derived counts shown in stats row", 'c-blockers"><span class="n">2</span>' in h and 'c-provisional"><span class="n">1</span>' in h)
 
 # 15/16 missing coverage / checkpoint already exercised in 06; explicit:
 base_ok("15 missing coverage only", {"verdict":"READY","findings":[{"severity":"info","title":"x"}],
@@ -139,37 +139,39 @@ base_ok("18 nulls", {"target":None,"verdict":None,"generated_at":None,"summary":
 
 # ---- new-feature assertions: grouping, coverage %, a11y, print ----
 hb = render(full)
-check("F1 group header Blockers +count",  '<span class="grp-dot"' in hb and '>Blockers<' in hb and 'grp-n">2<' in hb)
-check("F2 group header Strong signals",   '>Strong signals<' in hb and 'grp-n">1<' in hb)
-check("F3 group header Provisional +cnt", '>Provisional<' in hb and 'grp-n">3<' in hb)
-check("F4 coverage % correct (62%)",      '<b>62%</b> covered \u00b7 21 of 34 discovered paths' in hb)
-check("F5 bar role+aria-label",           'role="img"' in hb and 'aria-label="coverage: 21 covered' in hb)
-check("F6 per-segment title (a11y)",      'title="covered: 21"' in hb)
+check("F1 blocker section +count",        'class="section tier-blockers"' in hb and '<h2>Blockers</h2><span class="count">2</span>' in hb)
+check("F2 strong section",                'class="section tier-strong"' in hb and '<h2>Strong signals</h2><span class="count">1</span>' in hb)
+check("F3 provisional section +count",    'class="section tier-provisional"' in hb and '<h2>Provisional</h2><span class="count">3</span>' in hb)
+check("F4 coverage % correct (62%)",      '<strong>62%</strong>&nbsp; covered · 21 of 34 discovered paths' in hb)
+check("F5 bar role+aria-label",           'role="img"' in hb and 'aria-label="Coverage breakdown' in hb)
+check("F6 per-segment title (a11y)",      'title="covered — 21"' in hb)
 check("F7 print break-inside:avoid",      'break-inside:avoid' in hb)
 hr = render(ready)
-check("F8 no group headers when 0 findings", '>Blockers<' not in hr and 'class="grp"' not in hr)
+check("F8 no severity sections when 0 findings", '<section class="section tier-' not in hr)
 check("F9 clean note still shown",        'No blocking or open findings' in hr)
 hu = render({"findings":[{"severity":"critical","title":"weird sev"}]})
-check("F10 unknown severity under Notes",  '>Notes<' in hu)
+check("F10 unknown severity under Notes",  '<h2>Notes</h2>' in hu)
 hc = render({"coverage":{"total_paths":50,"segments":[{"kind":"covered","value":25},{"kind":"missing","value":25}]},"findings":[]})
-check("F11 coverage 50% (25 of 50)",       '<b>50%</b> covered \u00b7 25 of 50 discovered paths' in hc)
+check("F11 coverage 50% (25 of 50)",       '<strong>50%</strong>&nbsp; covered · 25 of 50 discovered paths' in hc)
 hd = render({"coverage":{"segments":[{"kind":"covered","value":8},{"kind":"sampled","value":2}]},"findings":[]})
-check("F12 coverage % derived from sum",   '<b>80%</b> covered \u00b7 8 of 10 discovered paths' in hd)
-check("F13 contrast bump applied",         '#7E8CAD' in hb and '#5F6E90' not in hb)
+check("F12 coverage % derived from sum",   '<strong>80%</strong>&nbsp; covered · 8 of 10 discovered paths' in hd)
+check("F13 premium report anatomy",        'class="masthead"' in hb and 'class="stamp"' in hb and 'class="stats-row"' in hb)
+check("F14 collapsible evidence details",  hb.count("<details") == 6 and "Evidence · Fix · Verify" in hb)
+check("F15 no external font links",        "fonts.googleapis.com" not in hb and "<link" not in hb.lower())
 
 # ---- de-duplication assertions (no repeated severity/confidence) ----
 hb = render(full)
 check("D1 no 'Strong \u00b7 Strong'",          "Strong \u00b7 Strong" not in hb)
 check("D2 no 'Provisional \u00b7 Provisional'","Provisional \u00b7 Provisional" not in hb)
-check("D3 no 'Blocker' word on cards",          hb.count("badge") == 0 or ">Blocker<" not in hb)
+check("D3 no 'Blocker' word on finding cards",  hb.count("pill") == 0 or ">Blocker<" not in hb)
 check("D4 blockers show 'Confirmed' chip",      ">Confirmed<" in hb)
 h_ii = render({"findings":[{"severity":"provisional","confidence":"inferred","title":"x"}]})
 check("D5 differing confidence shows chip",      ">Inferred<" in h_ii)
 h_ss = render({"findings":[{"severity":"strong","confidence":"strong","title":"x"}]})
-check("D6 equal sev/conf shows NO chip",         'class="badge"' not in h_ss)
+check("D6 equal sev/conf shows NO chip",         'class="pill' not in h_ss)
 h_pp = render({"findings":[{"severity":"provisional","confidence":"Provisional","title":"x"}]})
-check("D7 case-insensitive dedup",               'class="badge"' not in h_pp)
-check("D8 no orphan dot in card head",           'class="dot"' not in hb)  # dot removed from cards
+check("D7 case-insensitive dedup",               'class="pill' not in h_pp)
+check("D8 numbered finding cards",               'class="finding-num">01<' in hb)
 
 # ---- interactive-mode assertions (opt-in --interactive) ----
 import re as _re
@@ -182,7 +184,7 @@ check("I4 interactive has controls bar",         'class="controls"' in di)
 check("I5 filter buttons per present severity",  di.count('class="fbtn on"') >= 3)
 check("I6 interactive has search input",         'class="search"' in di and 'type="search"' in di)
 check("I7 interactive has inline <script>",      "<script>" in di and "</script>" in di)
-check("I8 cards carry data-sev",                 'data-sev="blocker"' in di and 'data-sev="provisional"' in di)
+check("I8 findings carry data-sev",              'data-sev="blocker"' in di and 'data-sev="provisional"' in di)
 check("I9 is-hidden + collapsed styles present", ".is-hidden" in di and ".collapsed" in di)
 _hl = di.lower()
 _ext = bool(_re.search(r'src\s*=\s*["\']?https?://', _hl)) or ("<link" in _hl) or ("@import" in _hl) or bool(_re.search(r'url\(\s*["\']?https?://', _hl))

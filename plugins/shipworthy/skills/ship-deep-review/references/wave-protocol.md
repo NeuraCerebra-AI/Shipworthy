@@ -67,6 +67,12 @@ Run final smoke and adjacent-surface checks. Look for missed route surfaces, hid
 
 Use the coverage matrix to choose the final pass. Do not spend Wave 3 only rechecking already-proven lanes while untouched surfaces remain relevant to the user request.
 
+## Minimum And Adaptive Waves
+
+A full Shipworthy run has a minimum of three verified waves after Wave 0. Treat the first three verified waves as the floor, not the finish line. Additional waves are required when the coverage matrix still has major route families, user roles, state variants, runtime proof, contradictions, disconfirmation needs, safe path attempts, or evidence debt that could change the readiness verdict.
+
+Adaptive continuation is driven by verified evidence, not by anxiety or time. If every material expected intent and discovered path is labeled covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt, the orchestrator may proceed to the final no-overclaim verifier. If the independent verifier says coverage is too thin, run additional waves or mark the run incomplete instead of writing a normal final report.
+
 ## Verified Barrier After Wave 3
 
 Repeat the read-all + evidence-state + independent verifier + verification-certificate + summary gate before the final report. The final report must be based on verified wave summaries plus direct evidence, not raw agent volume.

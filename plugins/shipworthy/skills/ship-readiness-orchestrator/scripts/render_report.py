@@ -35,6 +35,9 @@ VERDICT_NEUTRAL = ("#141A28", "#2A3654", "#AEBAD4")  # unknown verdict -> neutra
 
 def esc(x): return html.escape("" if x is None else str(x))
 
+def title_case(x):
+    return " ".join(w[:1].upper() + w[1:].lower() for w in str(x).split())
+
 def num(x, default=0.0):
     try:
         v = float(x); return v if v == v else default   # reject NaN
@@ -42,13 +45,15 @@ def num(x, default=0.0):
         return default
 
 def seg_html(segments):
-    n = len(segments); out = []
-    for i, s in enumerate(segments):
+    total = sum(max(num((s or {}).get("value", 0)), 0) for s in segments) or 1
+    out = []
+    for s in segments:
         c = COV.get((s or {}).get("kind", ""), "#334155")
-        v = max(num((s or {}).get("value", 0)), 0.0001)
-        mr = "" if i == n - 1 else "margin-right:3px;"
-        lbl = esc(f'{(s or {}).get("label", (s or {}).get("kind","")) }: {(s or {}).get("value","")}')
-        out.append(f'<div title="{lbl}" style="flex:{v:g} 1 0;{mr}background:{c};height:16px;border-radius:3px"></div>')
+        v = max(num((s or {}).get("value", 0)), 0)
+        pct = max((v / total) * 100, 0)
+        label = (s or {}).get("label", (s or {}).get("kind", ""))
+        title = esc(f"{label} — {(s or {}).get('value','')}")
+        out.append(f'<span style="flex:0 0 {pct:.1f}%;background:{c}" aria-hidden="true" title="{title}"></span>')
     return "".join(out)
 
 def legend_html(segments):
@@ -56,28 +61,40 @@ def legend_html(segments):
     for s in segments:
         s = s or {}
         c = COV.get(s.get("kind", ""), "#334155")
-        out.append(f'<span class="chip"><i style="background:{c}"></i>'
-                   f'{esc(s.get("label", s.get("kind", "")))} {esc(s.get("value", ""))}</span>')
+        out.append(f'<span class="cov-key"><i class="sw" style="background:{c}"></i>'
+                   f'{esc(s.get("label", s.get("kind", "")))}&nbsp;<b>{esc(s.get("value", ""))}</b></span>')
     return "".join(out)
 
-def finding_html(f):
+def details_html(f):
+    rows = []
+    for k in ("evidence", "fix", "verify"):
+        if f.get(k):
+            cls = "mono" if k == "evidence" else "prose"
+            rows.append(f'<div class="ev-row"><div class="ev-label">{k}</div>'
+                        f'<p class="ev-value {cls}">{esc(f[k])}</p></div>')
+    if not rows:
+        return ""
+    return ('<details><summary>Evidence · Fix · Verify</summary>'
+            f'<div class="ev-block">{"".join(rows)}</div></details>')
+
+def finding_html(f, idx):
     f = f or {}
-    sev = f.get("severity", "info")
+    raw_sev = f.get("severity", "info")
+    sev = raw_sev if raw_sev in SEV_ORDER else "info"
     accent, sev_label = SEV.get(sev, SEV["info"])
     conf = str(f.get("confidence") or "").strip()
     # Severity is already carried by the group header + the card's colored border,
     # so show a confidence chip ONLY when it adds information (differs from severity).
     chip = ""
     if conf and conf.lower() not in (sev_label.lower(), str(sev).lower()):
-        chip = f'<span class="badge" style="color:{accent};border-color:{accent}44">{esc(conf.capitalize())}</span>'
-    parts = [f'<div class="card" data-sev="{sev}" style="border-left-color:{accent}">',
-             f'<div class="c-head">{chip}<span class="c-title">{esc(f.get("title","(untitled finding)"))}</span></div>']
+        chip = f'<span class="pill pill-strong" style="color:{accent};border-color:{accent}66">{esc(conf.capitalize())}</span>'
+    parts = [f'<article class="finding" data-sev="{sev}" style="border-left-color:{accent}">',
+             f'<div class="finding-top c-head"><span class="finding-num">{idx:02d}</span>{chip}</div>',
+             f'<h3>{esc(f.get("title","(untitled finding)"))}</h3>']
     if f.get("consequence"):
-        parts.append(f'<div class="conseq">↳ {esc(f["consequence"])}</div>')
-    for k in ("evidence", "fix", "verify"):
-        if f.get(k):
-            parts.append(f'<div class="kv"><span class="k">{k}</span><code>{esc(f[k])}</code></div>')
-    parts.append("</div>")
+        parts.append(f'<p class="consequence"><span class="arrow">↳</span>{esc(f["consequence"])}</p>')
+    parts.append(details_html(f))
+    parts.append("</article>")
     return "".join(parts)
 
 def render(data, interactive=False):
@@ -86,6 +103,7 @@ def render(data, interactive=False):
     gen = esc(data.get("generated_at") or datetime.date.today().isoformat())
 
     verdict = str(data.get("verdict", "NOT READY")).upper()
+    verdict_label = title_case(verdict)
     vbg, vbd, vtx = VERDICT.get(verdict, VERDICT_NEUTRAL)
 
     findings = data.get("findings", [])
@@ -101,7 +119,9 @@ def render(data, interactive=False):
         c = Counter(f.get("severity", "info") for f in findings)
         s = {"blockers": c.get("blocker", 0), "strong": c.get("strong", 0),
              "provisional": c.get("provisional", 0)}
-    summ = f'{s.get("blockers",0)} blockers · {s.get("strong",0)} strong · {s.get("provisional",0)} provisional'
+    blockers = s.get("blockers", 0)
+    strong = s.get("strong", 0)
+    provisional = s.get("provisional", 0)
 
     cov = data.get("coverage") if isinstance(data.get("coverage"), dict) else {}
     segs = cov.get("segments", [])
@@ -113,34 +133,38 @@ def render(data, interactive=False):
         total = num(cov.get("total_paths"), 0)
         if total <= 0:
             total = sum(num(s.get("value")) for s in segs)
-        cov_sum = (f'<div class="cov-sum"><b>{round(100*covered/total)}%</b> covered · '
-                   f'{covered:g} of {total:g} discovered paths</div>') if total > 0 else ''
-        aria = "coverage: " + ", ".join(
-            f'{num(s.get("value")):g} {(s.get("label") or s.get("kind") or "")}' for s in segs)
-        cov_block = (f'<div class="lbl">COVERAGE</div>{cov_sum}'
-                     f'<div class="bar" role="img" aria-label="{esc(aria)}">{seg_html(segs)}</div>'
-                     f'<div class="legend">{legend_html(segs)}</div>')
+        pct = round(100 * covered / total) if total > 0 else 0
+        cov_sum = (f'<p class="cov-line"><strong>{pct}%</strong>&nbsp; covered · '
+                   f'{covered:g} of {total:g} discovered paths</p>') if total > 0 else ''
+        aria = "Coverage breakdown" + (f" of {total:g} discovered paths: " if total > 0 else ": ")
+        aria += ", ".join(f'{num(s.get("value")):g} {(s.get("label") or s.get("kind") or "")}' for s in segs)
+        cov_block = (f'<section class="section"><div class="section-head"><h2>Coverage</h2></div>{cov_sum}'
+                     f'<div class="cov-bar" role="img" aria-label="{esc(aria)}">{seg_html(segs)}</div>'
+                     f'<div class="cov-legend">{legend_html(segs)}</div></section>')
     else:
-        cov_block = '<div class="lbl">COVERAGE</div><div class="muted-note">Coverage not recorded for this run.</div>'
+        cov_block = ('<section class="section"><div class="section-head"><h2>Coverage</h2></div>'
+                     '<div class="muted-note">Coverage not recorded for this run.</div></section>')
 
     if findings:
         buckets = {sev: [] for sev in SEV_ORDER}
         for f in findings:
             buckets[f.get("severity") if f.get("severity") in SEV_ORDER else "info"].append(f)
-        parts = []
+        parts = ['<div class="group-label">Findings</div>']
+        tier = {"blocker": "tier-blockers", "strong": "tier-strong",
+                "provisional": "tier-provisional", "info": "tier-info"}
         for sev in SEV_ORDER:
             b = buckets[sev]
             if not b:
                 continue
-            accent = SEV[sev][0]
-            parts.append(f'<div class="grp"><span class="grp-dot" style="background:{accent}"></span>'
-                         f'{GRP_LABEL[sev]}<span class="grp-n">{len(b)}</span></div>')
-            parts.extend(finding_html(f) for f in b)
+            parts.append(f'<section class="section {tier[sev]}">'
+                         f'<div class="section-head"><h2>{GRP_LABEL[sev]}</h2><span class="count">{len(b)}</span></div>')
+            parts.extend(finding_html(f, i) for i, f in enumerate(b, 1))
+            parts.append('</section>')
         find_block = "".join(parts)
     else:
-        find_block = ('<div class="card" style="border-left-color:#34D399">'
-                      '<div class="c-head"><span class="dot" style="background:#34D399"></span>'
-                      '<span class="c-title">No blocking or open findings were recorded.</span></div></div>')
+        find_block = ('<section class="section"><div class="section-head"><h2>Findings</h2></div>'
+                      '<article class="finding" style="border-left-color:#34D399">'
+                      '<h3>No blocking or open findings were recorded.</h3></article></section>')
 
     ck = data.get("checkpoint") if isinstance(data.get("checkpoint"), dict) else {}
     ck_rows = []
@@ -149,7 +173,8 @@ def render(data, interactive=False):
     if ck.get("verifier"): ck_rows.append(("verifier", ck["verifier"]))
     if isinstance(ck.get("omitted"), list):
         for o in ck["omitted"]: ck_rows.append(("omitted", o))
-    ck_html = ("".join(f'<div class="ck"><span class="k">{esc(k)}</span><code>{esc(v)}</code></div>'
+    ck_html = ("".join(f'<div class="orch-row"><div class="orch-label">{esc(k)}</div>'
+                       f'<div class="orch-value">{esc(v)}</div></div>'
                        for k, v in ck_rows)
                or '<div class="muted-note">No orchestration checkpoint recorded.</div>')
 
@@ -163,15 +188,15 @@ def render(data, interactive=False):
     if interactive:
         controls_css = (
             "  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}\n"
-            "  .fbtn{background:#0E1830;border:1px solid #2A3654;border-radius:16px;padding:4px 12px;"
-            "font-size:12.5px;color:#9FB0CE;cursor:pointer;font-family:inherit}\n"
+            "  .fbtn{background:#101E36;border:1px solid #243350;border-radius:16px;padding:4px 12px;"
+            "font-size:12.5px;color:#8B9AB8;cursor:pointer;font-family:inherit}\n"
             "  .fbtn:not(.on){opacity:.4}\n"
-            "  .search{flex:1;min-width:160px;background:#0C1220;border:1px solid #2A3654;border-radius:16px;"
-            "padding:5px 12px;color:#C7D2E6;font-size:12.5px;font-family:inherit}\n"
+            "  .search{flex:1;min-width:160px;background:#101E36;border:1px solid #243350;border-radius:16px;"
+            "padding:5px 12px;color:#D7DEEC;font-size:12.5px;font-family:inherit}\n"
             "  .search::placeholder{color:#5F6E90}\n"
             "  .is-hidden{display:none}\n"
-            "  .card[data-sev] .c-head{cursor:pointer}\n"
-            "  .card.collapsed .conseq,.card.collapsed .kv{display:none}\n")
+            "  .finding[data-sev] .c-head{cursor:pointer}\n"
+            "  .finding.collapsed .consequence,.finding.collapsed details{display:none}\n")
 
         sev_present = []
         for sev in SEV_ORDER:
@@ -191,109 +216,106 @@ def render(data, interactive=False):
                   "var q='';var si=document.querySelector('.search');"
                   "if(si){si.addEventListener('input',function(){q=si.value.toLowerCase();apply();});}"
                   "document.querySelectorAll('.c-head').forEach(function(h){h.addEventListener('click',function(e){"
-                  "if(e.target.tagName==='A')return;h.parentNode.classList.toggle('collapsed');});});"
+                  "if(e.target.tagName==='A')return;h.closest('.finding').classList.toggle('collapsed');});});"
                   "var ca=document.getElementById('collapseAll');if(ca){ca.addEventListener('click',function(){"
-                  "var cards=document.querySelectorAll('.card[data-sev]');"
+                  "var cards=document.querySelectorAll('.finding[data-sev]');"
                   "var anyOpen=[].some.call(cards,function(c){return !c.classList.contains('collapsed');});"
                   "cards.forEach(function(c){c.classList.toggle('collapsed',anyOpen);});"
                   "ca.textContent=anyOpen?'Expand all':'Collapse all';});}"
-                  "function apply(){document.querySelectorAll('.card[data-sev]').forEach(function(c){"
+                  "function apply(){document.querySelectorAll('.finding[data-sev]').forEach(function(c){"
                   "var okS=on[c.dataset.sev];var okQ=!q||c.textContent.toLowerCase().indexOf(q)>-1;"
                   "c.classList.toggle('is-hidden',!(okS&&okQ));});"
-                  "document.querySelectorAll('.grp').forEach(function(g){var n=g.nextElementSibling,vis=false;"
-                  "while(n&&n.classList.contains('card')){if(!n.classList.contains('is-hidden'))vis=true;n=n.nextElementSibling;}"
-                  "g.classList.toggle('is-hidden',!vis);});}"
+                  "document.querySelectorAll('.section[class*=tier-]').forEach(function(s){"
+                  "var vis=[].some.call(s.querySelectorAll('.finding'),function(c){return !c.classList.contains('is-hidden');});"
+                  "s.classList.toggle('is-hidden',!vis);});}"
                   "})();</script>")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shipworthy Readiness Report — {target}</title>
 <style>
-  :root{{color-scheme:dark}}
+  :root{{color-scheme:dark;--void:#0A1526;--panel:#101E36;--panel-raised:#16283F;--hairline:#243350;--hairline-soft:#1B2A44;--paper:#EDF1F8;--prose:#D7DEEC;--muted:#8B9AB8;--muted-dim:#647089;--radius:14px}}
   *{{box-sizing:border-box}}
-  body{{margin:0;background:#080B14;color:#C7D2E6;
+  html{{background:var(--void)}}
+  body{{margin:0;background:radial-gradient(ellipse 900px 460px at 50% -8%,#142644 0%,transparent 60%),var(--void);color:var(--paper);
     font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    -webkit-font-smoothing:antialiased;overflow-wrap:anywhere}}
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow-wrap:anywhere}}
   code,.mono{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}}
-  .page{{max-width:920px;margin:0 auto;padding:34px 26px 56px}}
-  .hdr{{display:flex;justify-content:space-between;align-items:center;
-    padding-bottom:16px;border-bottom:1px solid #1A2438;flex-wrap:wrap;gap:8px}}
-  .brand{{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#E8EEF7}}
-  .brand .g{{color:#34D399}}
-  .brand .sub{{font-size:14px;font-weight:600;color:#6E7EA0;letter-spacing:0;margin-left:6px}}
-  .meta{{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#7C8AAA}}
-  .ro{{display:inline-block;border:1px solid #26355A;border-radius:11px;padding:2px 9px;color:#9FB0CE;font-size:11.5px}}
-  .lbl{{font-size:12px;font-weight:700;letter-spacing:2px;color:#8492B2;margin:26px 0 8px}}
-  .muted-note{{color:#7E8CAD;font-size:13px;font-style:italic;margin-bottom:6px}}
-  .cov-sum{{font-size:13px;color:#9DAAC8;margin:-2px 0 8px}}
-  .cov-sum b{{color:#E2E8F3;font-size:15px}}
-  .grp{{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:1.2px;
-    text-transform:uppercase;color:#B7C3DB;margin:16px 0 8px}}
-  .grp-dot{{width:8px;height:8px;border-radius:50%;flex:none}}
-  .grp-n{{background:#141B2C;border:1px solid #26314C;border-radius:20px;padding:0 8px;
-    font-size:11px;color:#93A2C1;letter-spacing:0}}
-  .verdict{{display:flex;align-items:center;gap:20px;margin-top:22px;flex-wrap:wrap}}
-  .v-pill{{font-size:23px;font-weight:800;letter-spacing:.5px;padding:11px 20px;border-radius:12px;
-    background:{vbg};border:1px solid {vbd};color:{vtx};white-space:nowrap}}
-  .v-sum{{font-size:15px;color:#AEBAD4}}
-  .v-sum .muted{{color:#7E8CAD;font-size:12.5px}}
-  .bar{{display:flex;width:100%;margin:2px 0 12px}}
-  .legend{{display:flex;flex-wrap:wrap;gap:10px 18px}}
-  .chip{{font-size:12.5px;color:#8D9BBB;white-space:nowrap}}
-  .chip i{{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}}
-  .card{{background:#0E1424;border:1px solid #242F49;border-left:4px solid #64748B;border-radius:11px;
-    padding:14px 16px;margin-bottom:12px}}
-  .c-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
-  .dot{{width:9px;height:9px;border-radius:50%;flex:none}}
-  .badge{{font-size:12px;font-weight:700;border:1px solid;border-radius:20px;padding:2px 9px;white-space:nowrap}}
-  .c-title{{font-size:15.5px;font-weight:700;color:#E6ECF7;overflow-wrap:anywhere}}
-  .conseq{{color:#93A2C1;font-size:13px;margin:8px 0 2px 19px;overflow-wrap:anywhere}}
-  .kv{{margin:7px 0 0 19px;font-size:13px;color:#AAB6D0;overflow-wrap:anywhere}}
-  .kv .k{{display:inline-block;min-width:64px;color:#6E7EA0;font-weight:600;
-    text-transform:uppercase;font-size:11px;letter-spacing:.6px;vertical-align:top}}
-  .kv code{{font-size:12.5px;color:#93A6C6;overflow-wrap:anywhere}}
-  .ckpt-box{{background:#0C1220;border:1px solid #1E2840;border-radius:11px;padding:14px 16px}}
-  .ck{{margin:6px 0;font-size:12.5px;overflow-wrap:anywhere}}
-  .ck .k{{display:inline-block;min-width:74px;color:#6E7EA0;font-weight:600;
-    text-transform:uppercase;font-size:11px;letter-spacing:.6px;vertical-align:top}}
-  .ck code{{color:#8494B6}}
-  footer{{margin-top:26px;padding-top:16px;border-top:1px solid #1A2438;color:#77859F;font-size:12px;line-height:1.7}}
-  .illus{{margin-top:10px;color:#6E7C9C;font-size:12px}}
+  .page{{max-width:740px;margin:0 auto;padding:34px 20px 72px}}
+  .masthead{{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}}
+  .brand{{font-weight:700;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:{vtx}}}
+  .badge-readonly{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.04em;color:var(--muted);border:1px solid var(--hairline);padding:4px 10px;border-radius:999px;text-transform:uppercase;white-space:nowrap}}
+  h1.title{{font-family:Georgia,serif;font-weight:600;font-size:clamp(28px,6.4vw,36px);margin:10px 0 6px;color:var(--paper);letter-spacing:0}}
+  .meta-line{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--muted);margin:0 0 8px}}
+  .meta-line .sep{{color:var(--hairline-soft);margin:0 7px}}
+  .verdict-zone{{display:flex;flex-direction:column;align-items:center;text-align:center;margin:40px 0 12px}}
+  .stamp{{position:relative;display:inline-block;transform:rotate(-4deg);border:3px solid {vtx};border-radius:8px;padding:14px 30px 12px;margin-bottom:22px}}
+  .stamp::before{{content:"";position:absolute;inset:4px;border:1px solid {vtx};border-radius:4px;opacity:.55;pointer-events:none}}
+  .stamp-text{{display:block;font-family:Georgia,serif;font-weight:900;font-size:clamp(30px,8vw,42px);letter-spacing:.03em;color:{vtx};text-transform:none;line-height:1}}
+  .stamp-sub{{display:block;margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:{vbd}}}
+  .epigraph{{font-family:Georgia,serif;font-style:italic;font-weight:500;font-size:16px;color:var(--muted);max-width:400px;margin:0 0 26px}}
+  .stats-row{{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}}
+  .stat-chip{{display:flex;align-items:baseline;gap:8px;border:1px solid var(--hairline);background:var(--panel);border-radius:10px;padding:9px 16px}}
+  .stat-chip .n{{font-family:Georgia,serif;font-weight:700;font-size:20px;line-height:1}}
+  .stat-chip .l{{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}}
+  .c-blockers .n{{color:{SEV['blocker'][0]}}}.c-strong .n{{color:{SEV['strong'][0]}}}.c-provisional .n{{color:{SEV['provisional'][0]}}}
+  .section{{margin-top:56px}}
+  .section-head{{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:18px;padding-bottom:11px;border-bottom:1px solid var(--hairline)}}
+  .section-head h2{{font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:0;color:var(--paper)}}
+  .section-head .count{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted-dim)}}
+  .group-label{{margin-top:56px;margin-bottom:-30px;font-weight:700;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-dim)}}
+  .tier-blockers .section-head h2{{color:{SEV['blocker'][0]}}}.tier-strong .section-head h2{{color:{SEV['strong'][0]}}}.tier-provisional .section-head h2{{color:{SEV['provisional'][0]}}}
+  .cov-line{{font-size:14.5px;color:var(--prose);margin:0 0 16px}}.cov-line strong{{font-family:Georgia,serif;font-weight:700;font-size:21px;color:var(--paper)}}
+  .cov-bar{{display:flex;width:100%;height:14px;border-radius:7px;overflow:hidden;background:var(--panel-raised);border:1px solid var(--hairline);margin-bottom:18px}}
+  .cov-bar span{{height:100%;display:block}}
+  .cov-legend{{display:flex;flex-wrap:wrap;gap:9px 20px}}.cov-key{{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}}.cov-key .sw{{width:9px;height:9px;border-radius:2px;flex:none}}.cov-key b{{color:var(--paper);font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+  .muted-note{{color:var(--muted);font-size:13px;font-style:italic;margin-bottom:6px}}
+  .finding{{background:var(--panel);border:1px solid var(--hairline);border-left:4px solid var(--hairline);border-radius:var(--radius);padding:19px 21px;margin-bottom:14px;overflow-wrap:anywhere}}
+  .finding-top{{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap}}.finding-num{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted-dim)}}
+  .pill{{font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid;white-space:nowrap}}
+  .finding h3{{font-weight:600;font-size:16.5px;line-height:1.35;margin:0 0 9px;color:var(--paper)}}.consequence{{font-family:Georgia,serif;font-style:italic;font-size:14px;line-height:1.5;color:var(--muted);margin:0}}.consequence .arrow{{font-style:normal;color:var(--muted-dim);margin-right:7px}}
+  details{{margin-top:12px}}summary{{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:{vtx};padding:6px 2px;user-select:none;border-radius:4px}}summary::-webkit-details-marker{{display:none}}summary::before{{content:"›";display:inline-block;font-size:16px;line-height:1;transition:transform .15s ease}}details[open] summary::before{{transform:rotate(90deg)}}summary:focus-visible{{outline:2px solid {vtx};outline-offset:3px}}
+  .ev-block{{margin-top:6px;padding-top:6px}}.ev-row{{margin-bottom:13px}}.ev-row:last-child{{margin-bottom:0}}.ev-label{{font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-dim);margin-bottom:5px}}.ev-value{{margin:0}}.ev-value.mono{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.2px;line-height:1.65;color:var(--prose);background:var(--panel-raised);border:1px solid var(--hairline-soft);border-radius:8px;padding:11px 13px}}.ev-value.prose{{font-size:13.8px;line-height:1.6;color:var(--prose)}}
+  .orch{{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);padding:6px 22px}}.orch-row{{display:grid;grid-template-columns:118px 1fr;gap:16px;padding:15px 0;border-bottom:1px solid var(--hairline-soft)}}.orch-row:last-child{{border-bottom:none}}.orch-label{{font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-dim);padding-top:1px}}.orch-value{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.3px;line-height:1.65;color:var(--prose)}}
+  footer{{margin-top:60px;padding-top:26px;border-top:1px solid var(--hairline);color:var(--muted-dim);font-size:12px;line-height:1.7}}.illus{{margin-top:10px;color:var(--muted-dim);font-size:12px}}
 {controls_css}  a{{color:#34D399}}
   @media print{{
     .controls{{display:none !important}}
     .is-hidden{{display:block !important}}
-    .card.collapsed .conseq,.card.collapsed .kv{{display:block !important}}
+    .finding.collapsed .consequence,.finding.collapsed details{{display:block !important}}
     body{{background:#fff;color:#0B1220}}
     .page{{max-width:none;padding:0}}
-    .hdr,footer{{border-color:#ccd3df}}
+    footer,.section-head{{border-color:#ccd3df}}
     .brand{{color:#0B1220}} .brand .g{{color:#0B8A5B}}
-    .lbl,.grp{{color:#334155}} .meta,.muted,.muted-note,.cov-sum,.chip,.illus{{color:#4A5568}}
-    .cov-sum b{{color:#111}}
-    .c-title,.kv code,.ck code,.conseq{{color:#111}}
-    .kv .k,.ck .k{{color:#556}}
-    .card,.ckpt-box{{background:#fff;border-color:#ccd3df;break-inside:avoid;page-break-inside:avoid}}
-    .badge{{color:#111 !important;border-color:#bbb !important}}
-    .grp-n{{background:#eee;border-color:#ccc;color:#333}}
+    .meta-line,.muted-note,.cov-line,.cov-key,.illus,.consequence{{color:#4A5568}}
+    .cov-line strong,.finding h3,.ev-value.mono,.ev-value.prose,.orch-value{{color:#111}}
+    .ev-label,.orch-label{{color:#556}}
+    .finding,.orch{{background:#fff;border-color:#ccd3df;break-inside:avoid;page-break-inside:avoid}}
+    .pill{{color:#111 !important;border-color:#bbb !important}}
     footer{{color:#555}} a{{color:#0B1220}}
   }}
-  @media (max-width:520px){{.v-pill{{font-size:20px;padding:9px 14px}} .brand{{font-size:19px}}}}
+  @media (max-width:460px){{.orch-row{{grid-template-columns:1fr;gap:5px;padding:13px 0}}}}
+  @media (prefers-reduced-motion:reduce){{summary::before{{transition:none}}}}
 </style></head>
 <body><div class="page">
-  <div class="hdr">
-    <div class="brand">Ship<span class="g">worthy</span><span class="sub">Readiness Report</span></div>
-    <div class="meta">{target} · {gen} · <span class="ro">read-only</span></div>
-  </div>
-  <div class="verdict">
-    <div class="v-pill">{esc(verdict)}</div>
-    <div class="v-sum">{esc(summ)}<br><span class="muted">nothing is called &ldquo;ready&rdquo; without evidence</span></div>
-  </div>
+  <header>
+    <div class="masthead"><span class="brand">Shipworthy</span><span class="badge-readonly">Read-only</span></div>
+    <h1 class="title">Readiness Report</h1>
+    <p class="meta-line">{target}<span class="sep">·</span>{gen}</p>
+  </header>
+  <section class="verdict-zone">
+    <div class="stamp"><span class="stamp-text">{esc(verdict_label)}</span><span class="stamp-sub">Status · Evidence gated</span></div>
+    <p class="epigraph">&ldquo;nothing is called &lsquo;ready&rsquo; without evidence&rdquo;</p>
+    <div class="stats-row">
+      <div class="stat-chip c-blockers"><span class="n">{esc(blockers)}</span><span class="l">Blockers</span></div>
+      <div class="stat-chip c-strong"><span class="n">{esc(strong)}</span><span class="l">Strong</span></div>
+      <div class="stat-chip c-provisional"><span class="n">{esc(provisional)}</span><span class="l">Provisional</span></div>
+    </div>
+  </section>
   {cov_block}
-  <div class="lbl">FINDINGS</div>
   {controls}
   {find_block}
-  <div class="lbl">ORCHESTRATION CHECKPOINT</div>
-  <div class="ckpt-box">{ck_html}</div>
+  <section class="section"><div class="section-head"><h2>Orchestration Checkpoint</h2></div><div class="orch">{ck_html}</div></section>
   <footer>
     <b style="color:#7E8CAD">Evidence grades:</b> Confirmed (reproduced) &gt; Strong (multiple signals) &gt; Provisional (single signal) &gt; Inferred.
     Findings lead; scores never appear naked. Read-only by default — fixes are proposed with a verification step, not applied.

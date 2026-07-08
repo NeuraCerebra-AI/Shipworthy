@@ -43,9 +43,28 @@ Retarget next wave from verified findings + evidence debt (not the original spli
 Fix-cascade check -> final no-overclaim verifier -> final report
 ```
 
+Full blast means a minimum of three verified waves, not exactly three. Wave 1
+does broad reconnaissance, Wave 2 deepens proof and contradictions, and Wave 3
+asks what was missed and checks release gates. If the coverage matrix still has
+major route families, roles, state variants, runtime proof, contradictions, or
+evidence debt that could change the verdict, Shipworthy continues with adaptive
+extra waves instead of stopping because the minimum happened.
+
+Every full Shipworthy run must reach path-universe closure before readiness
+language: each material expected intent and discovered path is covered, sampled
+with justification, blocked, avoided, inferred, missing, out_of_scope, or
+evidence_debt. It must also generate the mandatory HTML report from the final
+ledger at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html`
+unless the user explicitly requests repo-local artifacts.
+
 - **Lane wave patterns are lane-local evidence collection only.** When a lane's internal notion of a "wave" conflicts with the orchestrator's, `ship-deep-review` owns the real barriers, gates, and summaries.
 - **When lane instructions conflict with the orchestrator, the stricter safety / evidence / synthesis rule wins.**
 - **Verifier independence is load-bearing.** The verifier receives raw outputs + the terse ledger, never a polished narrative — otherwise it just blesses the story it was told (see the "draft-summary laundering" failure mode in `ship-deep-review`).
+- **Runtime coordination is load-bearing.** Agents can map, inspect, disconfirm,
+  and verify in parallel, but one shared runtime uses a single coordinated
+  runtime driver unless isolated users, resettable fixtures, disposable data,
+  independent browser profiles, or read-only surfaces make parallel clicking
+  safe.
 
 ## Safe-test boundary (why it's read-only by default)
 

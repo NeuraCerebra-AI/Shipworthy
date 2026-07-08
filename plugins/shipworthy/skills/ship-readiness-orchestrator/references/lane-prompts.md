@@ -23,6 +23,10 @@ Use ship-deep-review as the top-level controller for this product readiness inve
 Before target analysis or lane dispatch, read the full SKILL.md bodies for ship-readiness-orchestrator, ship-deep-review, ship-product-workflows, and ship-workflow-clarity. Then read the target request, repo/app instructions, source-of-truth docs, and runtime facts. Record the target fingerprint and safe-test boundary before dispatching agents or tools. Initialize the canonical claim ledger, coverage matrix, evidence debt register, raw lane outputs, verifier outputs, and final drift check before lane dispatch. Write target fingerprint, safe boundary, lane roster, path universe, lane merges, verifier decisions, fix-cascade notes, and final dispositions into that state as the run proceeds.
 
 Use ship-product-workflows as the product/runtime QA lane family. Use ship-workflow-clarity only as a clarity/design/trust lane after product path evidence exists. Map first, judge second, choose audit depth third. Lane wave patterns are local evidence collection only; Deep Review owns wave barriers, verifier gates, summaries, and final synthesis. Do not write wave summaries until raw outputs have been shadow-read against the evidence state.
+
+For full Shipworthy invocations, plan for a minimum of three verified waves plus adaptive continuation if the coverage matrix remains thin. Close the path universe before final readiness language: every material expected intent and discovered path must be covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt. Generate the mandatory HTML report from compact ledger JSON after final verification; do not ask agents to generate full HTML by hand.
+
+For one shared runtime, designate a single coordinated runtime driver unless isolated users, resettable fixtures, disposable data, separate browser profiles, or read-only surfaces make parallel runtime drivers safe. Other agents should return path plans and evidence packets instead of clicking overlapping stateful workflows.
 ```
 
 ## Product Workflow Lane
@@ -45,6 +49,8 @@ Assess path effort for each material goal: step count, decision count, context s
 Use runtime/browser evidence when available: screenshots, recordings, DOM/UI tree, accessibility tree, console, network, API/log snippets, route traces, state snapshots, persistence checks, and code anchors that explain user-visible behavior.
 
 Label each discovered material path or expected intent covered, sampled, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt. Return candidate claim/coverage/evidence-debt rows, findings, missing-path findings, overcomplicated-path findings, lane-native severity, suggested canonical severity, evidence class, confidence, falsifier, false-positive notes, backend symptoms tied to user paths, new paths discovered, evidence debt, and exact verification steps. Do not present the lane packet as the canonical ledger.
+
+If the lane cannot safely attempt a path, label it with the reason rather than dropping it. Sampled paths require sampled with justification: explain why the sample is representative enough or why full execution is unsafe/infeasible.
 
 If the lane only has screenshots, README, docs, package scripts, or source snippets, treat it as a static constrained pass. Do not mark runtime behavior, persistence, accessibility, deployability, or workflow completion as covered. A package script proves a command exists; only command output proves it passed.
 ```

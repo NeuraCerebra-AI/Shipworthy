@@ -1,6 +1,6 @@
 ---
 name: ship-readiness-orchestrator
-description: Use when the user asks for a hardcore product readiness investigation, release-readiness audit, full safe discoverable user-path audit, senior developer/designer critique, deployability review, UX/usability teardown, product-quality audit, or asks to try everything, test every safe path, find missing UX paths, flag overcomplicated workflows, make an app robust, beloved, viral, simpler, clearer, less cluttered, attention-retaining, or more effective.
+description: Use when the user mentions Shipworthy operationally or asks "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness", or uses shipworthy as a bare invocation; also use for hardcore product readiness investigation, release-readiness audit, full safe discoverable user-path audit, senior developer/designer critique, deployability review, UX/usability teardown, product-quality audit, or asks to try everything, test every safe path, find missing UX paths, flag overcomplicated workflows, make an app robust, beloved, viral, simpler, clearer, less cluttered, attention-retaining, or more effective.
 ---
 
 # Shipworthy Readiness Orchestrator
@@ -8,6 +8,14 @@ description: Use when the user asks for a hardcore product readiness investigati
 ## Core Promise
 
 Run a repo-agnostic, evidence-heavy product readiness investigation that combines Deep Review, product workflow QA, and workflow clarity/design critique without creating competing truth layers or overclaiming readiness. Default invocation means maximum safe discoverable coverage: build a capped parallel lane roster when agents are available, map reasonable user intents, detect missing UX paths, test every safely testable path that can be reached within the declared boundary, judge path effort and design quality, then prove before proclaiming.
+
+## Shipworthy Invocation Contract
+
+Any operational mention of `shipworthy` triggers this orchestrator in full blast unless the user explicitly narrows scope, asks for a rapid/narrow/static pass, or is clearly discussing the Shipworthy skill system itself rather than asking to audit a target. The canonical trigger phrase is **"are we shipworthy?"**. Equivalent triggers include `shipworthy`, `is this shipworthy?`, `shipworthy this`, `make this shipworthy`, and `check shipworthiness`.
+
+If no target is obvious, still treat the invocation as a Shipworthy run: complete the Sub-Skill Load Gate, then ask for or infer the target as the first Start Gate item. Do not silently downshift to a generic chat answer just because the trigger was short.
+
+A full Shipworthy invocation is not a quick pass. Full blast means all safe discoverable path coverage, mandatory multi-wave evidence gates, adaptive continuation when coverage is unfinished, and a mandatory HTML report generated from the final ledger. If the path universe, coverage matrix, verifier certificates, evidence debt register, and HTML report path are missing, the run is incomplete.
 
 ## Required Sub-Skills
 
@@ -50,6 +58,16 @@ For a full readiness run, use agents when the platform exposes agent tooling and
 - Codex: run at most 6 concurrent specialist agents; close completed agents after their outputs are read.
 - Claude Code: launch all independent wave agents at once when there are 13 or fewer and scopes do not conflict; prefer fewer lanes when the target is small or scopes overlap.
 - If agent tooling is unavailable, unsafe, or too overlapping, run the lanes sequentially in the main session and record the limitation as evidence debt in the final report. Do not pretend a sequential pass had independent-agent coverage.
+- Agents parallelize discovery, route inventory, design critique, release gates, state/API tracing, role/permission checks, disconfirmation, and verification. The orchestrator owns the canonical ledger and runtime execution plan.
+- For one shared runtime, use a single coordinated runtime driver by default. Multiple agents may drive the live app only when isolated users, resettable fixtures, disposable data, independent browser profiles, or read-only surfaces make the evidence safe and non-conflicting. Otherwise agents return path plans and evidence packets while the orchestrator or one designated runtime lane performs coordinated clicking.
+
+## Full-Blast Wave Contract
+
+Full blast requires a minimum of three verified waves after Wave 0 preflight: broad reconnaissance, targeted deep dive, and release-gate / what-did-we-miss. This is a minimum of three verified waves, not a maximum. Every wave summary requires the Deep Review read-all, evidence-state, independent-verifier, verification-certificate, and drift-check gate.
+
+Use adaptive continuation after Wave 3 when coverage is not closed. Continue with additional waves when major route families, user roles, state variants, runtime proof, contradictions, high-severity disconfirmation, safe path attempts, or evidence debt remain unresolved, or when the verifier objects that coverage is too thin. Do not end a full blast because three waves happened; end only when the coverage matrix and evidence debt justify the final scope and verdict.
+
+Path-universe closure is mandatory. Every material expected intent and discovered path must be labeled covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt before final readiness language is written. Treat all safe discoverable paths as the coverage ambition; do not substitute a few happy paths, top tasks, or agent consensus.
 
 ## Ledger Protocol
 
@@ -86,7 +104,8 @@ Every material claim, missing path, blocked check, avoided check, rejected claim
 14. Retarget each later wave from verified findings, contradictions, coverage gaps, missing expected paths, overcomplicated paths, and evidence debt, not from the original lane split.
 15. Run a fix-cascade check on major recommendations: compare against the no-change baseline, identify what the fix could break downstream, and preserve proof, governance, recovery, accessibility, expert controls, and necessary friction. Write fix-cascade notes to the ledger.
 16. Before final synthesis, run a final no-overclaim verifier against the final claim ledger, evidence debt, coverage gaps, and readiness language. Downgrade claims such as ready, works, accessible, robust, secure, deployable, beloved, viral, or complete unless directly supported.
-17. Write the final report only after the final claim ledger, evidence debt, coverage gaps, verified wave summaries, verifier outputs, fix-cascade notes, and final drift check are complete.
+17. Generate the mandatory HTML report from the final ledger for full Shipworthy invocations. Default to `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` so the audited repo stays read-only. Use repo-local `.shipworthy/reports/<timestamp>/` only when the user explicitly requests repo artifacts.
+18. Write the final report only after the final claim ledger, evidence debt, coverage gaps, verified wave summaries, verifier outputs, fix-cascade notes, final drift check, and mandatory HTML report path are complete.
 
 ## Design Critique Mandate
 
@@ -117,23 +136,22 @@ Load only the references needed for the current pass:
 - Read `references/final-report-contract.md` before writing the final report or roadmap.
 - Read `references/archetype-overlays.md` when the target matches a known product archetype (checkout, auth, ai-chat, dashboard, …). The `profiles/*.json` seed path discovery with priors — expected intents, common failure modes, and frequently-missing paths — as **hypotheses to confirm or disprove with evidence, never a pass/fail checklist**.
 - Read `references/changed-scope.md` for a delta / in-session re-audit ("is my change ready?"): scope to the changed surface **plus its blast radius**, label untouched paths `out_of_scope`, and return a verdict scoped to the change — not the whole product.
-- Read `references/visual-html-report.md` when the user wants a shareable visual report (an HTML dashboard of the ledger, coverage, and findings). It documents `scripts/render_report.py` and the JSON contract.
-- Read `references/exports-and-ci.md` when the user wants to share, archive, gate, or automate: the SARIF export (`scripts/to_sarif.py`), the tamper-evident evidence bundle (`scripts/make_bundle.py`), the confirmed-only merge gate, the opt-in `--interactive` report, and the optional GitHub code-scanning recipe. All local-first; all renders of the finished ledger.
+- Read `references/visual-html-report.md` for every full Shipworthy invocation and whenever the user wants a shareable visual report. It documents the mandatory HTML dashboard, `scripts/render_report.py`, and the JSON contract.
+- Read `references/exports-and-ci.md` when the user wants to share, archive, gate, or automate: the mandatory HTML render for full runs, the SARIF export (`scripts/to_sarif.py`), the tamper-evident evidence bundle (`scripts/make_bundle.py`), the confirmed-only merge gate, the opt-in `--interactive` report, and the optional GitHub code-scanning recipe. All local-first; all renders of the finished ledger.
 - Read `references/pressure-tests.md` when validating or forward-testing this skill, or when the user asks whether the orchestration is strong enough.
 
 ## Output Contract
 
 Lead with findings and readiness truth. Separate confirmed findings, strong findings, provisional hypotheses, needs-proof items, blocked checks, avoided checks, false positives, rejected claims, and untested paths. Do not claim ready, safe, correct, accessible, persistent, secure, beloved, viral, passing, or fixed without evidence.
 
-For full-blast runs, include an **Orchestration Checkpoint** in the report: skill bodies read, references read, target fingerprint, safe-test boundary, ledger location or inline snapshot, actual agent/tool execution mode, verifier status, omitted gates, and where raw outputs/evidence live. Under that checkpoint, include a lane roster table with one row per planned lane and columns for lane, scope, required skill/reference, execution status, output/evidence location, and skipped/collapsed/blocking reason. If the checkpoint or roster table is missing, the report is not complete.
+For full-blast runs, include an **Orchestration Checkpoint** in the report: skill bodies read, references read, target fingerprint, safe-test boundary, ledger location or inline snapshot, actual agent/tool execution mode, runtime driver mode, verifier status, omitted gates, mandatory HTML report path, and where raw outputs/evidence live. Under that checkpoint, include a lane roster table with one row per planned lane and columns for lane, scope, required skill/reference, execution status, output/evidence location, and skipped/collapsed/blocking reason. If the checkpoint, roster table, path-universe closure, verifier certificates, or HTML report path is missing, the report is not complete.
 
 For each finding include evidence, user consequence, likely cause, smallest useful fix, counterfactual/no-change baseline when relevant, downstream regression or simplification risk, and exact verification step. For full runs, include a coverage table for every discovered material path and expected user intent, including paths covered, sampled, blocked, avoided, inferred, missing, out of scope, and still carrying evidence debt.
 
 Do not implement fixes unless the user explicitly asks for implementation after the review.
 
-**Optional deliverables (all renders of the final ledger; local-first; never a second source of truth).** By default the report is inline. When the user wants more, generate — only after the ledger is final, and never upgrading a claim the ledger did not already support:
-- a self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, severity-grouped findings, checkpoint; `--interactive` adds client-side filter/search/collapse) — see `references/visual-html-report.md`;
-- a **SARIF 2.1.0** file (`scripts/to_sarif.py`) for GitHub code scanning, and an optional **merge gate** (`--gate`) that fails on confirmed blockers only;
+**Ledger-derived deliverables (local-first; never a second source of truth).** The inline report and self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, severity-grouped findings, checkpoint) are required for full Shipworthy invocations and are generated only after the ledger is final. The HTML report defaults to no JS; `--interactive` is an opt-in variant that adds client-side filter/search/collapse. Additional optional exports, when the user wants to share, archive, gate, or automate, are:
+- a **SARIF 2.1.0** file (`scripts/to_sarif.py`) for GitHub code scanning, with an optional **merge gate** (`--gate`) that fails on confirmed blockers only;
 - a tamper-evident **evidence bundle** (`scripts/make_bundle.py`; ledger + report + SARIF + a SHA-256 manifest) for a defensible audit trail — see `references/exports-and-ci.md`.
 The ledger JSON is itself the canonical machine-readable export.
 

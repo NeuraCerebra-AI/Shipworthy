@@ -8,6 +8,7 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 
 - Baseline Failure Patterns To Watch
 - Scenario 0: Bare Invocation Defaults To Maximal Safe Coverage
+- Scenario 0A: Shipworthy Brand Trigger Defaults To Full Blast
 - Scenario 1: Broad Local App Readiness
 - Scenario 2: Screenshot-Only UX Teardown
 - Scenario 3: High-Risk Workflow
@@ -28,11 +29,15 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent delays ledger creation until the end instead of establishing the canonical evidence state before dispatch/path testing.
 - The agent does visual critique before path discovery.
 - The agent defaults to top-task/high-risk sampling after a bare invocation instead of pursuing all safe discoverable paths.
+- The agent treats `shipworthy`, `are we shipworthy?`, or `is this shipworthy?` as casual phrasing instead of routing to the orchestrator full blast.
 - The agent does not build a lane roster or under-launches independent agents in a full-blast run when agent tooling is available.
 - The agent launches lanes without giving each lane the required sub-skill body, safe-test boundary, scope, excluded scope, and output packet contract.
 - The agent omits the Orchestration Checkpoint or gives only prose without a lane roster table, making the lane roster, agent/tool execution mode, or verifier status hard to audit.
 - The agent makes final findings, readiness claims, or recommendations that do not map to ledger rows or explicit evidence gaps.
 - The agent says "all paths" without coverage labels and exclusions.
+- The agent does not produce the mandatory HTML report for a full Shipworthy invocation.
+- The agent ends after exactly three waves even though major coverage gaps remain.
+- The agent lets several agents click the same shared runtime without isolated users, resettable fixtures, independent browser profiles, or a single coordinated runtime driver.
 - The agent maps paths but never actually attempts the safe discoverable runtime paths.
 - The agent only tests existing paths and never asks whether reasonable expected paths are missing.
 - The agent accepts a path because it technically works while ignoring excessive steps, hidden entry points, repeated decisions, or needless context switches.
@@ -71,6 +76,33 @@ Expected behavior:
 - Flags technically working but unreasonable workflows as overcomplicated.
 - Produces evidence debt for anything not proven.
 - Does not implement fixes unless asked after the review.
+
+## Scenario 0A: Shipworthy Brand Trigger Defaults To Full Blast
+
+```text
+are we shipworthy?
+```
+
+Equivalent forward-test prompts:
+
+```text
+shipworthy
+is this shipworthy?
+shipworthy this
+check shipworthiness
+```
+
+Expected behavior:
+
+- Routes to `ship-readiness-orchestrator` full blast, not a generic readiness chat answer and not a helper-lane-only pass.
+- Treats any operational mention of `shipworthy` as the brand trigger unless the user explicitly narrows scope or is talking about the skill system itself.
+- If the target is not obvious, still triggers the orchestrator and asks for or infers the target as the first Start Gate item.
+- Runs the Sub-Skill Load Gate before target analysis or dispatch.
+- Plans at least three verified waves and records that three is a floor, not a ceiling.
+- Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
+- Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
+- Generates a mandatory HTML report from compact ledger JSON at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the user explicitly requests repo-local artifacts.
+- Uses agents for discovery and verification by default when available, but uses a single coordinated runtime driver for a shared runtime unless isolated contexts are proven safe.
 
 ## Scenario 1: Broad Local App Readiness
 

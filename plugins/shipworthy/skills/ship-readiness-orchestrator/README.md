@@ -4,6 +4,10 @@
 
 It owns the single canonical evidence ledger, the coverage matrix, and the readiness verdict. It maps the reachable path universe, dispatches capped parallel lane agents, tests every safely-reachable path, flags missing and overcomplicated paths, runs an independent verifier against the raw evidence, and only then writes a findings-first report with an **Orchestration Checkpoint**.
 
+**Trigger phrase:** ask `are we shipworthy?` or mention `shipworthy` operationally. That means full blast unless you explicitly narrow the pass.
+
+Full blast means at least three verified waves, adaptive extra waves when coverage is unfinished, path-universe closure over all safe discoverable paths, and a mandatory self-contained HTML report rendered from the final ledger.
+
 **Requires** (and conducts) the three lanes: `ship-deep-review` (controller), `ship-product-workflows` (product lane), `ship-workflow-clarity` (clarity lane). It reads their full `SKILL.md` bodies before dispatch, and degrades loudly — never silently — if one is missing.
 
 **Use it when** you want the full "is this ready to ship / be beloved / be viral" pass. → See [`SKILL.md`](SKILL.md).
