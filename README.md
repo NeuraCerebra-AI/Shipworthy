@@ -148,7 +148,7 @@ PRs welcome — we aim to respond within 48 hours. Great first contributions: ne
 
 If Shipworthy caught something before your users did, a star helps other teams find it — and it's the only metric this repo cares about.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=NeuraCerebra-AI/shipworthy&type=Date)](https://star-history.com/#NeuraCerebra-AI/shipworthy&Date)
+[View the star history chart](https://star-history.com/#NeuraCerebra-AI/shipworthy&Date)
 
 ## 📚 Docs
 
