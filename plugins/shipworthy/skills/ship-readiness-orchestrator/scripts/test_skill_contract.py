@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[3]
 ORCH = ROOT / "skills" / "ship-readiness-orchestrator"
 SKILL = ORCH / "SKILL.md"
 PRESSURE = ORCH / "references" / "pressure-tests.md"
+LIVE_REGRESSION = ORCH / "references" / "live-regressions" / "traceflow-html-report-miss.md"
 HTML = ORCH / "references" / "visual-html-report.md"
 EXPORTS = ORCH / "references" / "exports-and-ci.md"
 WAVES = ROOT / "skills" / "ship-deep-review" / "references" / "wave-protocol.md"
@@ -26,6 +27,7 @@ def ck(name, cond, detail=""):
 
 skill = read(SKILL)
 pressure = read(PRESSURE)
+live = read(LIVE_REGRESSION)
 html = read(HTML)
 exports = read(EXPORTS)
 waves = read(WAVES)
@@ -68,7 +70,8 @@ ck("H6 operational invocation always produces HTML", "Every operational Shipwort
 ck("H7 downgrade keeps report requirement", "Downgrade status changes the report contents and verdict language; it does not remove the report requirement" in skill)
 ck("H8 pre-final verifies report file exists", "Before final response, verify that `readiness-report.html` exists" in skill)
 ck("H9 visual report mandatory for downgraded runs", "Shipworthy invocation means HTML report, always" in html)
-ck("H10 constrained reports not optional by default", "For rapid, narrow, or static constrained passes, generate it when requested" not in html)
+stale_optional_report_phrase = "For rapid, narrow, or static constrained passes, generate it " + "when requested"
+ck("H10 constrained reports not optional by default", stale_optional_report_phrase not in html)
 ck("H11 final answer requires HTML path", "Every Shipworthy final answer must include" in read(ORCH / "references" / "final-report-contract.md"))
 ck("H12 report contract includes generation fields", all(x in html for x in ["report_generation_status", "report_path", "ledger_path", "evidence_locations"]))
 
@@ -108,6 +111,13 @@ ck("D5 install prompt uses flagship phrase", "are we shipworthy?" in install.low
 ck("D6 pressure tests include authorization gate", "multi-agent authorization gate" in pressure.lower() and "parallel subagents authorized" in pressure.lower())
 ck("D7 installer explains ask-and-stop gate", "ask for authorization and stop" in install.lower())
 ck("D8 pressure test catches missing HTML report", "are we shipready?" in pressure.lower() and "readiness-report.html" in pressure and "html report: missing/blocked" in pressure.lower())
+ck("D9 TraceFlow live regression exists", "TraceFlow Shipready HTML Report Miss" in live and "/goal are we shipready?" in live)
+ck("D10 live regression preserves failure anatomy", all(x in live for x in ["## What went right", "## What went wrong", "## Root cause", "## Required future behavior", "## Regression assertion"]))
+ck("D11 live regression requires JSON and HTML outputs", "readiness-report.json" in live and "readiness-report.html" in live)
+ck("D12 live regression requires absolute HTML path", "absolute HTML path" in live)
+ck("D13 live regression blocks missing-report completion", "HTML report: MISSING/BLOCKED" in live and "must not imply completion" in live)
+ck("D14 live regression forbids substituting target artifacts", "does not substitute target-owned HTML" in live and "Markdown ledgers" in live and "screenshots" in live and "chat summaries" in live)
+ck("D15 pressure tests link TraceFlow regression", "references/live-regressions/traceflow-html-report-miss.md" in pressure)
 
 print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
 if FAIL:

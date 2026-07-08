@@ -187,6 +187,8 @@ Expected behavior:
 /goal are we shipready?
 ```
 
+Live regression reference: `references/live-regressions/traceflow-html-report-miss.md`
+
 Fixture: a repo whose evidence is mostly tests, CLI gates, source docs, and a limited static/frontend-ish inspection surface. The run is likely conditional or downgraded rather than full flagship.
 
 Expected behavior:

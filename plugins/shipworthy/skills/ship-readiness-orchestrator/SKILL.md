@@ -185,7 +185,7 @@ For each finding include evidence, user consequence, likely cause, smallest usef
 
 Do not implement fixes unless the user explicitly asks for implementation after the review.
 
-**Ledger-derived deliverables (local-first; never a second source of truth).** The inline report and self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, severity-grouped findings, checkpoint) are required for every operational Shipworthy invocation and are generated only after the ledger is final. The HTML report defaults to no JS; `--interactive` is an opt-in variant that adds client-side filter/search/collapse. Additional optional exports, when the user wants to share, archive, gate, or automate, are:
+**Ledger-derived deliverables (local-first; never a second source of truth).** The inline report and self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, severity-grouped findings, checkpoint) are required for every operational Shipworthy invocation and are generated only after the ledger is final. The HTML report defaults to no JS; `--interactive` is an opt-in variant that adds client-side filter/search/collapse. Additional exports, when the user wants to share, archive, gate, or automate, are:
 - a **SARIF 2.1.0** file (`scripts/to_sarif.py`) for GitHub code scanning, with an optional **merge gate** (`--gate`) that fails on confirmed blockers only;
 - a tamper-evident **evidence bundle** (`scripts/make_bundle.py`; ledger + report + SARIF + a SHA-256 manifest) for a defensible audit trail — see `references/exports-and-ci.md`.
 The ledger JSON is itself the canonical machine-readable export.
