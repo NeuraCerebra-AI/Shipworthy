@@ -1,0 +1,54 @@
+{
+  "audit": {
+    "product": "",
+    "environment": "",
+    "processRoute": "",
+    "auditMode": "",
+    "evidencePath": "",
+    "riskGate": "",
+    "safeTestBoundary": {
+      "allowedActions": [],
+      "avoidedActions": [],
+      "mutationPolicy": "",
+      "resetPlan": ""
+    }
+  },
+  "paths": [
+    {
+      "pathId": "P1",
+      "name": "",
+      "role": "",
+      "device": "",
+      "entryPoint": "",
+      "goal": "",
+      "statesCovered": [],
+      "actionsTested": [],
+      "coverageLabel": "covered",
+      "mutationRisk": "none",
+      "evidence": [],
+      "result": "",
+      "linkedFindings": [],
+      "blockedOrAvoidedReason": "",
+      "nextEvidenceNeeded": ""
+    }
+  ],
+  "findings": [
+    {
+      "findingId": "F1",
+      "severity": "",
+      "confidence": "",
+      "pathId": "",
+      "title": "",
+      "likelyCause": "",
+      "verification": ""
+    }
+  ],
+  "clarityLane": {
+    "used": false,
+    "skill": "ship-workflow-clarity",
+    "pathIdsSent": [],
+    "summary": ""
+  },
+  "exclusions": [],
+  "assumptions": []
+}

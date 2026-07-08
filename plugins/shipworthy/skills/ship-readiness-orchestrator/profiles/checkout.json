@@ -1,0 +1,37 @@
+{
+  "archetype": "checkout",
+  "description": "E-commerce checkout / payment flow.",
+  "expected_intents": [
+    "complete a purchase as a guest (no account)",
+    "complete a purchase while logged in",
+    "apply and remove a discount / coupon code",
+    "change quantity or remove an item mid-checkout",
+    "recover from a declined or failed payment",
+    "update or switch the saved payment method",
+    "cancel or request a refund on an order after purchase",
+    "receive and re-request an order confirmation / receipt"
+  ],
+  "critical_paths": [
+    "add to cart -> checkout -> pay -> order persisted -> confirmation",
+    "payment failure -> recoverable error -> retry without losing cart"
+  ],
+  "common_failure_modes": [
+    "success screen shown even though the server call failed (silent payment failure)",
+    "invalid coupon silently ignored with no message",
+    "cart or address state lost on reload or browser-back",
+    "empty-cart checkout spins or dead-ends with no end state",
+    "double-submit creates duplicate orders",
+    "price/total mismatch between cart, checkout, and confirmation"
+  ],
+  "often_missing_paths": [
+    "cancel an order after purchase",
+    "resend the confirmation email",
+    "edit a shipping address after ordering",
+    "guest order lookup without an account"
+  ],
+  "high_risk_areas": ["payment authorization", "order persistence", "price integrity", "PII at checkout"],
+  "evidence_cautions": [
+    "do not submit real payments; blocked -> evidence debt",
+    "do not trigger real confirmation emails; avoided -> evidence debt"
+  ]
+}

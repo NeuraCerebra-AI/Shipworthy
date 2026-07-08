@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" width="1000" height="200" role="img" aria-label="How Shipworthy works: map the path universe, walk every safe path, run an independent verifier, report coverage and evidence debt, then issue a proven ship-or-don't verdict">
+  <defs>
+    <linearGradient id="fbg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0B1020"/><stop offset="1" stop-color="#0A0E1B"/>
+    </linearGradient>
+    <style>
+      .sans{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+      .lab{font-weight:700;fill:#C9D4E8}.sub{fill:#6E7D9E}
+    </style>
+    <marker id="farw" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 1 L9 5 L0 9 z" fill="#3A466B"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="200" rx="16" fill="url(#fbg)"/>
+  <rect x="1" y="1" width="998" height="198" rx="15" fill="none" stroke="#182238" stroke-width="1.5"/>
+  <text x="36" y="36" class="sans" font-size="12.5" font-weight="700" letter-spacing="2.5" fill="#5F6E90">HOW IT WORKS</text>
+
+  <!-- connectors -->
+  <g stroke-width="1.6" fill="none">
+    <line x1="126" y1="78" x2="272" y2="78" stroke="#2A3654" marker-end="url(#farw)"/>
+    <line x1="326" y1="78" x2="472" y2="78" stroke="#2A3654" marker-end="url(#farw)"/>
+    <line x1="526" y1="78" x2="672" y2="78" stroke="#2A3654" marker-end="url(#farw)"/>
+    <line x1="726" y1="78" x2="872" y2="78" stroke="#2A3654" marker-end="url(#farw)"/>
+  </g>
+
+  <!-- node template: circle + number + 2-line label -->
+  <g class="sans" text-anchor="middle">
+    <!-- 1 -->
+    <circle cx="100" cy="78" r="23" fill="#0C1A2A" stroke="#22D3EE" stroke-width="1.7"/>
+    <text x="100" y="85" font-size="19" font-weight="800" fill="#A5EEF9">1</text>
+    <text x="100" y="128" class="lab" fill="#C9D4E8" font-size="13.5">Map paths</text>
+    <text x="100" y="147" class="sub" fill="#6E7D9E" font-size="11.5">surfaces · roles · states</text>
+    <!-- 2 -->
+    <circle cx="300" cy="78" r="23" fill="#0C1626" stroke="#38BDF8" stroke-width="1.7"/>
+    <text x="300" y="85" font-size="19" font-weight="800" fill="#AEE0FB">2</text>
+    <text x="300" y="128" class="lab" fill="#C9D4E8" font-size="13.5">Walk every path</text>
+    <text x="300" y="147" class="sub" fill="#6E7D9E" font-size="11.5">UI + backend · read-only</text>
+    <!-- 3 -->
+    <circle cx="500" cy="78" r="23" fill="#140F28" stroke="#8B5CF6" stroke-width="1.7"/>
+    <text x="500" y="85" font-size="19" font-weight="800" fill="#C4B5FD">3</text>
+    <text x="500" y="128" class="lab" fill="#C9D4E8" font-size="13.5">Verify</text>
+    <text x="500" y="147" class="sub" fill="#6E7D9E" font-size="11.5">independent · before &quot;ready&quot;</text>
+    <!-- 4 -->
+    <circle cx="700" cy="78" r="23" fill="#1B1305" stroke="#F59E0B" stroke-width="1.7"/>
+    <text x="700" y="85" font-size="19" font-weight="800" fill="#FCD9A0">4</text>
+    <text x="700" y="128" class="lab" fill="#C9D4E8" font-size="13.5">Coverage + debt</text>
+    <text x="700" y="147" class="sub" fill="#6E7D9E" font-size="11.5">honest exclusions</text>
+    <!-- 5 -->
+    <circle cx="900" cy="78" r="23" fill="#0B1E15" stroke="#34D399" stroke-width="1.9"/>
+    <path d="M890 78 l6 6 l12 -13" fill="none" stroke="#6EE7B7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="900" y="128" class="lab" font-size="13.5" fill="#A7F3D0">Ship / Don&#39;t</text>
+    <text x="900" y="147" class="sub" fill="#6E7D9E" font-size="11.5">a proven verdict</text>
+  </g>
+</svg>

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shipworthy Workflow Clarity"
+  short_description: "Route and audit workflows for clarity and human understanding"
+  default_prompt: "Use $ship-workflow-clarity to audit this app or workflow for human-obviousness, comprehension, attention, unclear next actions, and ease-of-use risks."

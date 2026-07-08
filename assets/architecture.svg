@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 600" width="1040" height="600" role="img" aria-label="Shipworthy architecture: one orchestrator owns the evidence ledger and conducts three specialist lanes">
+  <defs>
+    <linearGradient id="abg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0A0E1A"/><stop offset="1" stop-color="#0B1020"/>
+    </linearGradient>
+    <marker id="arw" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 1 L9 5 L0 9 z" fill="#43507A"/>
+    </marker>
+    <marker id="arwg" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 1 L9 5 L0 9 z" fill="#34D399"/>
+    </marker>
+    <style>
+      .sans{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .t{fill:#C7D2E6}.m{fill:#7B8AAB}.mm{fill:#67769A}
+    </style>
+  </defs>
+
+  <rect width="1040" height="600" rx="18" fill="url(#abg)"/>
+  <rect x="1" y="1" width="1038" height="598" rx="17" fill="none" stroke="#182238" stroke-width="1.5"/>
+
+  <!-- ORCHESTRATOR -->
+  <rect x="270" y="44" width="500" height="126" rx="14" fill="#12102A" stroke="#8B5CF6" stroke-width="1.6"/>
+  <text x="520" y="82" text-anchor="middle" class="mono" font-size="21" font-weight="700" fill="#EDE9FE">ship-readiness-orchestrator</text>
+  <g transform="translate(520,104)">
+    <rect x="-118" y="-3" width="236" height="24" rx="12" fill="#1B1440" stroke="#5B3F9E"/>
+    <text x="0" y="13" text-anchor="middle" class="sans" font-size="12.5" font-weight="700" fill="#C4B5FD">THE ONE EVIDENCE LEDGER</text>
+  </g>
+  <text x="520" y="146" text-anchor="middle" class="sans" font-size="13.5" fill="#9AA7C4">coverage matrix · readiness verdict · &quot;don&#39;t overclaim&quot; gate</text>
+
+  <!-- dispatch arrows -->
+  <path d="M470 170 C 360 220, 250 250, 200 296" fill="none" stroke="#43507A" stroke-width="1.6" marker-end="url(#arw)"/>
+  <path d="M520 170 L 520 296" fill="none" stroke="#43507A" stroke-width="1.6" marker-end="url(#arw)"/>
+  <path d="M570 170 C 680 220, 790 250, 840 296" fill="none" stroke="#43507A" stroke-width="1.6" marker-end="url(#arw)"/>
+
+  <!-- LANE: deep-review -->
+  <g>
+    <rect x="50" y="300" width="300" height="188" rx="13" fill="#0F1426" stroke="#F59E0B" stroke-opacity="0.65"/>
+    <rect x="50" y="300" width="300" height="6" rx="3" fill="#F59E0B" opacity="0.85"/>
+    <text x="70" y="342" class="mono" font-size="16.5" font-weight="700" fill="#FCD9A0">ship-deep-review</text>
+    <text x="70" y="366" class="sans" font-size="12.5" fill="#8A99B8">the evidence engine</text>
+    <line x1="70" y1="382" x2="330" y2="382" stroke="#20293F"/>
+    <text x="70" y="408" class="sans" font-size="13" fill="#AAB6D0">· multi-wave agent dispatch</text>
+    <text x="70" y="431" class="sans" font-size="13" fill="#AAB6D0">· independent verifier gates</text>
+    <text x="70" y="454" class="sans" font-size="13" fill="#AAB6D0">· no-overclaim final synthesis</text>
+    <text x="70" y="477" class="sans" font-size="12" fill="#67769A">owns wave barriers</text>
+  </g>
+
+  <!-- LANE: product-workflows -->
+  <g>
+    <rect x="370" y="300" width="300" height="188" rx="13" fill="#0D1526" stroke="#22D3EE" stroke-opacity="0.6"/>
+    <rect x="370" y="300" width="300" height="6" rx="3" fill="#22D3EE" opacity="0.85"/>
+    <text x="390" y="342" class="mono" font-size="16.5" font-weight="700" fill="#A5EEF9">ship-product-workflows</text>
+    <text x="390" y="366" class="sans" font-size="12.5" fill="#8A99B8">the path walker</text>
+    <line x1="390" y1="382" x2="650" y2="382" stroke="#20293F"/>
+    <text x="390" y="408" class="sans" font-size="13" fill="#AAB6D0">· walk every safe user path</text>
+    <text x="390" y="431" class="sans" font-size="13" fill="#AAB6D0">· state · persistence · forms</text>
+    <text x="390" y="454" class="sans" font-size="13" fill="#AAB6D0">· backend symptoms in the UI</text>
+    <text x="390" y="477" class="sans" font-size="12" fill="#67769A">read-only by default</text>
+  </g>
+
+  <!-- LANE: workflow-clarity -->
+  <g>
+    <rect x="690" y="300" width="300" height="188" rx="13" fill="#0C1522" stroke="#34D399" stroke-opacity="0.6"/>
+    <rect x="690" y="300" width="300" height="6" rx="3" fill="#34D399" opacity="0.85"/>
+    <text x="710" y="342" class="mono" font-size="16.5" font-weight="700" fill="#A7F3D0">ship-workflow-clarity</text>
+    <text x="710" y="366" class="sans" font-size="12.5" fill="#8A99B8">the human lens</text>
+    <line x1="710" y1="382" x2="970" y2="382" stroke="#20293F"/>
+    <text x="710" y="408" class="sans" font-size="13" fill="#AAB6D0">· where am I? what&#39;s next?</text>
+    <text x="710" y="431" class="sans" font-size="13" fill="#AAB6D0">· consequence &amp; recovery</text>
+    <text x="710" y="454" class="sans" font-size="13" fill="#F0B67A">⚠ harmful-simplify warnings</text>
+    <text x="710" y="477" class="sans" font-size="12" fill="#67769A">tied to workflow consequence</text>
+  </g>
+
+  <!-- clarity-lane edge: product-workflows -> workflow-clarity -->
+  <path d="M540 488 C 560 540, 800 540, 840 494" fill="none" stroke="#34D399" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arwg)"/>
+  <text x="690" y="556" text-anchor="middle" class="sans" font-size="12.5" font-weight="600" fill="#5FBF95">clarity lane · path evidence → comprehension packet</text>
+
+  <!-- caption -->
+  <text x="520" y="588" text-anchor="middle" class="sans" font-size="12.5" fill="#57648A">Lanes <tspan fill="#8A99B8">inherit</tspan> the one ledger and return evidence <tspan fill="#8A99B8">packets</tspan> to it — never competing conclusions.</text>
+</svg>

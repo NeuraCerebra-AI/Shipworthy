@@ -1,0 +1,10 @@
+{
+  "name": "shipworthy",
+  "version": "0.1.0",
+  "description": "Autonomous, evidence-graded product-readiness auditing for apps and AI agents. An orchestrator plus deep review, product-workflow, and UX-clarity lanes that walk every user path, check UI and backend, and prove whether you're ready to ship. Read-only by default; no overclaiming.",
+  "author": { "name": "Warren Cain", "url": "https://github.com/NeuraCerebra-AI" },
+  "homepage": "https://github.com/NeuraCerebra-AI/shipworthy",
+  "repository": "https://github.com/NeuraCerebra-AI/shipworthy",
+  "license": "MIT",
+  "keywords": ["product-readiness","release-readiness","qa","ux-audit","product-audit","multi-agent","ai-audit","claude-code","claude-skills","agentic"]
+}

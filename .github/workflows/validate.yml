@@ -1,0 +1,52 @@
+name: validate
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valid JSON everywhere (manifests + templates)
+        run: |
+          fail=0
+          for j in $(find . -name '*.json' -not -path './.git/*'); do
+            python3 -m json.tool "$j" >/dev/null 2>&1 && echo "ok  $j" || { echo "BAD $j"; fail=1; }
+          done
+          exit $fail
+      - name: Manifests present
+        run: |
+          test -f .claude-plugin/marketplace.json || { echo "missing marketplace.json"; exit 1; }
+          test -f plugins/shipworthy/.claude-plugin/plugin.json || { echo "missing plugin.json"; exit 1; }
+          echo "manifests present"
+      - name: Every skill has a SKILL.md
+        run: |
+          fail=0
+          for d in plugins/shipworthy/skills/*/; do
+            test -f "${d}SKILL.md" || { echo "MISSING SKILL.md in $d"; fail=1; }
+          done
+          exit $fail
+      - name: No stale prior skill names in production skills
+        run: |
+          if grep -rnE '\b(product-readiness-orchestrator|audit-product-workflows|audit-workflow-clarity)\b' plugins/; then
+            echo "::error::stale prior skill name in plugins/"; exit 1; fi
+          if grep -rnE '(^|[^-])deep-review' plugins/ | grep -v 'ship-deep-review'; then
+            echo "::error::stale standalone deep-review in plugins/"; exit 1; fi
+          echo "clean"
+      - name: Deliverable generators — simulation suites
+        run: |
+          cd plugins/shipworthy/skills/ship-readiness-orchestrator
+          python3 scripts/test_render_report.py
+          python3 scripts/test_to_sarif.py
+          python3 scripts/test_make_bundle.py
+      - name: Archetype profiles valid
+        run: |
+          cd plugins/shipworthy/skills/ship-readiness-orchestrator
+          python3 - <<'EOF'
+          import json, glob, sys
+          REQ=["archetype","description","expected_intents","critical_paths","common_failure_modes","often_missing_paths","high_risk_areas","evidence_cautions"]
+          bad=0
+          for p in glob.glob("profiles/*.json"):
+              d=json.load(open(p))
+              if any(k not in d for k in REQ) or any(not isinstance(d.get(k),list) or not d[k] for k in REQ[2:]):
+                  print("invalid profile:",p); bad=1
+          sys.exit(bad)
+          EOF

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shipworthy Product Workflows"
+  short_description: "Audit product paths for real user breakpoints"
+  default_prompt: "Use $ship-product-workflows to safely audit this app's product workflows end to end, try meaningful user paths, find UI/runtime/state/API/backend-symptom and workflow-clarity breakpoints, and return fixes with verification steps."

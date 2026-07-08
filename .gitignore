@@ -1,0 +1,34 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Secrets / env
+.env
+.env.*
+
+# Shipworthy evidence output (ledgers/traces are run artifacts, not source)
+/tmp/ship-*/
+**/audit-ledger.md
+evidence/
+outputs/
+
+# Demo capture artifacts (record locally; don't commit large casts by default)
+docs/demo.cast
+docs/demo.gif
+
+# generated visual reports
+readiness-report.html
+*.readiness-report.html

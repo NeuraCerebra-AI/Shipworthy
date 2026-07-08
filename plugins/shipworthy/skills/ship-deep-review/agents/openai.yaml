@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shipworthy Deep Review"
+  short_description: "Verified multi-wave review"
+  default_prompt: "Use $ship-deep-review to review this target with a focus on product truth and evidence."

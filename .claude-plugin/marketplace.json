@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "shipworthy",
+  "description": "Shipworthy — autonomous, evidence-graded product-readiness auditing for apps and AI agents. A Claude Code / Codex skill suite: an orchestrator plus deep review, product-workflow, and UX-clarity lanes.",
+  "owner": {
+    "name": "Warren Cain",
+    "url": "https://github.com/NeuraCerebra-AI"
+  },
+  "plugins": [
+    {
+      "name": "shipworthy",
+      "source": "./plugins/shipworthy",
+      "description": "Walks every user path, checks UI and backend, and proves whether you're ready to ship — with one evidence ledger, independent verifier gates, and no overclaiming. Read-only, self-contained markdown.",
+      "version": "0.1.0",
+      "author": { "name": "Warren Cain" },
+      "category": "testing",
+      "tags": ["product-readiness","release-readiness","qa","ux-audit","product-audit","workflow-audit","multi-agent","ai-audit","code-review","claude-skills"]
+    }
+  ]
+}

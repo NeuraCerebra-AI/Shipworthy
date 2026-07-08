@@ -1,0 +1,37 @@
+{
+  "archetype": "ai-chat",
+  "description": "LLM / AI chat or assistant product surface.",
+  "expected_intents": [
+    "send a message and get a coherent streamed response",
+    "stop / cancel a response mid-generation",
+    "retry or regenerate a response",
+    "start a new conversation and switch between conversations",
+    "handle an empty, very long, or malformed input gracefully",
+    "recover when the model errors, times out, or is rate-limited",
+    "copy, edit, or delete a prior message",
+    "understand and stay within usage limits"
+  ],
+  "critical_paths": [
+    "prompt -> stream -> complete -> follow-up retains context",
+    "model error / timeout -> visible recoverable state -> retry works"
+  ],
+  "common_failure_modes": [
+    "stop button does not actually cancel the stream",
+    "error swallowed; UI shows an empty or frozen bubble",
+    "context silently dropped between turns",
+    "rate-limit hit with no explanation or recovery path",
+    "very long input truncated silently",
+    "no visible end state on failure (spinner forever)"
+  ],
+  "often_missing_paths": [
+    "cancel an in-flight generation",
+    "regenerate / retry after an error",
+    "export or delete a conversation",
+    "see and understand the usage / quota state"
+  ],
+  "high_risk_areas": ["streaming lifecycle", "error/timeout recovery", "context persistence", "cost / quota exposure"],
+  "evidence_cautions": [
+    "do not run cost-incurring bulk generations; blocked -> evidence debt",
+    "prod-only model backends may be avoided -> evidence debt"
+  ]
+}
