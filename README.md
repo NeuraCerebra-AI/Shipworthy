@@ -109,7 +109,7 @@ Notice what it *doesn't* do: it never calls the app "ready," never claims the un
 
 <div align="center"><img src="assets/architecture.svg" alt="Architecture: the ship-readiness-orchestrator owns the one evidence ledger, coverage matrix, verdict, and no-overclaim gate, and dispatches three lanes — ship-deep-review (waves and verifier gates), ship-product-workflows (walks every path across UI and backend), and ship-workflow-clarity (the human lens with harmful-simplify warnings); product-workflows feeds a clarity packet to workflow-clarity" width="100%"></div>
 
-One truth layer, proven. The lanes feed evidence *packets* into the orchestrator's single ledger — they never publish competing conclusions. Full control stack in **[docs/architecture.md](docs/architecture.md)**.
+One truth layer, proven. The lanes feed evidence *packets* into the orchestrator's single ledger — they never publish competing conclusions. Full control stack in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## ⚖️ How it's different
 
@@ -152,7 +152,7 @@ If Shipworthy caught something before your users did, a star helps other teams f
 
 ## 📚 Docs
 
-- **[Architecture](docs/architecture.md)** — the control stack: who owns evidence, wave barriers, verifier gates.
+- **[Architecture](ARCHITECTURE.md)** — the control stack: who owns evidence, wave barriers, verifier gates.
 - **[Naming](docs/naming.md)** — how the names were chosen (and the 8 that were taken) + the GitHub SEO kit.
 - **[Launch playbook](docs/launch.md)** — where to list it, how to launch it, the exact About + Topics.
 
