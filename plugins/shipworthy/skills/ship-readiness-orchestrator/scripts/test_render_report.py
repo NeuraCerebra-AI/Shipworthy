@@ -137,6 +137,11 @@ base_ok("17 findings/segments wrong type", {"findings":"oops","coverage":{"segme
 base_ok("18 nulls", {"target":None,"verdict":None,"generated_at":None,"summary":None,"coverage":None,
                      "findings":[None,{"severity":None,"title":None,"evidence":None}],"checkpoint":None})
 
+# 19 checkpoint carries multi-agent authorization debt
+h=render({"checkpoint":{"multi_agent_authorization":"sequential fallback because multi-agent authorization was not granted",
+                        "mode":"sequential fallback"}})
+check("19 checkpoint renders multi-agent authorization", "multi-agent authorization was not granted" in h and ">authorization<" in h)
+
 # ---- new-feature assertions: grouping, coverage %, a11y, print ----
 hb = render(full)
 check("F1 blocker section +count",        'class="section tier-blockers"' in hb and '<h2>Blockers</h2><span class="count">2</span>' in hb)

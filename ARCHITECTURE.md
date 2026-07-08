@@ -28,7 +28,10 @@ Everything below is downstream of that rule.
 Start Gate -> Sub-Skill Load Gate -> initialize ONE evidence ledger
     |             (read all 3 sub-skill bodies before dispatch)
     v
-Path-universe discovery -> lane roster -> Wave 1 (parallel lane agents)
+Multi-Agent Authorization Gate -> Path-universe discovery -> lane roster
+    |
+    v
+Wave 1 (authorized parallel lanes or sequential fallback)
     |
     v
 Verified Barrier  (ship-deep-review owns this)
@@ -56,6 +59,14 @@ with justification, blocked, avoided, inferred, missing, out_of_scope, or
 evidence_debt. It must also generate the mandatory HTML report from the final
 ledger at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html`
 unless the user explicitly requests repo-local artifacts.
+
+Every full run also records the Multi-Agent Authorization Gate. If the current
+platform requires explicit permission for subagents, delegation, or parallel
+agent work, Shipworthy asks for it before dispatch. When authorization is not
+granted, the same lane roster runs sequentially and the final report records
+`sequential fallback because multi-agent authorization was not granted` as
+orchestration debt. Shipworthy instructions do not override platform tool
+policy.
 
 - **Lane wave patterns are lane-local evidence collection only.** When a lane's internal notion of a "wave" conflicts with the orchestrator's, `ship-deep-review` owns the real barriers, gates, and summaries.
 - **When lane instructions conflict with the orchestrator, the stricter safety / evidence / synthesis rule wins.**

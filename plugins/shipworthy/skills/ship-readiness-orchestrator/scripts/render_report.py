@@ -202,6 +202,8 @@ def render(data, interactive=False):
     ck = data.get("checkpoint") if isinstance(data.get("checkpoint"), dict) else {}
     ck_rows = []
     if isinstance(ck.get("lanes"), list) and ck["lanes"]: ck_rows.append(("lanes", " · ".join(str(x) for x in ck["lanes"])))
+    auth = ck.get("multi_agent_authorization") or ck.get("authorization")
+    if auth: ck_rows.append(("authorization", auth))
     if ck.get("mode"):     ck_rows.append(("mode", ck["mode"]))
     if ck.get("verifier"): ck_rows.append(("verifier", ck["verifier"]))
     if isinstance(ck.get("omitted"), list):

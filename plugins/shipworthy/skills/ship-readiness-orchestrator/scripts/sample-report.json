@@ -46,7 +46,8 @@
   ],
   "checkpoint": {
     "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
-    "mode": "5 parallel agents",
+    "multi_agent_authorization": "parallel subagents authorized",
+    "mode": "5 authorized parallel agents",
     "verifier": "Opus → APPROVED",
     "omitted": ["load test (no safe env) → logged as evidence debt, NOT as \"passed\""]
   },

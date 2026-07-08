@@ -57,9 +57,10 @@ Are we shipworthy?
 That phrase is the flagship trigger: Shipworthy runs the full readiness
 orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
 static-only pass. It maps the path universe, tries every safe discoverable user
-path, hunts for missing and overcomplicated paths, uses agents where safe, runs
-verified waves, and generates a self-contained HTML report from the final
-ledger.
+path, hunts for missing and overcomplicated paths, asks for multi-agent
+authorization when the platform requires it, uses agents where authorized and
+safe, runs verified waves, and generates a self-contained HTML report from the
+final ledger.
 
 <details>
 <summary><b>Prefer a manual install (Codex, or copy the folders)?</b></summary>
@@ -100,7 +101,8 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 
 ── ORCHESTRATION CHECKPOINT ─────────────────────────────────────────────────
   lanes: ship-deep-review, ship-product-workflows, ship-workflow-clarity
-  mode: 5 parallel agents · verifier: Opus, APPROVED
+  authorization: parallel subagents authorized
+  mode: 5 authorized parallel agents · verifier: Opus, APPROVED
   omitted: load test (no safe env) → logged as evidence debt, NOT as "passed"
 ```
 </details>

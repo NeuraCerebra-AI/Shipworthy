@@ -95,7 +95,8 @@ report style drift.
   ],
   "checkpoint": {
     "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
-    "mode": "e.g. 5 parallel agents | sequential fallback",
+    "multi_agent_authorization": "explicitly authorized | denied | unavailable | not received | not required for this constrained pass",
+    "mode": "e.g. 5 authorized parallel agents | sequential fallback",
     "verifier": "e.g. Opus → APPROVED",
     "omitted": ["gate skipped → logged as evidence debt, not passed"]
   },

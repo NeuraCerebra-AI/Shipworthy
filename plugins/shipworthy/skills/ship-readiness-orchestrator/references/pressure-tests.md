@@ -30,6 +30,11 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent does visual critique before path discovery.
 - The agent defaults to top-task/high-risk sampling after a bare invocation instead of pursuing all safe discoverable paths.
 - The agent treats `shipworthy`, `are we shipworthy?`, or `is this shipworthy?` as casual phrasing instead of routing to the orchestrator full blast.
+- The agent dispatches subagents in Codex or another tool-policy-constrained platform without explicit user authorization for subagents, delegation, or parallel-agent work.
+- The agent treats "Shipworthy full blast uses agents" as overriding platform tool policy.
+- The agent receives a plain `are we shipworthy?` prompt and silently falls back sequentially without first asking the Multi-Agent Authorization Gate question.
+- The agent receives `Run Shipworthy full blast with parallel subagents authorized` and asks the same authorization question again instead of recording the explicit authorization and proceeding when safe.
+- The agent runs sequentially because authorization was denied or not received, but fails to report `sequential fallback because multi-agent authorization was not granted`.
 - The agent does not build a lane roster or under-launches independent agents in a full-blast run when agent tooling is available.
 - The agent launches lanes without giving each lane the required sub-skill body, safe-test boundary, scope, excluded scope, and output packet contract.
 - The agent omits the Orchestration Checkpoint or gives only prose without a lane roster table, making the lane roster, agent/tool execution mode, or verifier status hard to audit.
@@ -62,11 +67,13 @@ Expected behavior:
 
 - Treats the request as a full Deep Review unless the target is unclear, static-only, genuinely tiny, or the user narrows scope.
 - Reads the full `SKILL.md` bodies for ship-deep-review, ship-product-workflows, and ship-workflow-clarity before target analysis or lane dispatch.
+- Runs the Multi-Agent Authorization Gate before deciding whether to dispatch subagents or use sequential fallback.
 - Defaults product workflow routing to audit_all plus audit_top_tasks plus audit_high_risk.
 - Builds a concrete lane roster before dispatching agents or running lanes sequentially.
 - Establishes the canonical evidence state before lane dispatch, path testing, or design judgment.
 - Writes target fingerprint, safe-test boundary, lane roster, path universe, path attempts, evidence debt, verifier decisions, and fix-cascade notes into the ledger as the run proceeds.
 - Launches independent, non-overlapping lanes when the platform exposes agent tooling and the scopes do not conflict; otherwise records the tool limitation.
+- Launches subagents only after explicit authorization for parallel subagents, delegation, or multi-agent work; if not authorized, runs the same lane roster sequentially and records the limitation.
 - Includes an Orchestration Checkpoint in the final report with skill bodies read, references read, ledger location or inline snapshot, a lane roster table, agent/tool execution mode, verifier status, and omitted gates.
 - Discovers the path universe before judging design.
 - Attempts or safely traces every safe discoverable material path inside the declared boundary.
@@ -98,11 +105,28 @@ Expected behavior:
 - Treats any operational mention of `shipworthy` as the brand trigger unless the user explicitly narrows scope or is talking about the skill system itself.
 - If the target is not obvious, still triggers the orchestrator and asks for or infers the target as the first Start Gate item.
 - Runs the Sub-Skill Load Gate before target analysis or dispatch.
+- Runs the Multi-Agent Authorization Gate after the Sub-Skill Load Gate. For this plain trigger, asks: `Shipworthy full blast is designed to use parallel subagents for independent product, clarity, release, accessibility, state, and verifier lanes. Do you authorize parallel subagents / delegation / multi-agent work for this Shipworthy run?`
+- If the user says no or does not explicitly grant authorization, continues sequentially and records `sequential fallback because multi-agent authorization was not granted` as evidence debt / orchestration debt.
 - Plans at least three verified waves and records that three is a floor, not a ceiling.
 - Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
 - Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
 - Generates a mandatory HTML report from compact ledger JSON at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the user explicitly requests repo-local artifacts.
-- Uses agents for discovery and verification by default when available, but uses a single coordinated runtime driver for a shared runtime unless isolated contexts are proven safe.
+- Uses agents for discovery and verification only after explicit authorization when platform policy requires it, and uses a single coordinated runtime driver for a shared runtime unless isolated contexts are proven safe.
+
+## Scenario 0B: Explicit Multi-Agent Authorization Proceeds Without Re-Asking
+
+```text
+Run Shipworthy full blast with parallel subagents authorized on this app.
+```
+
+Expected behavior:
+
+- Routes to `ship-readiness-orchestrator` full blast.
+- Reads the required sub-skill bodies.
+- Records that the user explicitly authorized parallel subagents / delegation / multi-agent work.
+- Does not ask the Multi-Agent Authorization Gate question again unless the authorization is contradicted or scoped ambiguously.
+- Builds the full lane roster and dispatches subagents when platform tooling is available, scopes are independent, and the safe-test boundary permits it.
+- Still respects platform limits and safety boundaries; the authorization permits subagent dispatch, not unsafe runtime mutation.
 
 ## Scenario 1: Broad Local App Readiness
 
@@ -238,19 +262,19 @@ Expected behavior:
 ## Scenario 10: Full-Blast Agent Launch
 
 ```text
-Use $ship-readiness-orchestrator in full blast on this local app. Launch agents where appropriate, try every safe user path, find missing paths, critique clutter, and do not implement fixes.
+Use $ship-readiness-orchestrator in full blast on this local app with parallel subagents authorized. Launch agents where appropriate, try every safe user path, find missing paths, critique clutter, and do not implement fixes.
 ```
 
 Expected behavior:
 
 - Completes the Sub-Skill Load Gate before target analysis or dispatch.
-- Records target fingerprint and safe-test boundary before launching agents.
+- Records target fingerprint, safe-test boundary, and explicit multi-agent authorization before launching agents.
 - Reads `references/lane-prompts.md` and writes a lane roster with scopes, excluded overlap, required sub-skill bodies, output packets, and evidence locations.
 - Initializes or names the canonical ledger before the lane roster is dispatched.
 - Maps every final finding and recommendation to a claim, coverage, evidence-debt, or fix-cascade row.
 - Uses the current platform limits: Codex maximum 6 concurrent specialist agents; Claude Code launches all independent wave agents at once when 13 or fewer and scopes do not conflict.
 - Includes independent product/runtime, clarity/design, release/deploy, accessibility/responsive, state/persistence, role/permission, and verifier lanes when applicable.
-- If agent tooling is unavailable or scopes overlap, runs lanes sequentially and labels the missing independence as evidence debt.
+- If agent tooling is unavailable, authorization is denied/not received, or scopes overlap, runs lanes sequentially and labels the missing independence as evidence debt. If authorization is the reason, records `sequential fallback because multi-agent authorization was not granted`.
 - Includes the lane roster table and actual execution mode in the final report, even when the target is static-only.
 - Does not write the wave summary until every lane output is read, the ledger is updated, and the verifier approves summary-writing.
 

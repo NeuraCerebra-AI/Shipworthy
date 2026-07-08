@@ -2,7 +2,7 @@
 
 **The conductor of Shipworthy.** Runs a repo-agnostic, evidence-heavy product-readiness investigation that combines deep review, product-workflow QA, and workflow-clarity/design critique — **without creating competing truth layers or overclaiming readiness.**
 
-It owns the single canonical evidence ledger, the coverage matrix, and the readiness verdict. It maps the reachable path universe, dispatches capped parallel lane agents, tests every safely-reachable path, flags missing and overcomplicated paths, runs an independent verifier against the raw evidence, and only then writes a findings-first report with an **Orchestration Checkpoint**.
+It owns the single canonical evidence ledger, the coverage matrix, and the readiness verdict. It maps the reachable path universe, asks for multi-agent authorization when platform policy requires it, dispatches capped parallel lane agents only when explicitly authorized and safe, tests every safely-reachable path, flags missing and overcomplicated paths, runs an independent verifier against the raw evidence, and only then writes a findings-first report with an **Orchestration Checkpoint**. If authorization is not granted, it runs the same lane roster sequentially and records the orchestration debt.
 
 **Trigger phrase:** ask `are we shipworthy?` or mention `shipworthy` operationally. That means full blast unless you explicitly narrow the pass.
 
