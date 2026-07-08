@@ -54,9 +54,8 @@ Then just ask:
 Are we shipworthy?
 ```
 
-Best results: if Shipworthy asks to authorize parallel subagents / delegation /
-multi-agent work, say `yes`. Codex has to ask; Claude Code generally does not
-have that Codex barrier, but `yes` makes the full-lane run explicit.
+⛴️ When Shipworthy asks to authorize parallel subagents / delegation /
+multi-agent work, say `yes`. 
 
 That phrase is the flagship trigger: Shipworthy runs the full readiness
 orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
