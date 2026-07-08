@@ -204,6 +204,12 @@ def render(data, interactive=False):
     if isinstance(ck.get("lanes"), list) and ck["lanes"]: ck_rows.append(("lanes", " · ".join(str(x) for x in ck["lanes"])))
     auth = ck.get("multi_agent_authorization") or ck.get("authorization")
     if auth: ck_rows.append(("authorization", auth))
+    if "frontend_path_walk_performed" in ck:
+        ck_rows.append(("frontend path-walk", "yes" if ck.get("frontend_path_walk_performed") else "no"))
+    if ck.get("frontend_tool"): ck_rows.append(("frontend tool", ck["frontend_tool"]))
+    if ck.get("runtime_target"): ck_rows.append(("runtime target", ck["runtime_target"]))
+    if ck.get("path_walk_status"): ck_rows.append(("path walk status", ck["path_walk_status"]))
+    if ck.get("downgrade_reason"): ck_rows.append(("downgrade reason", ck["downgrade_reason"]))
     if ck.get("mode"):     ck_rows.append(("mode", ck["mode"]))
     if ck.get("verifier"): ck_rows.append(("verifier", ck["verifier"]))
     if isinstance(ck.get("omitted"), list):

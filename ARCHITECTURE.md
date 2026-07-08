@@ -28,7 +28,10 @@ Everything below is downstream of that rule.
 Start Gate -> Sub-Skill Load Gate -> initialize ONE evidence ledger
     |             (read all 3 sub-skill bodies before dispatch)
     v
-Multi-Agent Authorization Gate -> Path-universe discovery -> lane roster
+Multi-Agent Authorization Gate -> Frontend Path-Walk Gate
+    |
+    v
+Path-universe discovery -> lane roster
     |
     v
 Wave 1 (authorized parallel lanes or sequential fallback)
@@ -59,6 +62,14 @@ with justification, blocked, avoided, inferred, missing, out_of_scope, or
 evidence_debt. It must also generate the mandatory HTML report from the final
 ledger at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html`
 unless the user explicitly requests repo-local artifacts.
+
+Every full Shipworthy run also records the Frontend Path-Walk Gate. If a
+runnable UI, hosted app, local dev server, browser-hosted prototype, desktop app,
+Chrome session, in-app browser surface, or Computer Use target is available,
+full means actual frontend path-walking. Source, CLI, HTTP, tests, logs, docs,
+provider checks, and database probes are supporting evidence, not a substitute
+for walking the product like a user. If no actual frontend path-walking occurred,
+the result is conditional/static/limited and not a full Shipworthy run.
 
 Every full run also records the Multi-Agent Authorization Gate. Best results
 come from answering `yes` when Shipworthy asks to authorize parallel subagents /

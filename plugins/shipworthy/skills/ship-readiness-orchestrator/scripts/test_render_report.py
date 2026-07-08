@@ -142,6 +142,14 @@ h=render({"checkpoint":{"multi_agent_authorization":"sequential fallback because
                         "mode":"sequential fallback"}})
 check("19 checkpoint renders multi-agent authorization", "multi-agent authorization was not granted" in h and ">authorization<" in h)
 
+# 20 checkpoint carries frontend path-walk proof/downgrade fields
+h=render({"checkpoint":{"frontend_path_walk_performed":False,
+                        "frontend_tool":"none",
+                        "path_walk_status":"not_performed",
+                        "downgrade_reason":"source/CLI/HTTP-only readiness audit is not a full Shipworthy run"}})
+check("20 checkpoint renders frontend path-walk fields",
+      ">frontend path-walk<" in h and "not_performed" in h and "not a full Shipworthy run" in h)
+
 # ---- new-feature assertions: grouping, coverage %, a11y, print ----
 hb = render(full)
 check("F1 blocker section +count",        'class="section tier-blockers"' in hb and '<h2>Blockers</h2><span class="count">2</span>' in hb)

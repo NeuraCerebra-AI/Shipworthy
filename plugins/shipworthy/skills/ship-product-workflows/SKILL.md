@@ -45,7 +45,8 @@ Wrong-route recovery: if evidence shows the route was wrong, state the mismatch,
 - Stay program-agnostic across web, native, mobile, desktop, Electron, game, creative, expert, CLI-like, AI, governed, dashboard, prototype, and internal-tool workflows.
 - Prioritize user-visible truth: what appears, what can be clicked or typed, what happens next, what persists, what errors, and what a user can recover from.
 - Use code, logs, network traces, database checks, and diffs to explain or verify user-visible symptoms. Do not turn this into an unbounded backend architecture audit.
-- Prefer runtime evidence when available. Static screenshots, docs, and code-only review produce bounded confidence.
+- For full flagship Shipworthy runs with a runnable UI/app surface, actual frontend path-walking is required. Source, CLI, HTTP, tests, logs, docs, and provider/database probes are supporting evidence, not as a substitute for frontend path-walking.
+- Prefer runtime evidence when available. Static screenshots, docs, and code-only review produce bounded confidence; if no actual frontend path walk occurs, do not call the result a full Shipworthy run.
 - Never claim screenshot-only certainty about behavior, accessibility, persistence, state transitions, or unreachable paths.
 - For fixture-only, screenshot-only, or supplied-diff-only audits, do not blend in ambient workspace/repo context unless the user named it or it is necessary to explain an adjacent risk. If used, label it as supporting context, not as truth about the supplied artifact.
 - Do not click mutating, paid, destructive, permission-changing, privacy-sensitive, publishing, approval, production, or irreversible actions without explicit safe-test permission or a disposable fixture.
@@ -69,8 +70,8 @@ Wrong-route recovery: if evidence shows the route was wrong, state the mismatch,
    - `audit_high_risk`: audit money, privacy, security, permission, publish, approval, destructive, AI-to-action, trust, or compliance-heavy paths.
    - `audit_changed_only`: audit changed routes/components/screens/flows plus adjacent workflows likely affected by the change.
 6. Decide single-agent, parallel lanes, or staged waves. For major audits, keep the coordinator responsible for safe-test boundaries, evidence standards, deduplication, severity, ledger updates, and final recommendations.
-7. Collect evidence: screenshots, recordings, DOM/UI tree, accessibility tree, focus traversal, console output, network/API observations, logs, route traces, state snapshots, code/diff references, product docs, and path traces.
-8. Execute or trace safe user paths. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
+7. Collect evidence: screenshots, recordings, DOM/UI tree, accessibility tree, focus traversal, console output, network/API observations, logs, route traces, state snapshots, code/diff references, product docs, and path traces. For a full flagship Shipworthy lane, include the actual frontend tool and path-walk status or explicitly downgrade the lane packet.
+8. Execute or trace safe user paths through the actual frontend when available. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
 9. Inspect backend/API/data symptoms only where they affect product workflows: failed requests, stale state, missing persistence, authorization leaks, inconsistent payloads, job/status drift, broken imports/exports, or misleading UI after backend failure.
 10. Call `$ship-workflow-clarity` for the clarity lane when comprehension, consequence, recovery, proof, governance, or human-obviousness risks are present. Pass path evidence and constraints; merge only evidence-backed clarity findings.
 11. Update the ledger after each major discovery pass, material evidence-changing tool batch, agent packet, wave, reroute, major finding, and final synthesis when a ledger exists.
@@ -95,7 +96,7 @@ Lead with findings unless the user asks only for a plan or map. For `quick`, com
 
 1. Top findings or no confirmed findings
 2. Scope, safe-test boundary, process route, audit mode, evidence path, risk gate, tools/agents used or skipped, reroutes, and exclusions
-3. Ledger path, ledger section, or skipped reason when a ledger would normally be expected
+3. Ledger path, ledger section, or skipped reason when a ledger would normally be expected, plus actual frontend path-walk status for full Shipworthy lanes
 4. Coverage map
 5. Findings by path
 6. `$ship-workflow-clarity` lane summary when used

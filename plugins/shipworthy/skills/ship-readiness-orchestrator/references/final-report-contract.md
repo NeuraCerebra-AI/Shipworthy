@@ -22,6 +22,7 @@ Before writing the final report, assemble:
 - ledger path/artifact location or inline ledger snapshot;
 - lane roster with launched, sequential, skipped, collapsed, or blocked lanes;
 - multi-agent authorization status, agent/tool execution status, and any platform limits that affected the run;
+- frontend path-walk status: whether actual frontend path-walking occurred, the frontend tool used, runtime target, path-walk status, and downgrade reason if absent or partial;
 - final claim ledger;
 - final coverage matrix;
 - evidence debt register with each item closed, blocked, scoped out, or carried as an explicit gap;
@@ -46,9 +47,11 @@ Store artifact references or redacted snippets by default. Do not include secret
    - Skill bodies read, references read, target fingerprint, safe-test boundary.
    - Ledger location or inline snapshot, including claim, coverage, evidence-debt, and fix-cascade ID ranges.
    - Multi-agent authorization status: explicitly authorized, denied, unavailable, not received, or not required for this constrained pass.
+   - Frontend path-walk status: performed or not performed, frontend tool, runtime target, path-walk status, and downgrade reason.
    - Lane roster table with columns: lane, scope, required skill/reference, execution status, output/evidence location, skipped/collapsed/blocking reason.
    - Actual agent/tool execution mode, verifier status, raw output/evidence locations, omitted gates, and evidence debt created by unavailable agents, missing authorization, or runtime limits.
    - If subagent dispatch was skipped because authorization was absent, denied, unavailable, or not received, state: `sequential fallback because multi-agent authorization was not granted`.
+   - If no actual frontend path-walking occurred, state the downgrade reason and do not call the report a full Shipworthy run.
 
 3. **Release Blockers**
    - Highest severity findings first.
@@ -149,6 +152,8 @@ Monitor: signal to watch after shipping, if relevant
 - Say "overcomplicated path" when a workflow technically works but has excessive steps, hidden prerequisites, repeated decisions, needless context switches, or fragile recovery.
 - Say "not fully covered" when discovered material paths remain only sampled, blocked, avoided, inferred, missing, or evidence debt.
 - Say "sequential fallback" when full-blast lanes were run in the main session because agent tooling was unavailable, unsafe, overlapping, or multi-agent authorization was not granted. If authorization was the reason, include `sequential fallback because multi-agent authorization was not granted`.
+- Say "source/CLI/HTTP-only readiness audit is not a full Shipworthy run" when no browser/computer-use/frontend path-walk occurred and the work relied on repo, command, HTTP, provider, database, or docs proof.
+- Say "actual frontend path-walk not performed" and use conditional/static/limited readiness language when the frontend was unavailable, out of scope, blocked by safety, or not tested.
 - Say "not in ledger" or remove the claim when a final conclusion cannot be mapped to a claim, coverage, evidence-debt, or fix-cascade row.
 - Say "static constrained pass" when only screenshots, docs, README, package scripts, or source snippets were available.
 - Say "cannot determine" when evidence is missing.

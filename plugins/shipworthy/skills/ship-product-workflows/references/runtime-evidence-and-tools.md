@@ -58,6 +58,8 @@ Use Playwright or equivalent browser automation for web apps and browser-hosted 
 
 Prefer deterministic browser traces when the user asks to "try paths," "click through," "audit the app," or "make sure it works."
 
+For a full flagship Shipworthy run, actual frontend path-walking is required when a runnable UI, hosted app, local dev server, browser-hosted prototype, desktop app, Chrome session, in-app browser surface, or Computer Use target is available. Source, CLI, HTTP, tests, logs, docs, provider checks, and database probes are supporting evidence, not as a substitute for frontend path-walking. If no actual frontend path-walking occurred, the result is conditional/static/limited, not a full Shipworthy run; record the downgrade reason, including "source/CLI/HTTP-only readiness audit is not a full Shipworthy run" when applicable.
+
 Do not use browser automation to perform paid, destructive, permission-changing, privacy-sensitive, publishing, approval, or production mutations without explicit safe-test permission.
 
 ## Computer Use Routing

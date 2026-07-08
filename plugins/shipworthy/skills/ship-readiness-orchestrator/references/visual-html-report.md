@@ -96,6 +96,11 @@ report style drift.
   "checkpoint": {
     "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
     "multi_agent_authorization": "explicitly authorized | denied | unavailable | not received | not required for this constrained pass",
+    "frontend_path_walk_performed": true,
+    "frontend_tool": "browser | in-app browser | chrome | playwright | computer-use | none | other",
+    "runtime_target": "URL, app/window, or local launch target",
+    "path_walk_status": "full | partial | blocked | not_performed",
+    "downgrade_reason": "required when the full-run claim is downgraded",
     "mode": "e.g. 5 authorized parallel agents | sequential fallback",
     "verifier": "e.g. Opus → APPROVED",
     "omitted": ["gate skipped → logged as evidence debt, not passed"]
@@ -104,8 +109,12 @@ report style drift.
 }
 ```
 
-Field notes: `findings` are sorted by severity automatically; every text field is
-HTML-escaped; coverage segment widths are proportional to `value`; `verdict` selects
+Field notes: checkpoint frontend fields make the human-style path-walk explicit.
+If `frontend_path_walk_performed` is false or `path_walk_status` is
+`not_performed`, the report must not claim to be a full Shipworthy run. Use
+`downgrade_reason` for language such as `source/CLI/HTTP-only readiness audit is
+not a full Shipworthy run`. `findings` are sorted by severity automatically;
+every text field is HTML-escaped; coverage segment widths are proportional to `value`; `verdict` selects
 the banner color (rose / amber / emerald). Coverage kind aliases are normalized:
 `debt` renders as `evidence_debt`, and mixed-case kinds such as `COVERED` are accepted.
 Severity aliases are normalized too: `P0 Blocker`, `critical`, and `blocker`

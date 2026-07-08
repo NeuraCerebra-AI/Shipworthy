@@ -9,6 +9,9 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - Baseline Failure Patterns To Watch
 - Scenario 0: Bare Invocation Defaults To Maximal Safe Coverage
 - Scenario 0A: Shipworthy Brand Trigger Defaults To Full Blast
+- Scenario 0B: Explicit Multi-Agent Authorization Proceeds Without Re-Asking
+- Scenario 0C: Provider Caveat Is Not Agent Authorization
+- Scenario 0D: Source-Only Readiness Is Not Flagship
 - Scenario 1: Broad Local App Readiness
 - Scenario 2: Screenshot-Only UX Teardown
 - Scenario 3: High-Risk Workflow
@@ -37,6 +40,10 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent receives `Run Shipworthy full blast with parallel subagents authorized` and asks the same authorization question again instead of recording the explicit authorization and proceeding when safe.
 - The agent treats missing authorization in the initial prompt as "not received" instead of asking the gate question and stopping.
 - The agent runs sequentially because authorization was denied or not received after the gate was asked, but fails to report `sequential fallback because multi-agent authorization was not granted`.
+- The agent treats source, CLI, HTTP, tests, logs, docs, provider checks, or database probes as a substitute for actual frontend path-walking in a full flagship run.
+- The agent claims a full Shipworthy verdict even though no browser/computer-use/frontend path-walk occurred.
+- The agent omits frontend path-walk status, frontend tool, runtime target, or downgrade reason from the final Orchestration Checkpoint.
+- The agent fails to say `source/CLI/HTTP-only readiness audit is not a full Shipworthy run` when it relied on non-frontend proof and did not walk the product UI.
 - The agent does not build a lane roster or under-launches independent agents in a full-blast run when agent tooling is available.
 - The agent launches lanes without giving each lane the required sub-skill body, safe-test boundary, scope, excluded scope, and output packet contract.
 - The agent omits the Orchestration Checkpoint or gives only prose without a lane roster table, making the lane roster, agent/tool execution mode, or verifier status hard to audit.
@@ -70,13 +77,14 @@ Expected behavior:
 - Treats the request as a full Deep Review unless the target is unclear, static-only, genuinely tiny, or the user narrows scope.
 - Reads the full `SKILL.md` bodies for ship-deep-review, ship-product-workflows, and ship-workflow-clarity before target analysis or lane dispatch.
 - Runs the Multi-Agent Authorization Gate before deciding whether to dispatch subagents or use sequential fallback. If authorization is absent or ambiguous in the initial request, asks the authorization question and stops instead of continuing sequentially in the same response.
+- Runs the Flagship Frontend Path-Walk Gate before source-heavy analysis. It repeats the commitment that a full flagship run uses actual frontend/browser/Chrome/Playwright/Computer Use path-walking when available, and that source/CLI/HTTP/tests/logs/docs are supporting evidence, not a substitute.
 - Defaults product workflow routing to audit_all plus audit_top_tasks plus audit_high_risk.
 - Builds a concrete lane roster before dispatching agents or running lanes sequentially.
 - Establishes the canonical evidence state before lane dispatch, path testing, or design judgment.
 - Writes target fingerprint, safe-test boundary, lane roster, path universe, path attempts, evidence debt, verifier decisions, and fix-cascade notes into the ledger as the run proceeds.
 - Launches independent, non-overlapping lanes when the platform exposes agent tooling and the scopes do not conflict; otherwise records the tool limitation.
 - Launches subagents only after explicit authorization for parallel subagents, delegation, or multi-agent work; if authorization is denied or not received after the gate question, runs the same lane roster sequentially and records the limitation.
-- Includes an Orchestration Checkpoint in the final report with skill bodies read, references read, ledger location or inline snapshot, a lane roster table, agent/tool execution mode, verifier status, and omitted gates.
+- Includes an Orchestration Checkpoint in the final report with skill bodies read, references read, ledger location or inline snapshot, frontend path-walk status, frontend tool, runtime target, downgrade reason when needed, a lane roster table, agent/tool execution mode, verifier status, and omitted gates.
 - Discovers the path universe before judging design.
 - Attempts or safely traces every safe discoverable material path inside the declared boundary.
 - Tests happy, empty, loading, invalid-input, error, recovery, role/permission, responsive, persistence/reload, and reasonable edge-state variants where safe.
@@ -110,11 +118,14 @@ Expected behavior:
 - Runs the Multi-Agent Authorization Gate after the Sub-Skill Load Gate. For this plain trigger, asks: `Shipworthy full blast is designed to use parallel subagents for independent product, clarity, release, accessibility, state, and verifier lanes. Do you authorize parallel subagents / delegation / multi-agent work for this Shipworthy run?`
 - For the response where it asks that question, stops there. It does not proceed to target analysis, tool work, repo reading, lane planning, or sequential fallback in the same response.
 - If the user later says no or fails to answer after the gate was asked, continues sequentially and records `sequential fallback because multi-agent authorization was not granted` as evidence debt / orchestration debt.
+- After authorization is resolved, runs the Flagship Frontend Path-Walk Gate and commits to actual frontend path-walking when a runnable UI/app surface is available.
+- Starts from the actual frontend/browser/computer-use path-walk instead of substituting source, CLI, HTTP, provider, database, docs, or command evidence for user-path traversal.
 - Plans at least three verified waves and records that three is a floor, not a ceiling.
 - Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
 - Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
 - Generates a mandatory HTML report from compact ledger JSON at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the user explicitly requests repo-local artifacts.
 - Uses agents for discovery and verification only after explicit authorization when platform policy requires it, and uses a single coordinated runtime driver for a shared runtime unless isolated contexts are proven safe.
+- If no actual frontend path-walking occurs, labels the output conditional/static/limited and says `source/CLI/HTTP-only readiness audit is not a full Shipworthy run` when that is the evidence mode.
 
 ## Scenario 0B: Explicit Multi-Agent Authorization Proceeds Without Re-Asking
 
@@ -145,6 +156,23 @@ Expected behavior:
 - Asks the authorization question and stops.
 - Does not say it is proceeding as a bounded sequential verdict.
 - Does not read repo docs, run tools, build lanes, or start sequential fallback in the same response.
+
+## Scenario 0D: Source-Only Readiness Is Not Flagship
+
+```text
+are we shipworthy?
+```
+
+Fixture: a repo with readable source, package scripts, docs, HTTP endpoints, and logs, plus a runnable web app or UI surface.
+
+Expected behavior:
+
+- Does not treat source/CLI/HTTP proof as enough for a full Shipworthy run.
+- Uses browser, in-app browser, Chrome, Playwright, Computer Use, or the app UI itself to perform actual frontend path-walking when safe.
+- If the frontend cannot be launched, is unsafe, is out of scope, or is not tested, the report is downgraded to conditional/static/limited.
+- The independent verifier must fail the full-run claim if no browser/computer-use/frontend path-walk occurred while the report claims full Shipworthy.
+- The final Orchestration Checkpoint includes frontend path-walk status, frontend tool, runtime target, path-walk status, and downgrade reason.
+- A source/CLI/HTTP-only readiness audit is not a full Shipworthy run.
 
 ## Scenario 1: Broad Local App Readiness
 

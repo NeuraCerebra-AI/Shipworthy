@@ -65,6 +65,12 @@ authorization when the platform requires it, uses agents where authorized and
 safe, runs verified waves, and generates a self-contained HTML report from the
 final ledger.
 
+For the flagship run, "tries every safe discoverable user path" means using the
+actual frontend when one is available: browser, in-app browser, Chrome,
+Playwright, Computer Use, or the app UI itself. Repo/source, CLI, HTTP, tests,
+logs, provider checks, database probes, and docs are supporting evidence, not a
+substitute for walking the product like a user.
+
 <details>
 <summary><b>Prefer a manual install (Codex, or copy the folders)?</b></summary>
 

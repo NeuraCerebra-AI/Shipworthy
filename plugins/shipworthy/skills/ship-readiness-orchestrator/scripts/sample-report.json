@@ -47,6 +47,10 @@
   "checkpoint": {
     "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
     "multi_agent_authorization": "parallel subagents authorized",
+    "frontend_path_walk_performed": true,
+    "frontend_tool": "Playwright/browser",
+    "runtime_target": "checkout demo local runtime",
+    "path_walk_status": "full",
     "mode": "5 authorized parallel agents",
     "verifier": "Opus → APPROVED",
     "omitted": ["load test (no safe env) → logged as evidence debt, NOT as \"passed\""]
