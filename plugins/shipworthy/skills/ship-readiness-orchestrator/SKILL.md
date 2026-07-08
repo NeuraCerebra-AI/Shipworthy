@@ -1,6 +1,6 @@
 ---
 name: ship-readiness-orchestrator
-description: Use when the user mentions Shipworthy operationally or asks "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness", or uses shipworthy as a bare invocation; also use for hardcore product readiness investigation, release-readiness audit, full safe discoverable user-path audit, senior developer/designer critique, deployability review, UX/usability teardown, product-quality audit, or asks to try everything, test every safe path, find missing UX paths, flag overcomplicated workflows, make an app robust, beloved, viral, simpler, clearer, less cluttered, attention-retaining, or more effective.
+description: Use when the user mentions Shipworthy operationally; asks "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness"; uses bare "shipworthy"; or asks for product/release readiness, full safe user-path audit, missing/overcomplicated UX paths, deployability, usability/design teardown, or making an app robust, clearer, simpler, attention-retaining, beloved, viral, or effective.
 ---
 
 # Shipworthy Readiness Orchestrator

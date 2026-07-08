@@ -72,7 +72,7 @@ check("06: empty renders checkpoint note", "No orchestration checkpoint" in h)
 
 base_ok("07 findings title-only", {"findings":[{"title":"just a title"}]}, expect_cards=1)
 
-h=base_ok("08 unknown severity -> info", {"findings":[{"severity":"critical","title":"weird sev"}]}, expect_cards=1)
+h=base_ok("08 unknown severity -> info", {"findings":[{"severity":"cosmic","title":"weird sev"}]}, expect_cards=1)
 check("08: info accent used", "#64748B" in h)
 
 # 09 XSS across every text field
@@ -149,7 +149,7 @@ check("F7 print break-inside:avoid",      'break-inside:avoid' in hb)
 hr = render(ready)
 check("F8 no severity sections when 0 findings", '<section class="section tier-' not in hr)
 check("F9 clean note still shown",        'No blocking or open findings' in hr)
-hu = render({"findings":[{"severity":"critical","title":"weird sev"}]})
+hu = render({"findings":[{"severity":"cosmic","title":"weird sev"}]})
 check("F10 unknown severity under Notes",  '<h2>Notes</h2>' in hu)
 hc = render({"coverage":{"total_paths":50,"segments":[{"kind":"covered","value":25},{"kind":"missing","value":25}]},"findings":[]})
 check("F11 coverage 50% (25 of 50)",       '<strong>50%</strong>&nbsp; covered · 25 of 50 discovered paths' in hc)
@@ -158,6 +158,25 @@ check("F12 coverage % derived from sum",   '<strong>80%</strong>&nbsp; covered �
 check("F13 premium report anatomy",        'class="masthead"' in hb and 'class="stamp"' in hb and 'class="stats-row"' in hb)
 check("F14 collapsible evidence details",  hb.count("<details") == 6 and "Evidence · Fix · Verify" in hb)
 check("F15 no external font links",        "fonts.googleapis.com" not in hb and "<link" not in hb.lower())
+
+canon_cov = render({"coverage":{"segments":[
+    {"kind":"COVERED","value":10},
+    {"kind":"inferred","value":4},
+    {"kind":"out_of_scope","value":3},
+    {"kind":"evidence_debt","value":2},
+]},"findings":[]})
+check("F16 canonical coverage labels normalized", "covered&nbsp;<b>10</b>" in canon_cov and "evidence debt&nbsp;<b>2</b>" in canon_cov)
+check("F17 canonical coverage colors not fallback", "#334155" not in canon_cov)
+check("F18 out_of_scope shown human-readably", "out of scope&nbsp;<b>3</b>" in canon_cov)
+
+canon_sev = render({"findings":[
+    {"severity":"P0 Blocker","confidence":"Confirmed","title":"p0"},
+    {"severity":"High","title":"high"},
+    {"severity":"Medium","title":"medium"},
+    {"severity":"LOW","title":"low"},
+]})
+check("F19 canonical severity aliases grouped", '<h2>Blockers</h2><span class="count">1</span>' in canon_sev and '<h2>Strong signals</h2><span class="count">1</span>' in canon_sev and '<h2>Provisional</h2><span class="count">1</span>' in canon_sev and '<h2>Notes</h2><span class="count">1</span>' in canon_sev)
+check("F20 canonical severity aliases derive summary", 'c-blockers"><span class="n">1</span>' in canon_sev and 'c-strong"><span class="n">1</span>' in canon_sev and 'c-provisional"><span class="n">1</span>' in canon_sev)
 
 # ---- de-duplication assertions (no repeated severity/confidence) ----
 hb = render(full)

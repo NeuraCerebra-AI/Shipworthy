@@ -5,16 +5,24 @@ Shipworthy — render a structured readiness audit into a self-contained HTML re
 Usage:
     python3 render_report.py [input.json] [output.html]
 
-Produces ONE self-contained file: inline CSS, system fonts, no network calls, no
-JavaScript. Renders identically in modern browsers, wkhtmltopdf, and print. Every
-text field is HTML-escaped; the renderer degrades gracefully on partial/degenerate
-data instead of crashing.
+Produces ONE self-contained file: inline CSS, system fonts, and no network calls.
+Default output has no JavaScript; --interactive adds inline no-network controls.
+Every text field is HTML-escaped; the renderer degrades gracefully on partial or
+degenerate data instead of crashing.
 """
-import sys, json, html, datetime
+import sys, json, html, datetime, re
 
 COV = {
     "covered": "#34D399", "sampled": "#3B82F6", "blocked": "#F59E0B",
-    "avoided": "#9F5B6B", "missing": "#F43F5E", "debt": "#3A4763",
+    "avoided": "#9F5B6B", "inferred": "#38BDF8", "missing": "#F43F5E",
+    "out_of_scope": "#64748B", "evidence_debt": "#3A4763",
+    "debt": "#3A4763",
+}
+COV_LABEL = {
+    "covered": "covered", "sampled": "sampled", "blocked": "blocked",
+    "avoided": "avoided", "inferred": "inferred", "missing": "missing",
+    "out_of_scope": "out of scope", "evidence_debt": "evidence debt",
+    "debt": "evidence debt",
 }
 SEV = {
     "blocker":     ("#F43F5E", "Blocker"),
@@ -23,6 +31,13 @@ SEV = {
     "info":        ("#64748B", "Note"),
 }
 SEV_ORDER = ["blocker", "strong", "provisional", "info"]
+SEV_ALIAS = {
+    "blocker": "blocker", "critical": "blocker", "p0 blocker": "blocker", "p0": "blocker",
+    "strong": "strong", "major": "strong", "high": "strong", "p1 major": "strong", "p1": "strong",
+    "provisional": "provisional", "moderate": "provisional", "medium": "provisional", "p2 moderate": "provisional", "p2": "provisional",
+    "info": "info", "note": "info", "minor": "info", "low": "info", "p3 minor": "info", "p3": "info",
+    "unscored": "info", "hypothesis": "info", "preserve note": "info",
+}
 GRP_LABEL = {"blocker": "Blockers", "strong": "Strong signals",
              "provisional": "Provisional", "info": "Notes"}
 VERDICT = {
@@ -44,14 +59,32 @@ def num(x, default=0.0):
     except (TypeError, ValueError):
         return default
 
+def norm_token(x):
+    return re.sub(r"\s+", " ", str(x or "").strip().lower().replace("_", " ").replace("-", " "))
+
+def cov_kind(x):
+    k = norm_token(x).replace(" ", "_")
+    if k == "debt":
+        return "evidence_debt"
+    return k
+
+def cov_label(s):
+    s = s or {}
+    kind = cov_kind(s.get("kind"))
+    return s.get("label") or COV_LABEL.get(kind) or norm_token(s.get("kind")).replace("_", " ")
+
+def sev_key(x):
+    return SEV_ALIAS.get(norm_token(x), "info")
+
 def seg_html(segments):
     total = sum(max(num((s or {}).get("value", 0)), 0) for s in segments) or 1
     out = []
     for s in segments:
-        c = COV.get((s or {}).get("kind", ""), "#334155")
+        kind = cov_kind((s or {}).get("kind"))
+        c = COV.get(kind, "#334155")
         v = max(num((s or {}).get("value", 0)), 0)
         pct = max((v / total) * 100, 0)
-        label = (s or {}).get("label", (s or {}).get("kind", ""))
+        label = cov_label(s)
         title = esc(f"{label} — {(s or {}).get('value','')}")
         out.append(f'<span style="flex:0 0 {pct:.1f}%;background:{c}" aria-hidden="true" title="{title}"></span>')
     return "".join(out)
@@ -60,9 +93,10 @@ def legend_html(segments):
     out = []
     for s in segments:
         s = s or {}
-        c = COV.get(s.get("kind", ""), "#334155")
+        kind = cov_kind(s.get("kind"))
+        c = COV.get(kind, "#334155")
         out.append(f'<span class="cov-key"><i class="sw" style="background:{c}"></i>'
-                   f'{esc(s.get("label", s.get("kind", "")))}&nbsp;<b>{esc(s.get("value", ""))}</b></span>')
+                   f'{esc(cov_label(s))}&nbsp;<b>{esc(s.get("value", ""))}</b></span>')
     return "".join(out)
 
 def details_html(f):
@@ -80,7 +114,7 @@ def details_html(f):
 def finding_html(f, idx):
     f = f or {}
     raw_sev = f.get("severity", "info")
-    sev = raw_sev if raw_sev in SEV_ORDER else "info"
+    sev = sev_key(raw_sev)
     accent, sev_label = SEV.get(sev, SEV["info"])
     conf = str(f.get("confidence") or "").strip()
     # Severity is already carried by the group header + the card's colored border,
@@ -109,14 +143,13 @@ def render(data, interactive=False):
     findings = data.get("findings", [])
     if not isinstance(findings, list): findings = []
     findings = [f for f in findings if isinstance(f, dict)]
-    findings.sort(key=lambda f: SEV_ORDER.index(f.get("severity"))
-                  if f.get("severity") in SEV_ORDER else 99)
+    findings.sort(key=lambda f: SEV_ORDER.index(sev_key(f.get("severity"))))
 
     # summary: use provided, else derive from findings
     s = data.get("summary") if isinstance(data.get("summary"), dict) else None
     if s is None:
         from collections import Counter
-        c = Counter(f.get("severity", "info") for f in findings)
+        c = Counter(sev_key(f.get("severity", "info")) for f in findings)
         s = {"blockers": c.get("blocker", 0), "strong": c.get("strong", 0),
              "provisional": c.get("provisional", 0)}
     blockers = s.get("blockers", 0)
@@ -129,7 +162,7 @@ def render(data, interactive=False):
     segs = [s for s in segs if isinstance(s, dict)]
 
     if segs:
-        covered = sum(num(s.get("value")) for s in segs if s.get("kind") == "covered")
+        covered = sum(num(s.get("value")) for s in segs if cov_kind(s.get("kind")) == "covered")
         total = num(cov.get("total_paths"), 0)
         if total <= 0:
             total = sum(num(s.get("value")) for s in segs)
@@ -137,7 +170,7 @@ def render(data, interactive=False):
         cov_sum = (f'<p class="cov-line"><strong>{pct}%</strong>&nbsp; covered · '
                    f'{covered:g} of {total:g} discovered paths</p>') if total > 0 else ''
         aria = "Coverage breakdown" + (f" of {total:g} discovered paths: " if total > 0 else ": ")
-        aria += ", ".join(f'{num(s.get("value")):g} {(s.get("label") or s.get("kind") or "")}' for s in segs)
+        aria += ", ".join(f'{num(s.get("value")):g} {cov_label(s)}' for s in segs)
         cov_block = (f'<section class="section"><div class="section-head"><h2>Coverage</h2></div>{cov_sum}'
                      f'<div class="cov-bar" role="img" aria-label="{esc(aria)}">{seg_html(segs)}</div>'
                      f'<div class="cov-legend">{legend_html(segs)}</div></section>')
@@ -148,7 +181,7 @@ def render(data, interactive=False):
     if findings:
         buckets = {sev: [] for sev in SEV_ORDER}
         for f in findings:
-            buckets[f.get("severity") if f.get("severity") in SEV_ORDER else "info"].append(f)
+            buckets[sev_key(f.get("severity"))].append(f)
         parts = ['<div class="group-label">Findings</div>']
         tier = {"blocker": "tier-blockers", "strong": "tier-strong",
                 "provisional": "tier-provisional", "info": "tier-info"}
@@ -200,7 +233,7 @@ def render(data, interactive=False):
 
         sev_present = []
         for sev in SEV_ORDER:
-            if any((f.get("severity") if f.get("severity") in SEV_ORDER else "info") == sev for f in findings):
+            if any(sev_key(f.get("severity")) == sev for f in findings):
                 sev_present.append(sev)
         btns = "".join(
             f'<button type="button" class="fbtn on" data-sev="{sev}" '

@@ -11,7 +11,7 @@
       { "kind": "blocked",  "label": "blocked (paid)",       "value": 3 },
       { "kind": "avoided",  "label": "avoided (prod email)", "value": 2 },
       { "kind": "missing",  "label": "missing",              "value": 1 },
-      { "kind": "debt",     "label": "evidence-debt (load)", "value": 1 }
+      { "kind": "evidence_debt", "label": "evidence-debt (load)", "value": 1 }
     ]
   },
   "findings": [

@@ -34,10 +34,13 @@ readme = read(README)
 arch = read(ARCH)
 install = read(INSTALL)
 all_text = "\n".join([skill, pressure, html, exports, waves, lanes, readme, arch, install])
+frontmatter = skill.split("---", 2)[1]
+description = next((line.split(":", 1)[1].strip() for line in frontmatter.splitlines() if line.startswith("description:")), "")
 
 for phrase in ["shipworthy", "are we shipworthy?", "is this shipworthy?", "shipworthy this", "check shipworthiness"]:
     ck(f"T1 trigger phrase present: {phrase}", phrase in skill.lower())
 
+ck("T0 frontmatter description stays concise", len(description) <= 500, f"chars={len(description)}")
 ck("T2 invocation contract section", "## Shipworthy Invocation Contract" in skill)
 ck("T3 operational mention means full blast", "operational mention of `shipworthy`" in skill and "full blast" in skill.lower())
 ck("T4 explicit narrow-scope exception", "unless the user explicitly narrows" in skill.lower())
@@ -51,6 +54,8 @@ ck("W4 wave protocol extra waves", "additional waves" in waves.lower() and "cove
 ck("P1 path-universe closure", "path-universe closure" in skill.lower())
 ck("P2 all safe discoverable paths stressed", "all safe discoverable" in skill.lower())
 ck("P3 closure labels include sampled justification", "sampled with justification" in all_text.lower())
+ck("P4 visual contract accepts canonical coverage labels", "evidence_debt" in html and "out_of_scope" in html)
+ck("P5 visual contract documents severity aliases", "p0 blocker" in html.lower() and "high" in html.lower())
 
 ck("H1 mandatory HTML report in orchestrator", "mandatory html report" in skill.lower())
 ck("H2 default external report path", "~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html" in all_text)

@@ -80,7 +80,7 @@ report style drift.
   "coverage": {
     "total_paths": 0,
     "segments": [
-      { "kind": "covered|sampled|blocked|avoided|missing|debt",
+      { "kind": "covered|sampled|blocked|avoided|inferred|missing|out_of_scope|evidence_debt",
         "label": "human label", "value": 0 }
     ]
   },
@@ -105,8 +105,13 @@ report style drift.
 
 Field notes: `findings` are sorted by severity automatically; every text field is
 HTML-escaped; coverage segment widths are proportional to `value`; `verdict` selects
-the banner color (rose / amber / emerald). Unknown `kind`/`severity` values fall back
-to a neutral slate so the report never breaks on partial data. Setting
+the banner color (rose / amber / emerald). Coverage kind aliases are normalized:
+`debt` renders as `evidence_debt`, and mixed-case kinds such as `COVERED` are accepted.
+Severity aliases are normalized too: `P0 Blocker`, `critical`, and `blocker`
+render as Blockers; `P1 Major`, `major`, `high`, and `strong` render as Strong
+signals; `P2 Moderate`, `moderate`, `medium`, and `provisional` render as
+Provisional; `P3 Minor`, `minor`, `low`, `note`, `unscored`, and `info` render
+as Notes. Unknown `kind`/`severity` values fall back to a neutral slate so the report never breaks on partial data. Setting
 `"illustrative": true` stamps the report as a sample rather than a live run.
 
 ## Robustness
