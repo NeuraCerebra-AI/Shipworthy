@@ -105,7 +105,7 @@ ck("F9 README says full uses frontend when available", "actual frontend" in read
 
 ck("G1 goal mode persistence gate exists", "## Goal Mode Persistence Gate" in skill)
 ck("G2 goal gate has policy caveat", "do not imply that shipworthy instructions override platform goal-mode policy" in skill.lower())
-ck("G3 combined yes wording", "reply yes to authorize persistent goal mode and parallel subagents for this shipworthy run" in skill.lower())
+ck("G3 combined yes wording", "recommended: reply yes to authorize persistent goal mode and parallel subagents for this shipworthy run" in skill.lower())
 ck("G4 goal status recorded", "goal_mode_status" in all_text and "goal-equivalent resumable ledger" in all_text.lower())
 ck("G5 README recommends slash-goal prompt", "/goal are we shipworthy?" in readme.lower())
 ck("G6 README says answer yes", "answer `yes`" in readme.lower() and "parallel subagents" in readme.lower())

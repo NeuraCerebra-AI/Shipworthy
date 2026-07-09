@@ -45,7 +45,7 @@ That flagship phrase triggers the full Shipworthy orchestrator by default:
 goal persistence when available, minimum verified waves, frontier closure over all
 safe discoverable user paths, evidence debt, verifier gates, and the mandatory
 self-contained HTML report. Codex may ask for authorization and stop; answer
-"yes" for persistent goal mode and parallel subagents. Claude Code generally
+"yes" for persistent goal mode and parallel subagents (recommended for best results). Claude Code generally
 does not have that Codex /goal barrier. Do not implement fixes unless the user
 asks after the audit.
 
