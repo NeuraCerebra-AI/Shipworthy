@@ -217,7 +217,7 @@ Do not implement fixes unless the user explicitly asks for implementation after 
 
 End every operational Shipworthy final answer with this concise fix handoff unless the user explicitly forbids follow-up work:
 
-> Recommended next step: reply **yes** and I'll start a persistent fix goal for the **Clear Before Ship** items, apply the fixes safely, verify each one, regenerate the Shipworthy HTML report, and stop only when every remaining item is either passed, intentionally scoped out, or still clearly listed as not proven.
+> Recommended next step: reply **yes** and I'll start a persistent fix goal for the **Clear Before Ship** items using authorized subagents where helpful. I'll apply the fixes safely, verify each one, regenerate the Shipworthy HTML report, and stop only when every remaining item is either passed, intentionally scoped out, or still clearly listed as not proven.
 
 **Ledger-derived deliverables (local-first; never a second source of truth).** The inline report and self-contained **HTML report** (`scripts/render_report.py`; verdict, covered-%, action-first findings, checkpoint) are required for every operational Shipworthy invocation and are generated only after the ledger is final. The HTML report defaults to no JS; `--interactive` is an opt-in variant that adds client-side filter/search/collapse. Additional exports, when the user wants to share, archive, gate, or automate, are:
 - a **SARIF 2.1.0** file (`scripts/to_sarif.py`) for GitHub code scanning, with an optional **merge gate** (`--gate`) that fails on confirmed blockers only;

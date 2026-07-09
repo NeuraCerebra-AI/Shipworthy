@@ -146,7 +146,7 @@ Keep, plus how strong the proof is.
 Notice what it *doesn't* do: it never calls the app "ready," never claims the untested path passed, and never silently changes your code. It hands you the smallest fix and the exact way to verify it.
 
 At the end of a run, Shipworthy should ask whether you want to start a persistent fix goal
-for the **Clear Before Ship** items. Reply `yes` when you want it to
+for the **Clear Before Ship** items using authorized subagents where helpful. Reply `yes` when you want it to
 apply the fixes safely, verify each one, and regenerate the Shipworthy HTML report.
 
 ## 🧩 The four skills

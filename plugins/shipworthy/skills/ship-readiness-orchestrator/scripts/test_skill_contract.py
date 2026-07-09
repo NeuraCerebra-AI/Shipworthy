@@ -88,6 +88,7 @@ ck("H15 visual report bans old visible buckets", all(x not in html for x in ["St
 ck("H16 final report contract uses action-first sections", all(x in read(ORCH / "references" / "final-report-contract.md") for x in ["Clear Before Ship", "Fix Next", "Not Proven / Not Tested", "Passed / Keep"]))
 ck("H17 inline final CTA asks for persistent fix goal", "Recommended next step: reply **yes** and I’ll start a persistent fix goal" in skill or "Recommended next step: reply **yes** and I'll start a persistent fix goal" in skill)
 ck("H18 inline CTA requires verify and regenerate report", "verify each one" in skill.lower() and "regenerate the shipworthy html report" in skill.lower())
+ck("H19 inline CTA mentions authorized subagents", "using authorized subagents where helpful" in skill.lower())
 
 ck("A1 shared runtime agent rule", "single coordinated runtime driver" in skill.lower())
 ck("A2 isolated contexts allow parallel runtime drivers", "isolated" in skill.lower() and "browser profiles" in skill.lower())
@@ -160,6 +161,7 @@ ck("D15 pressure tests link TraceFlow regression", "references/live-regressions/
 ck("D16 README explains action-first report sections", all(x in readme for x in ["Clear Before Ship", "Fix Next", "Not Proven / Not Tested", "Passed / Keep"]))
 ck("D17 README raw sample uses new taxonomy", "READINESS: NOT READY" in readme and "Clear Before Ship" in readme and "Passed / Keep" in readme and "Strong signals" not in readme)
 ck("D18 README mentions final fix-goal handoff", "persistent fix goal" in readme.lower() and "regenerate the Shipworthy HTML report" in readme)
+ck("D18b README fix handoff mentions subagents", "using authorized subagents where helpful" in readme.lower())
 ck("D19 sample SVG uses action-first labels", all(x in sample_svg for x in ["Clear Before Ship", "Not Proven / Not Tested", "Passed / Keep"]))
 ck("D20 sample SVG removes old report labels", all(x not in sample_svg for x in ["2 blockers", "1 strong", "3 provisional", "[Blocker]"]))
 ck("D21 flow SVG mentions action-first handoff", "Clear Before Ship" in flow_svg and "fix goal" in flow_svg.lower())
