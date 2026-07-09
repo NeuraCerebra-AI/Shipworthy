@@ -8,6 +8,7 @@ Write a findings-first readiness report that a senior engineering/design team ca
 
 - Required Pre-Synthesis Gate
 - Pre-Final Artifact Assertion
+- Final Fix Handoff
 - Report Structure
 - Finding Template
 - Design Finding Template
@@ -52,6 +53,13 @@ Before any final answer for an operational Shipworthy invocation, assert:
 - if any item is missing, the final answer leads with `HTML report: MISSING/BLOCKED`, explains why, and records missing artifacts as deliverable debt.
 
 Every Shipworthy final answer must include: verdict, report HTML path, ledger path, evidence path(s), omitted gates, downgrade reason when applicable, goal_mode_status, multi-agent authorization status, frontend path-walk status, frontier burn-down, exhaustion status, and report generation status. If `readiness-report.html` is missing, do not imply the Shipworthy run is complete.
+
+## Final Fix Handoff
+
+Unless the user explicitly forbids follow-up work, end every operational
+Shipworthy final answer with this concise next-step ask:
+
+> Recommended next step: reply **yes** and I'll start a persistent fix goal for the **Clear Before Ship** items using authorized subagents where helpful. I'll apply the fixes safely, verify each one, regenerate the Shipworthy HTML report, and stop only when every remaining item is either passed, intentionally scoped out, or still clearly listed as not proven.
 
 ## Report Structure
 

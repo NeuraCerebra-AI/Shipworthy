@@ -89,6 +89,7 @@ ck("H16 final report contract uses action-first sections", all(x in read(ORCH / 
 ck("H17 inline final CTA asks for persistent fix goal", "Recommended next step: reply **yes** and I’ll start a persistent fix goal" in skill or "Recommended next step: reply **yes** and I'll start a persistent fix goal" in skill)
 ck("H18 inline CTA requires verify and regenerate report", "verify each one" in skill.lower() and "regenerate the shipworthy html report" in skill.lower())
 ck("H19 inline CTA mentions authorized subagents", "using authorized subagents where helpful" in skill.lower())
+ck("H20 final report contract repeats fix-goal handoff", "Recommended next step: reply **yes**" in read(ORCH / "references" / "final-report-contract.md") and "using authorized subagents where helpful" in read(ORCH / "references" / "final-report-contract.md"))
 
 ck("A1 shared runtime agent rule", "single coordinated runtime driver" in skill.lower())
 ck("A2 isolated contexts allow parallel runtime drivers", "isolated" in skill.lower() and "browser profiles" in skill.lower())
