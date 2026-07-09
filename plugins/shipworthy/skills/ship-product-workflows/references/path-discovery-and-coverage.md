@@ -4,6 +4,7 @@
 
 - Purpose
 - Coverage Principle
+- Path Frontier For Full Shipworthy Runs
 - Discovery Inventory
 - Path Selection
 - Coverage Labels
@@ -29,6 +30,12 @@ Do not claim "all paths" unless the path universe is truly bounded and inspected
 The user may say "try every path." Interpret that as "build a serious coverage map and go as far as safe evidence permits."
 
 When a living audit ledger exists, the first coverage map is provisional. Append newly discovered paths, states, roles, and hidden routes to the ledger before deciding whether they are in scope, out of scope, blocked, avoided, or deferred.
+
+## Path Frontier For Full Shipworthy Runs
+
+When this lane is running under `ship-readiness-orchestrator` for a full Shipworthy invocation, return path_frontier additions, not just findings. Each addition should identify the expected intent, source, surface/route/control, role, state/device variant, mutation risk, current status, and next action. The orchestrator owns the canonical Path Frontier Ledger, but this lane must keep feeding it new paths until discovery dries up.
+
+Do not call the lane exhausted while material paths remain `unattempted`, `unknown`, or `maybe`, or while the last discovery/testing pass found new material routes, controls, roles, states, device variants, or user intents.
 
 ## Discovery Inventory
 
@@ -66,7 +73,7 @@ For `audit_top_tasks`, cover the highest-value paths first.
 
 For `audit_high_risk`, cover irreversible, governed, or trust-heavy paths first.
 
-For `audit_all`, enumerate the full scoped path universe, then work in risk/value order and label what remains uncovered.
+For `audit_all`, enumerate the full scoped path universe and path_frontier, then work in risk/value order and label what remains uncovered.
 
 ## Coverage Labels
 
@@ -77,7 +84,9 @@ Use these labels consistently:
 - `blocked`: could not inspect because of missing access, setup, credentials, data, environment, or tool failure.
 - `avoided`: intentionally not clicked due to mutation, privacy, payment, publishing, approval, production, or destructive risk.
 - `inferred`: likely behavior based on code, docs, network contracts, or adjacent traces, but not directly observed.
+- `missing`: a reasonable user goal or promised capability has no discoverable UX path.
 - `out_of_scope`: excluded by user request, route, time, artifact, or risk boundary.
+- `evidence_debt`: material proof is still required and no stronger label is justified.
 
 Do not merge `blocked` and `avoided`. Blocked means unable. Avoided means intentionally not safe.
 
@@ -141,3 +150,5 @@ A usable coverage map includes:
 Use `templates/coverage-map.json` when the map should survive beyond the response.
 
 For major or long-running audits, mirror the coverage map into the living audit ledger so compaction does not erase what was already covered, sampled, blocked, avoided, inferred, or excluded.
+
+For full Shipworthy runs, also mirror frontier burn-down: total frontier rows, covered, sampled, blocked, missing, evidence debt, unattempted, new paths found in the last pass, and new paths found in the previous pass.

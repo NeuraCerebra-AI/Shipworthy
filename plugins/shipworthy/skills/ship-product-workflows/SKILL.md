@@ -69,15 +69,16 @@ Wrong-route recovery: if evidence shows the route was wrong, state the mismatch,
    - `audit_top_tasks`: audit likely frequent, critical, or user-value-driving paths.
    - `audit_high_risk`: audit money, privacy, security, permission, publish, approval, destructive, AI-to-action, trust, or compliance-heavy paths.
    - `audit_changed_only`: audit changed routes/components/screens/flows plus adjacent workflows likely affected by the change.
-6. Decide single-agent, parallel lanes, or staged waves. For major audits, keep the coordinator responsible for safe-test boundaries, evidence standards, deduplication, severity, ledger updates, and final recommendations.
-7. Collect evidence: screenshots, recordings, DOM/UI tree, accessibility tree, focus traversal, console output, network/API observations, logs, route traces, state snapshots, code/diff references, product docs, and path traces. For a full flagship Shipworthy lane, include the actual frontend tool and path-walk status or explicitly downgrade the lane packet.
-8. Execute or trace safe user paths through the actual frontend when available. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
-9. Inspect backend/API/data symptoms only where they affect product workflows: failed requests, stale state, missing persistence, authorization leaks, inconsistent payloads, job/status drift, broken imports/exports, or misleading UI after backend failure.
-10. Call `$ship-workflow-clarity` for the clarity lane when comprehension, consequence, recovery, proof, governance, or human-obviousness risks are present. Pass path evidence and constraints; merge only evidence-backed clarity findings.
-11. Update the ledger after each major discovery pass, material evidence-changing tool batch, agent packet, wave, reroute, major finding, and final synthesis when a ledger exists.
-12. Deduplicate findings across lanes. Separate confirmed findings, strong findings, provisional hypotheses, non-findings, and untested paths.
-13. Stress-test every fix: what could it break for another role, path, state, device, accessibility route, data condition, or governance boundary?
-14. Report findings first with evidence, severity, confidence, user consequence, likely cause, smallest useful fix, regression risk, and verification step.
+6. For full Shipworthy runs, return path_frontier additions and frontier burn-down signals after each discovery/testing pass; do not treat newly discovered paths as scope creep.
+7. Decide single-agent, parallel lanes, or staged waves. For major audits, keep the coordinator responsible for safe-test boundaries, evidence standards, deduplication, severity, ledger updates, and final recommendations.
+8. Collect evidence: screenshots, recordings, DOM/UI tree, accessibility tree, focus traversal, console output, network/API observations, logs, route traces, state snapshots, code/diff references, product docs, and path traces. For a full flagship Shipworthy lane, include the actual frontend tool and path-walk status or explicitly downgrade the lane packet.
+9. Execute or trace safe user paths through the actual frontend when available. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
+10. Inspect backend/API/data symptoms only where they affect product workflows: failed requests, stale state, missing persistence, authorization leaks, inconsistent payloads, job/status drift, broken imports/exports, or misleading UI after backend failure.
+11. Call `$ship-workflow-clarity` for the clarity lane when comprehension, consequence, recovery, proof, governance, or human-obviousness risks are present. Pass path evidence and constraints; merge only evidence-backed clarity findings.
+12. Update the ledger after each major discovery pass, material evidence-changing tool batch, agent packet, wave, reroute, major finding, and final synthesis when a ledger exists.
+13. Deduplicate findings across lanes. Separate confirmed findings, strong findings, provisional hypotheses, non-findings, and untested paths.
+14. Stress-test every fix: what could it break for another role, path, state, device, accessibility route, data condition, or governance boundary?
+15. Report findings first with evidence, severity, confidence, user consequence, likely cause, smallest useful fix, regression risk, and verification step.
 
 ## Templates
 

@@ -104,6 +104,8 @@ report style drift.
   ],
   "checkpoint": {
     "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
+    "goal_mode_status": "active | explicitly authorized | not_authorized | unavailable | goal-equivalent resumable ledger",
+    "goal_mode_objective": "persistent objective or fallback ledger objective",
     "multi_agent_authorization": "explicitly authorized | denied | unavailable | not received | not required for this constrained pass",
     "frontend_path_walk_performed": true,
     "frontend_tool": "browser | in-app browser | chrome | playwright | computer-use | none | other",
@@ -114,6 +116,18 @@ report style drift.
     "report_path": "absolute path to readiness-report.html, or missing/blocked reason",
     "ledger_path": "absolute path to readiness-report.json or ledger, or inline snapshot marker",
     "evidence_locations": ["absolute paths or redacted artifact references"],
+    "frontier_total": 0,
+    "frontier_covered": 0,
+    "frontier_sampled": 0,
+    "frontier_blocked": 0,
+    "frontier_missing": 0,
+    "frontier_evidence_debt": 0,
+    "frontier_unattempted": 0,
+    "new_paths_last_wave": 0,
+    "new_paths_previous_wave": 0,
+    "exhaustion_status": "complete | incomplete | incomplete_budget_exhausted | downgraded",
+    "exhaustion_downgrade_reason": "required when frontier closure is incomplete",
+    "next_frontier_batch": ["frontier IDs or user-path names to resume next"],
     "mode": "e.g. 5 authorized parallel agents | sequential fallback",
     "verifier": "e.g. Opus → APPROVED",
     "omitted": ["gate skipped → logged as evidence debt, not passed"]
@@ -122,12 +136,19 @@ report style drift.
 }
 ```
 
-Field notes: checkpoint frontend fields make the human-style path-walk explicit.
+Field notes: `goal_mode_status` records whether Codex `/goal` or a platform
+persistent goal was actually active; when it is unavailable or not authorized, a
+goal-equivalent resumable ledger is required. Checkpoint frontend fields make
+the human-style path-walk explicit.
 If `frontend_path_walk_performed` is false or `path_walk_status` is
 `not_performed`, the report must not claim to be a full Shipworthy run. Use
 `downgrade_reason` for language such as `source/CLI/HTTP-only readiness audit is
 not a full Shipworthy run`. `report_generation_status`, `report_path`,
 `ledger_path`, and `evidence_locations` make the deliverable invariant auditable.
+Frontier fields make exhaustion auditable: if `frontier_unattempted` is above
+zero, `new_paths_last_wave` / `new_paths_previous_wave` still show discovery
+yield, or `exhaustion_status` is not `complete`, the report must show the
+downgrade and include a next frontier batch or resume path.
 If `report_generation_status` is not `rendered`, the final answer must say
 `HTML report: MISSING/BLOCKED` and treat the run as incomplete. `findings` are
 sorted by severity automatically; every text field is HTML-escaped; coverage

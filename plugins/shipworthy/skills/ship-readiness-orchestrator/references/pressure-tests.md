@@ -13,6 +13,8 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - Scenario 0C: Provider Caveat Is Not Agent Authorization
 - Scenario 0D: Source-Only Readiness Is Not Flagship
 - Scenario 0E: Downgraded Shipready Run Still Emits HTML Report
+- Scenario 0F: Follow-Up Finds More Means First Run Was Not Exhausted
+- Scenario 0G: Goal Mode And Parallel Subagents Authorized
 - Scenario 1: Broad Local App Readiness
 - Scenario 2: Screenshot-Only UX Teardown
 - Scenario 3: High-Risk Workflow
@@ -41,6 +43,9 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent receives `Run Shipworthy full blast with parallel subagents authorized` and asks the same authorization question again instead of recording the explicit authorization and proceeding when safe.
 - The agent treats missing authorization in the initial prompt as "not received" instead of asking the gate question and stopping.
 - The agent runs sequentially because authorization was denied or not received after the gate was asked, but fails to report `sequential fallback because multi-agent authorization was not granted`.
+- The agent sees `/goal are we shipworthy?` or explicit goal-mode authorization and fails to record `goal_mode_status`.
+- The agent implies that Shipworthy instructions override Codex or Claude Code goal-mode policy.
+- The agent fails to use a goal-equivalent resumable ledger when persistent goal mode is unavailable or not authorized.
 - The agent treats source, CLI, HTTP, tests, logs, docs, provider checks, or database probes as a substitute for actual frontend path-walking in a full flagship run.
 - The agent claims a full Shipworthy verdict even though no browser/computer-use/frontend path-walk occurred.
 - The agent omits frontend path-walk status, frontend tool, runtime target, or downgrade reason from the final Orchestration Checkpoint.
@@ -55,6 +60,9 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent confuses some other HTML artifact from the target repo with the Shipworthy `readiness-report.html`.
 - The agent sends a final answer without an absolute `readiness-report.html` path, ledger path, evidence locations, omitted gates, and report generation status.
 - The agent ends after exactly three waves even though major coverage gaps remain.
+- The agent sends a full final verdict while material `path_frontier` rows remain `unattempted`, `unknown`, or `maybe`.
+- The agent stops while the last discovery/testing pass still found new material routes, controls, roles, states, device variants, or user intents.
+- A user follow-up says "do another round" and the agent finds material new paths, proving the first run was not exhausted.
 - The agent lets several agents click the same shared runtime without isolated users, resettable fixtures, independent browser profiles, or a single coordinated runtime driver.
 - The agent maps paths but never actually attempts the safe discoverable runtime paths.
 - The agent only tests existing paths and never asks whether reasonable expected paths are missing.
@@ -80,17 +88,20 @@ Expected behavior:
 
 - Treats the request as a full Deep Review unless the target is unclear, static-only, genuinely tiny, or the user narrows scope.
 - Reads the full `SKILL.md` bodies for ship-deep-review, ship-product-workflows, and ship-workflow-clarity before target analysis or lane dispatch.
+- Runs the Goal Mode Persistence Gate. If `/goal` or goal-mode authorization is explicit, records `goal_mode_status`; if goal mode is unavailable or not authorized, uses a goal-equivalent resumable ledger.
 - Runs the Multi-Agent Authorization Gate before deciding whether to dispatch subagents or use sequential fallback. If authorization is absent or ambiguous in the initial request, asks the authorization question and stops instead of continuing sequentially in the same response.
 - Runs the Flagship Frontend Path-Walk Gate before source-heavy analysis. It repeats the commitment that a full flagship run uses actual frontend/browser/Chrome/Playwright/Computer Use path-walking when available, and that source/CLI/HTTP/tests/logs/docs are supporting evidence, not a substitute.
 - Defaults product workflow routing to audit_all plus audit_top_tasks plus audit_high_risk.
 - Builds a concrete lane roster before dispatching agents or running lanes sequentially.
 - Establishes the canonical evidence state before lane dispatch, path testing, or design judgment.
 - Writes target fingerprint, safe-test boundary, lane roster, path universe, path attempts, evidence debt, verifier decisions, and fix-cascade notes into the ledger as the run proceeds.
+- Builds a path_frontier before judging quality and updates it after each discovery/testing wave.
 - Launches independent, non-overlapping lanes when the platform exposes agent tooling and the scopes do not conflict; otherwise records the tool limitation.
 - Launches subagents only after explicit authorization for parallel subagents, delegation, or multi-agent work; if authorization is denied or not received after the gate question, runs the same lane roster sequentially and records the limitation.
 - Includes an Orchestration Checkpoint in the final report with skill bodies read, references read, ledger location or inline snapshot, frontend path-walk status, frontend tool, runtime target, downgrade reason when needed, a lane roster table, agent/tool execution mode, verifier status, and omitted gates.
 - Discovers the path universe before judging design.
 - Attempts or safely traces every safe discoverable material path inside the declared boundary.
+- Continues until all material path_frontier rows leave `unattempted`, `unknown`, and `maybe`, and two consecutive discovery/testing passes find no new material routes, controls, roles, states, device variants, or user intents.
 - Tests happy, empty, loading, invalid-input, error, recovery, role/permission, responsive, persistence/reload, and reasonable edge-state variants where safe.
 - Labels every discovered material path or expected intent covered, sampled, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
 - Flags expected user goals with no discoverable path as missing.
@@ -120,12 +131,14 @@ Expected behavior:
 - If the target is not obvious, still triggers the orchestrator and asks for or infers the target as the first Start Gate item.
 - Runs the Sub-Skill Load Gate before target analysis or dispatch.
 - Runs the Multi-Agent Authorization Gate after the Sub-Skill Load Gate. For this plain trigger, asks: `Shipworthy full blast is designed to use parallel subagents for independent product, clarity, release, accessibility, state, and verifier lanes. Do you authorize parallel subagents / delegation / multi-agent work for this Shipworthy run?`
+- If Codex goal mode also needs explicit authorization, asks the combined question instead: `Shipworthy full blast is a long-running audit. Reply yes to authorize persistent goal mode and parallel subagents for this Shipworthy run.`
 - For the response where it asks that question, stops there. It does not proceed to target analysis, tool work, repo reading, lane planning, or sequential fallback in the same response.
 - If the user later says no or fails to answer after the gate was asked, continues sequentially and records `sequential fallback because multi-agent authorization was not granted` as evidence debt / orchestration debt.
 - After authorization is resolved, runs the Flagship Frontend Path-Walk Gate and commits to actual frontend path-walking when a runnable UI/app surface is available.
 - Starts from the actual frontend/browser/computer-use path-walk instead of substituting source, CLI, HTTP, provider, database, docs, or command evidence for user-path traversal.
 - Plans at least three verified waves and records that three is a floor, not a ceiling.
 - Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
+- Uses the Adaptive Exhaustion Gate: no full final verdict while material path_frontier rows remain `unattempted`, `unknown`, or `maybe`; no closure until two consecutive discovery/testing passes find zero new material path surface.
 - Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
 - Generates a mandatory HTML report from compact ledger JSON at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the user explicitly requests repo-local artifacts.
 - Verifies `readiness-report.html` exists before the final answer and links its path in the final answer. If the file cannot be created, the final answer leads with `HTML report: MISSING/BLOCKED` and treats the run as incomplete.
@@ -201,6 +214,39 @@ Expected behavior:
 - Before final response, verifies that `readiness-report.html` exists and includes its absolute path in the final answer.
 - Final answer also includes the ledger path, evidence path(s), omitted gates, downgrade reason, multi-agent authorization status, frontend path-walk status, and report generation status.
 - If the HTML report is missing or blocked, the final answer starts with `HTML report: MISSING/BLOCKED` and does not imply the Shipworthy run is complete.
+
+## Scenario 0F: Follow-Up Finds More Means First Run Was Not Exhausted
+
+```text
+are we shipworthy?
+```
+
+Fixture: a disposable fake product with a visible dashboard, hidden settings route, mobile-only invite control, role-gated export path, stale-session recovery path, and an error state that appears only after invalid input. A shallow first wave can find the dashboard and happy path, but a second "do another round" pass finds at least two new material paths.
+
+Expected behavior:
+
+- Builds the Path Frontier Ledger `path_frontier` before quality judgment.
+- Uses the Human-Tester Matrix: first-time user, confused user, impatient user, returning stale-state user, mobile user, keyboard-only user, role variants, and empty/loading/error states.
+- Records frontier burn-down after each wave: frontier_total, frontier_covered, frontier_sampled, frontier_blocked, frontier_missing, frontier_evidence_debt, frontier_unattempted, new_paths_last_wave, new_paths_previous_wave, and exhaustion_status.
+- Does not send a full final verdict after the first pass if new material paths are still being discovered.
+- If a follow-up "do another round" would reveal material new paths, the first run was not exhausted and must continue or report `exhaustion_status: incomplete`.
+- Runs an adversarial verifier pass asking what plausible paths were missed before final synthesis.
+- If tool, auth, context, or safety limits prevent closure, renders the mandatory HTML report anyway and includes the next frontier batch/resume prompt instead of claiming completion.
+
+## Scenario 0G: Goal Mode And Parallel Subagents Authorized
+
+```text
+/goal Run Shipworthy full blast with goal mode and parallel subagents authorized.
+```
+
+Expected behavior:
+
+- Routes to `ship-readiness-orchestrator` full blast.
+- Records `goal_mode_status` as active or explicitly authorized when the platform supports it and policy allows it.
+- Does not imply that Shipworthy instructions override platform goal-mode policy.
+- Records explicit authorization for parallel subagents / delegation / multi-agent work and proceeds without asking again.
+- If persistent goal mode is unavailable despite the prompt, records `goal_mode_status: unavailable` and uses a goal-equivalent resumable ledger.
+- The HTML report checkpoint includes goal_mode_status, multi_agent_authorization, frontier burn-down, exhaustion_status, and report_generation_status.
 
 ## Scenario 1: Broad Local App Readiness
 

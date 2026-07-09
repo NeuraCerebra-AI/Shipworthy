@@ -207,6 +207,10 @@ def render(data, interactive=False):
     ck = data.get("checkpoint") if isinstance(data.get("checkpoint"), dict) else {}
     ck_rows = []
     if isinstance(ck.get("lanes"), list) and ck["lanes"]: ck_rows.append(("lanes", " · ".join(str(x) for x in ck["lanes"])))
+    if ck.get("goal_mode_status") or data.get("goal_mode_status"):
+        ck_rows.append(("goal mode status", ck.get("goal_mode_status") or data.get("goal_mode_status")))
+    if ck.get("goal_mode_objective") or data.get("goal_mode_objective"):
+        ck_rows.append(("goal mode objective", ck.get("goal_mode_objective") or data.get("goal_mode_objective")))
     auth = ck.get("multi_agent_authorization") or ck.get("authorization")
     if auth: ck_rows.append(("authorization", auth))
     if "frontend_path_walk_performed" in ck:
@@ -224,6 +228,24 @@ def render(data, interactive=False):
     evidence_locations = ck.get("evidence_locations") or data.get("evidence_locations")
     if evidence_locations:
         ck_rows.append(("evidence locations", row_text(evidence_locations)))
+    frontier_fields = [
+        ("frontier total", "frontier_total"),
+        ("frontier covered", "frontier_covered"),
+        ("frontier sampled", "frontier_sampled"),
+        ("frontier blocked", "frontier_blocked"),
+        ("frontier missing", "frontier_missing"),
+        ("frontier evidence debt", "frontier_evidence_debt"),
+        ("frontier unattempted", "frontier_unattempted"),
+        ("new paths last wave", "new_paths_last_wave"),
+        ("new paths previous wave", "new_paths_previous_wave"),
+        ("exhaustion status", "exhaustion_status"),
+        ("exhaustion downgrade reason", "exhaustion_downgrade_reason"),
+        ("next frontier batch", "next_frontier_batch"),
+    ]
+    for label, key in frontier_fields:
+        value = ck.get(key, data.get(key))
+        if value not in (None, "", []):
+            ck_rows.append((label, row_text(value)))
     if ck.get("mode"):     ck_rows.append(("mode", ck["mode"]))
     if ck.get("verifier"): ck_rows.append(("verifier", ck["verifier"]))
     if isinstance(ck.get("omitted"), list):

@@ -39,13 +39,15 @@ conduct the other three when present (it fails loudly, not silently, if one is m
 
 Try it in Claude Code or Codex:
 
-  Are we shipworthy? Target: ./my-app
+  /goal are we shipworthy? Target: ./my-app
 
 That flagship phrase triggers the full Shipworthy orchestrator by default:
-minimum verified waves, all safe discoverable user paths, evidence debt, verifier
-gates, and the mandatory self-contained HTML report. Codex may ask for authorization and stop; say "yes" for best results.
-Claude Code generally does not have that Codex barrier. Do not implement fixes
-unless the user asks after the audit.
+goal persistence when available, minimum verified waves, frontier closure over all
+safe discoverable user paths, evidence debt, verifier gates, and the mandatory
+self-contained HTML report. Codex may ask for authorization and stop; answer
+"yes" for persistent goal mode and parallel subagents. Claude Code generally
+does not have that Codex /goal barrier. Do not implement fixes unless the user
+asks after the audit.
 
 Or run a single lane, e.g. ship-workflow-clarity on one confusing screen.
 NEXT

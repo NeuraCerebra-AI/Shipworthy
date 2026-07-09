@@ -22,11 +22,13 @@ Before writing the final report, assemble:
 - target fingerprint and safe-test boundary;
 - ledger path/artifact location or inline ledger snapshot;
 - lane roster with launched, sequential, skipped, collapsed, or blocked lanes;
+- goal_mode_status, persistent goal objective if active, or goal-equivalent resumable ledger status if goal mode was unavailable/not authorized;
 - multi-agent authorization status, agent/tool execution status, and any platform limits that affected the run;
 - frontend path-walk status: whether actual frontend path-walking occurred, the frontend tool used, runtime target, path-walk status, and downgrade reason if absent or partial;
 - report generation status, readiness-report HTML path, readiness-report JSON or ledger path, and evidence locations;
 - final claim ledger;
 - final coverage matrix;
+- path_frontier burn-down: frontier_total, frontier_covered, frontier_sampled, frontier_blocked, frontier_missing, frontier_evidence_debt, frontier_unattempted, new_paths_last_wave, new_paths_previous_wave, exhaustion status, and next frontier batch when incomplete;
 - evidence debt register with each item closed, blocked, scoped out, or carried as an explicit gap;
 - verified wave summaries and certificates, or for rapid/narrow/static runs, one verified checkpoint plus a list of omitted full-run gates;
 - raw lane outputs or artifact references;
@@ -49,7 +51,7 @@ Before any final answer for an operational Shipworthy invocation, assert:
 - final answer includes the absolute HTML report path, ledger path or inline-ledger marker, and evidence locations;
 - if any item is missing, the final answer leads with `HTML report: MISSING/BLOCKED`, explains why, and records missing artifacts as deliverable debt.
 
-Every Shipworthy final answer must include: verdict, report HTML path, ledger path, evidence path(s), omitted gates, downgrade reason when applicable, multi-agent authorization status, frontend path-walk status, and report generation status. If `readiness-report.html` is missing, do not imply the Shipworthy run is complete.
+Every Shipworthy final answer must include: verdict, report HTML path, ledger path, evidence path(s), omitted gates, downgrade reason when applicable, goal_mode_status, multi-agent authorization status, frontend path-walk status, frontier burn-down, exhaustion status, and report generation status. If `readiness-report.html` is missing, do not imply the Shipworthy run is complete.
 
 ## Report Structure
 
@@ -61,9 +63,11 @@ Every Shipworthy final answer must include: verdict, report HTML path, ledger pa
 2. **Orchestration Checkpoint**
    - Skill bodies read, references read, target fingerprint, safe-test boundary.
    - Ledger location or inline snapshot, including claim, coverage, evidence-debt, and fix-cascade ID ranges.
+   - Goal mode status: Codex `/goal` active/authorized, unavailable, not authorized, or goal-equivalent resumable ledger.
    - Multi-agent authorization status: explicitly authorized, denied, unavailable, not received, or not required for this constrained pass.
    - Frontend path-walk status: performed or not performed, frontend tool, runtime target, path-walk status, and downgrade reason.
    - Report generation status: rendered, blocked, failed, or intentionally not generated because the user forbade file creation; include HTML report path, JSON/ledger path, and evidence locations.
+   - Frontier burn-down: `frontier_total`, `frontier_covered`, `frontier_sampled`, `frontier_blocked`, `frontier_missing`, `frontier_evidence_debt`, `frontier_unattempted`, `new_paths_last_wave`, `new_paths_previous_wave`, and exhaustion status.
    - Lane roster table with columns: lane, scope, required skill/reference, execution status, output/evidence location, skipped/collapsed/blocking reason.
    - Actual agent/tool execution mode, verifier status, raw output/evidence locations, omitted gates, and evidence debt created by unavailable agents, missing authorization, or runtime limits.
    - If subagent dispatch was skipped because authorization was absent, denied, unavailable, or not received, state: `sequential fallback because multi-agent authorization was not granted`.
@@ -103,6 +107,7 @@ Every Shipworthy final answer must include: verdict, report HTML path, ledger pa
 12. **Coverage And Evidence**
    - Coverage map summary, tools/agents used or skipped, artifact inventory, screenshots/traces/logs/commands, target fingerprint.
    - For full runs, list every discovered material path and expected intent with its coverage label and evidence debt status.
+   - For full runs, also list or link the path_frontier table; no full verdict is allowed while material rows remain `unattempted`, `unknown`, or `maybe`.
    - Note redaction boundaries and sensitive evidence omitted from the report.
 
 13. **Evidence Debt**
@@ -167,7 +172,9 @@ Monitor: signal to watch after shipping, if relevant
 - Say "missing path" when a reasonable user goal has no discoverable UX path.
 - Say "overcomplicated path" when a workflow technically works but has excessive steps, hidden prerequisites, repeated decisions, needless context switches, or fragile recovery.
 - Say "not fully covered" when discovered material paths remain only sampled, blocked, avoided, inferred, missing, or evidence debt.
+- Say "frontier incomplete" when `frontier_unattempted` is above zero, material rows remain `unknown` or `maybe`, or the last two discovery/testing passes have not reached zero new material paths.
 - Say "sequential fallback" when full-blast lanes were run in the main session because agent tooling was unavailable, unsafe, overlapping, or multi-agent authorization was not granted. If authorization was the reason, include `sequential fallback because multi-agent authorization was not granted`.
+- Say "goal-equivalent resumable ledger" when Codex `/goal` or platform persistent goal mode was unavailable or not authorized.
 - Say "source/CLI/HTTP-only readiness audit is not a full Shipworthy run" when no browser/computer-use/frontend path-walk occurred and the work relied on repo, command, HTTP, provider, database, or docs proof.
 - Say "actual frontend path-walk not performed" and use conditional/static/limited readiness language when the frontend was unavailable, out of scope, blocked by safety, or not tested.
 - Say "HTML report: MISSING/BLOCKED" when the mandatory `readiness-report.html` file does not exist or could not be written before the final answer.

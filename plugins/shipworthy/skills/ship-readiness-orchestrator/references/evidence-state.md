@@ -14,6 +14,7 @@ Use one canonical evidence state owned by Deep Review. Product workflow and clar
 - Canonical Severity, Confidence, And Status
 - Expected Intents And Missing Paths
 - Path Universe
+- Path Frontier Ledger
 - Claim Ledger Fields
 - Coverage Matrix Fields
 - Path Coverage Labels
@@ -59,14 +60,14 @@ Write or update rows at these gates:
 
 1. **Initialize:** target fingerprint, safe-test boundary, storage/redaction plan, and initial evidence debt.
 2. **Plan:** lane roster, scope exclusions, expected outputs, and verifier plan.
-3. **Map:** expected intents, path universe, missing-path candidates, mutation risks, and planned variants.
+3. **Map:** expected intents, path universe, path_frontier, missing-path candidates, mutation risks, and planned variants.
 4. **Test:** every path attempt or safe trace, including action sequence, result, evidence artifact, coverage label, and next evidence needed.
 5. **Merge:** each lane packet after full read and normalization.
 6. **Verify:** verifier decisions, contradictions, downgrades, rejections, and retargeting.
 7. **Recommend:** fix-cascade rows for major recommendations.
 8. **Close:** final drift check and final disposition of evidence debt.
 
-Use stable IDs for rows, such as `CL-001` for claims, `PX-001` for path/coverage rows, `ED-001` for evidence debt, and `FC-001` for fix-cascade rows. Every final finding, readiness statement, missing path, rejected claim, and recommendation must map to one of these rows or to an explicit evidence gap.
+Use stable IDs for rows, such as `CL-001` for claims, `PX-001` for path/coverage rows, `PF-001` for path_frontier rows, `ED-001` for evidence debt, and `FC-001` for fix-cascade rows. Every final finding, readiness statement, missing path, rejected claim, and recommendation must map to one of these rows or to an explicit evidence gap.
 
 Do not delete rows because later evidence is stronger or inconvenient. Update status, confidence, and final disposition. Do not let repeated lane agreement create multiple rows for the same fact or inflate confidence.
 
@@ -166,6 +167,43 @@ Before judging quality, inventory:
 - mutation risk and safe trace boundary for each path.
 
 "All paths" means all paths inside this declared universe and boundary. Anything outside that universe must be labeled rather than silently ignored.
+
+## Path Frontier Ledger
+
+The **Path Frontier Ledger** is the active `path_frontier` burn-down queue. Build it before judging readiness or design quality, then update it after each discovery/testing wave. It exists to make hidden work visible: if a follow-up "do another round" could reasonably find more material paths, the first run was not exhausted.
+
+Frontier sources:
+
+- runtime crawl and actual frontend path-walk observations;
+- visible navigation, buttons, forms, dialogs, tabs, menus, empty/error/loading states;
+- route files, components, stories, fixtures, tests, docs, README promises, API endpoints, database/state models;
+- expected human intents from product archetype, onboarding copy, pricing/plan promises, primary objects, and common jobs to be done.
+
+Human-Tester Matrix:
+
+- first-time user, confused user, impatient user, returning stale-state user;
+- mobile user, keyboard-only user, touch/no-hover/zoom user where relevant;
+- guest, member, owner, admin, permission-denied, expired/session-stale states where relevant;
+- happy path, create, edit, delete/cancel, recover, invite/share/export/import, settings/account, onboarding, failure recovery, payment/auth where applicable.
+
+Track these fields per `path_frontier` row:
+
+- frontier ID;
+- source;
+- expected intent or user goal;
+- surface, route, screen, control, API, integration, or missing entry point;
+- role, account state, fixture, state variant, device/input variant;
+- mutation/safety risk;
+- status: `unattempted`, `unknown`, `maybe`, `covered`, `sampled_with_justification`, `blocked`, `avoided`, `missing`, `out_of_scope`, or `evidence_debt`;
+- attempt count;
+- evidence references;
+- wave discovered and wave attempted;
+- blocker reason or sample justification;
+- next action.
+
+A full final verdict is forbidden while any material path_frontier row remains `unattempted`, `unknown`, or `maybe`. Frontier closure requires all material rows to reach a terminal status and two consecutive discovery/testing passes find no new material routes, controls, roles, states, device variants, or user intents.
+
+If closure is impossible in the current run, record `exhaustion_status: incomplete`, the remaining rows, the next frontier batch, and the resume prompt. This is evidence/orchestration debt, not a passed gate.
 
 ## Claim Ledger Fields
 

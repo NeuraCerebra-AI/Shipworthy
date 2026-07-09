@@ -2,50 +2,100 @@
   "target": "checkout-app",
   "generated_at": "2026-07-03",
   "verdict": "NOT READY",
-  "summary": { "blockers": 2, "strong": 1, "provisional": 3 },
+  "summary": {
+    "blockers": 2,
+    "strong": 1,
+    "provisional": 3
+  },
   "coverage": {
     "total_paths": 34,
     "segments": [
-      { "kind": "covered",  "label": "covered",              "value": 21 },
-      { "kind": "sampled",  "label": "sampled",              "value": 6 },
-      { "kind": "blocked",  "label": "blocked (paid)",       "value": 3 },
-      { "kind": "avoided",  "label": "avoided (prod email)", "value": 2 },
-      { "kind": "missing",  "label": "missing",              "value": 1 },
-      { "kind": "evidence_debt", "label": "evidence-debt (load)", "value": 1 }
+      {
+        "kind": "covered",
+        "label": "covered",
+        "value": 21
+      },
+      {
+        "kind": "sampled",
+        "label": "sampled",
+        "value": 6
+      },
+      {
+        "kind": "blocked",
+        "label": "blocked (paid)",
+        "value": 3
+      },
+      {
+        "kind": "avoided",
+        "label": "avoided (prod email)",
+        "value": 2
+      },
+      {
+        "kind": "missing",
+        "label": "missing",
+        "value": 1
+      },
+      {
+        "kind": "evidence_debt",
+        "label": "evidence-debt (load)",
+        "value": 1
+      }
     ]
   },
   "findings": [
-    { "severity": "blocker", "confidence": "confirmed",
+    {
+      "severity": "blocker",
+      "confidence": "confirmed",
       "title": "Guest · mobile — payment succeeds in the UI but fails on the server",
       "consequence": "Customer believes they paid → support ticket + chargeback risk",
       "evidence": "POST /api/pay → 500 (network trace); UI still advances to the \"Thank you\" screen",
       "fix": "Gate the success screen on a 2xx + a persisted order id",
-      "verify": "Force a 500 and confirm the UI shows a recoverable error and writes no order" },
-    { "severity": "blocker", "confidence": "confirmed",
+      "verify": "Force a 500 and confirm the UI shows a recoverable error and writes no order"
+    },
+    {
+      "severity": "blocker",
+      "confidence": "confirmed",
       "title": "No path exists to cancel an order after purchase",
       "evidence": "Full surface map — no route, button, or setting reaches cancellation",
       "fix": "Add a cancel affordance on the order-detail screen (smallest viable path)",
-      "verify": "Place an order, cancel it, confirm state + refund hook fire" },
-    { "severity": "strong", "confidence": "strong",
+      "verify": "Place an order, cancel it, confirm state + refund hook fire"
+    },
+    {
+      "severity": "strong",
+      "confidence": "strong",
       "title": "Coupon field silently ignores invalid codes instead of explaining",
       "consequence": "Users retry the same bad code and abandon; looks broken",
       "evidence": "3 invalid codes → no message, no error state, field just clears",
-      "fix": "Return an inline validation message and keep the entered value" },
-    { "severity": "provisional", "confidence": "provisional",
+      "fix": "Return an inline validation message and keep the entered value"
+    },
+    {
+      "severity": "provisional",
+      "confidence": "provisional",
       "title": "Address form loses state on browser back",
       "evidence": "Single repro on Chrome: back button clears 6 fields",
-      "fix": "Persist form state to session on change" },
-    { "severity": "provisional", "confidence": "provisional",
+      "fix": "Persist form state to session on change"
+    },
+    {
+      "severity": "provisional",
+      "confidence": "provisional",
       "title": "Order confirmation email not verified (prod-only path avoided)",
       "evidence": "Avoided to prevent sending real email; logged as evidence debt",
-      "fix": "Add a sandbox email sink to exercise this path in the audit" },
-    { "severity": "provisional", "confidence": "provisional",
+      "fix": "Add a sandbox email sink to exercise this path in the audit"
+    },
+    {
+      "severity": "provisional",
+      "confidence": "provisional",
       "title": "Empty-cart checkout shows a spinner with no end state",
       "evidence": "Single repro: /checkout with 0 items spins indefinitely",
-      "fix": "Redirect empty-cart checkout to the cart with a message" }
+      "fix": "Redirect empty-cart checkout to the cart with a message"
+    }
   ],
   "checkpoint": {
-    "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
+    "lanes": [
+      "ship-deep-review",
+      "ship-product-workflows",
+      "ship-workflow-clarity"
+    ],
     "multi_agent_authorization": "parallel subagents authorized",
     "frontend_path_walk_performed": true,
     "frontend_tool": "Playwright/browser",
@@ -54,10 +104,26 @@
     "report_generation_status": "rendered",
     "report_path": "~/.shipworthy/runs/checkout-demo/2026-07-08/readiness-report.html",
     "ledger_path": "~/.shipworthy/runs/checkout-demo/2026-07-08/readiness-report.json",
-    "evidence_locations": ["~/.shipworthy/runs/checkout-demo/2026-07-08/evidence/"],
+    "evidence_locations": [
+      "~/.shipworthy/runs/checkout-demo/2026-07-08/evidence/"
+    ],
     "mode": "5 authorized parallel agents",
     "verifier": "Opus → APPROVED",
-    "omitted": ["load test (no safe env) → logged as evidence debt, NOT as \"passed\""]
+    "omitted": [
+      "load test (no safe env) → logged as evidence debt, NOT as \"passed\""
+    ],
+    "goal_mode_status": "explicitly authorized",
+    "goal_mode_objective": "Complete full Shipworthy frontier closure for checkout demo",
+    "frontier_total": 34,
+    "frontier_covered": 21,
+    "frontier_sampled": 6,
+    "frontier_blocked": 3,
+    "frontier_missing": 1,
+    "frontier_evidence_debt": 1,
+    "frontier_unattempted": 0,
+    "new_paths_last_wave": 0,
+    "new_paths_previous_wave": 0,
+    "exhaustion_status": "complete"
   },
   "illustrative": true
 }

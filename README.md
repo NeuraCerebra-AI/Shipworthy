@@ -48,14 +48,16 @@ Want the exact **Claude Code** commands instead? The plugin bundles all four ski
 /reload-skills
 ```
 
-Then just ask:
+Then ask:
 
 ```text
-Are we shipworthy?
+/goal are we shipworthy?
 ```
 
-⛴️ When Shipworthy asks to authorize parallel subagents / delegation /
-multi-agent work, say `yes`. 
+⛴️ In Codex, `/goal` helps Shipworthy keep going across a long audit. When
+Shipworthy asks to authorize persistent goal mode and parallel subagents, answer `yes`.
+Claude Code does not have the same Codex `/goal` barrier; when goal mode is
+unavailable, Shipworthy uses a goal-equivalent resumable ledger.
 
 That phrase is the flagship trigger: Shipworthy runs the full readiness
 orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
@@ -64,6 +66,11 @@ path, hunts for missing and overcomplicated paths, asks for multi-agent
 authorization when the platform requires it, uses agents where authorized and
 safe, runs verified waves, and generates a self-contained HTML report from the
 final ledger.
+
+Full Shipworthy ends by frontier closure, not vibes, a fixed wave count, or a
+timer. It keeps a path frontier open until every material path is covered,
+sampled with justification, blocked, avoided, missing, out of scope, or evidence
+debt — and until repeated discovery passes stop finding new material paths.
 
 For the flagship run, "tries every safe discoverable user path" means using the
 actual frontend when one is available: browser, in-app browser, Chrome,
@@ -110,8 +117,10 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 
 ── ORCHESTRATION CHECKPOINT ─────────────────────────────────────────────────
   lanes: ship-deep-review, ship-product-workflows, ship-workflow-clarity
+  goal_mode_status: explicitly authorized
   authorization: yes
   mode: 5 lane agents · verifier: Opus, APPROVED
+  frontier: 34 total · 0 unattempted · exhaustion_status complete
   omitted: load test (no safe env) → logged as evidence debt, NOT as "passed"
 ```
 </details>

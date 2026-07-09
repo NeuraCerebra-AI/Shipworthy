@@ -16,6 +16,7 @@ Everything below is downstream of that rule.
 |---|---|---|
 | Canonical **claim ledger** (truth layer) | `ship-readiness-orchestrator` | The only place material claims are promoted. Lanes return raw packets. |
 | **Coverage matrix** (scope layer) | `ship-readiness-orchestrator` | Every discovered path is labeled: covered · sampled · blocked · avoided · inferred · missing · out_of_scope · evidence_debt. |
+| **Path frontier** (exhaustion layer) | `ship-readiness-orchestrator` | The live queue of material expected/discovered paths. Full runs require frontier closure plus diminishing-discovery proof, not just three waves. |
 | **Evidence-debt register** (uncertainty layer) | `ship-readiness-orchestrator` | Needs-proof items live here until proved, rejected, blocked, or scoped out. Never silently dropped between waves. |
 | **Wave barriers, verifier gates, final synthesis** | `ship-deep-review` | No wave summary is written until every agent output is read, the ledger is updated, and an *independent* verifier has shadow-read the raw outputs. |
 | **Path discovery + safe execution + backend-symptom tracing** | `ship-product-workflows` | Produces product-evidence packets. Escalates to the clarity lane when comprehension/consequence risks appear. |
@@ -25,13 +26,13 @@ Everything below is downstream of that rule.
 ## Control flow
 
 ```text
-Start Gate -> Sub-Skill Load Gate -> initialize ONE evidence ledger
+Start Gate -> Sub-Skill Load Gate -> Goal Mode Persistence Gate
     |             (read all 3 sub-skill bodies before dispatch)
     v
 Multi-Agent Authorization Gate -> Frontend Path-Walk Gate
     |
     v
-Path-universe discovery -> lane roster
+Path-universe discovery -> path frontier -> lane roster
     |
     v
 Wave 1 (authorized parallel lanes or sequential fallback)
@@ -56,14 +57,28 @@ major route families, roles, state variants, runtime proof, contradictions, or
 evidence debt that could change the verdict, Shipworthy continues with adaptive
 extra waves instead of stopping because the minimum happened.
 
-Every full Shipworthy run must reach path-universe closure before readiness
-language: each material expected intent and discovered path is covered, sampled
-with justification, blocked, avoided, inferred, missing, out_of_scope, or
-evidence_debt. Every operational Shipworthy run, full or downgraded, must also
-generate the mandatory HTML report from the final ledger at
+Every full Shipworthy run must reach path-universe closure and frontier closure
+before readiness language: each material expected intent and discovered path is
+covered, sampled with justification, blocked, avoided, inferred, missing,
+out_of_scope, or evidence_debt, and no material `path_frontier` row remains
+unattempted, unknown, or maybe. Frontier closure also requires
+diminishing-discovery proof: two consecutive discovery/testing passes find no
+new material routes, controls, roles, states, device variants, or user intents.
+If a target is too large or blocked, Shipworthy reports `exhaustion_status:
+incomplete`, includes the next frontier batch, and refuses a fake full verdict.
+Every operational Shipworthy run, full or downgraded, must also generate the
+mandatory HTML report from the final ledger at
 `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the
 user explicitly requests repo-local artifacts. Downgrade status changes the
 report contents, not the report requirement.
+
+Every full Shipworthy run records the Goal Mode Persistence Gate. In Codex, best
+results come from invoking `/goal are we shipworthy?` and answering `yes` when
+Shipworthy asks to authorize persistent goal mode and parallel subagents.
+Claude Code does not have the same Codex `/goal` barrier; when persistent goal
+mode is unavailable or not authorized, Shipworthy records `goal_mode_status` and
+uses a goal-equivalent resumable ledger. Skill instructions do not override
+platform goal-mode policy.
 
 Every full Shipworthy run also records the Frontend Path-Walk Gate. If a
 runnable UI, hosted app, local dev server, browser-hosted prototype, desktop app,

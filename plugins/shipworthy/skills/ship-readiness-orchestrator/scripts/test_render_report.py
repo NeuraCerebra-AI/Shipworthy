@@ -166,6 +166,31 @@ check("21 downgraded report renders deliverable fields",
       and "ledger path" in h and "evidence locations" in h
       and "source/CLI/HTTP-only readiness audit is not a full Shipworthy run" in h)
 
+# 22 checkpoint carries goal-mode and frontier exhaustion fields
+h=render({"checkpoint":{"goal_mode_status":"authorized",
+                        "goal_mode_objective":"Complete full Shipworthy frontier closure for demo-app",
+                        "frontier_total":88,
+                        "frontier_covered":62,
+                        "frontier_sampled":7,
+                        "frontier_blocked":3,
+                        "frontier_missing":4,
+                        "frontier_evidence_debt":6,
+                        "frontier_unattempted":6,
+                        "new_paths_last_wave":5,
+                        "new_paths_previous_wave":9,
+                        "exhaustion_status":"incomplete",
+                        "exhaustion_downgrade_reason":"frontier_unattempted remains above zero",
+                        "next_frontier_batch":["PX-041 mobile invite recovery", "PX-044 keyboard settings export"],
+                        "mode":"5 authorized parallel agents"}})
+check("22 checkpoint renders goal-mode and frontier exhaustion fields",
+      "goal mode status" in h and "authorized" in h
+      and "frontier total" in h and ">88<" in h
+      and "frontier unattempted" in h and ">6<" in h
+      and "new paths last wave" in h and ">5<" in h
+      and "new paths previous wave" in h and ">9<" in h
+      and "exhaustion status" in h and "incomplete" in h
+      and "next frontier batch" in h and "PX-041 mobile invite recovery" in h)
+
 # ---- new-feature assertions: grouping, coverage %, a11y, print ----
 hb = render(full)
 check("F1 blocker section +count",        'class="section tier-blockers"' in hb and '<h2>Blockers</h2><span class="count">2</span>' in hb)

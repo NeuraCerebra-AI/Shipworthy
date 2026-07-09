@@ -32,6 +32,30 @@
       "nextEvidenceNeeded": ""
     }
   ],
+  "path_frontier": {
+    "frontier_total": 0,
+    "frontier_covered": 0,
+    "frontier_sampled": 0,
+    "frontier_blocked": 0,
+    "frontier_missing": 0,
+    "frontier_evidence_debt": 0,
+    "frontier_unattempted": 0,
+    "new_paths_last_wave": 0,
+    "new_paths_previous_wave": 0,
+    "exhaustion_status": "unknown",
+    "next_frontier_batch": [
+      {
+        "frontierId": "PF-001",
+        "source": "",
+        "expectedIntent": "",
+        "surfaceOrRoute": "",
+        "role": "",
+        "stateOrDeviceVariant": "",
+        "status": "unattempted",
+        "nextAction": ""
+      }
+    ]
+  },
   "findings": [
     {
       "findingId": "F1",
