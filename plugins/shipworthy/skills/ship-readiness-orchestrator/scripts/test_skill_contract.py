@@ -110,6 +110,9 @@ ck("G4 goal status recorded", "goal_mode_status" in all_text and "goal-equivalen
 ck("G5 README recommends slash-goal prompt", "/goal are we shipworthy?" in readme.lower())
 ck("G6 README says answer yes", "answer `yes`" in readme.lower() and "parallel subagents" in readme.lower())
 ck("G7 Claude goal-equivalent ledger", "claude code" in readme.lower() and "goal-equivalent" in readme.lower())
+ck("G8 follow-up yes authorizes both gates", "If the previous assistant message asked the combined authorization question" in skill and "treat that as explicit authorization for both persistent goal mode and parallel subagents" in skill)
+ck("G9 follow-up yes activates goal before lanes", "create or continue the persistent Shipworthy goal before lane dispatch" in skill)
+ck("G10 pressure test covers yes handoff", "Scenario 0H: User Says Yes To Combined Authorization" in pressure and "Turn 2: `yes`" in pressure and "starts or continues a persistent Shipworthy goal before lane dispatch" in pressure)
 
 ck("X1 adaptive exhaustion gate exists", "## Adaptive Exhaustion Gate" in skill)
 ck("X2 path frontier ledger required", "path_frontier" in all_text and "Path Frontier Ledger" in all_text)

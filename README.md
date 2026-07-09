@@ -55,7 +55,7 @@ Then ask:
 ```
 
 ⛴️ In Codex, `/goal` helps Shipworthy keep going across a long audit. When
-Shipworthy asks to authorize persistent goal mode and parallel subagents, answer `yes`.
+Shipworthy asks to authorize persistent goal mode and parallel subagents, answer `yes`; that authorizes both, and Codex starts or continues the goal when available.
 Claude Code does not have the same Codex `/goal` barrier; when goal mode is
 unavailable, Shipworthy uses a goal-equivalent resumable ledger.
 

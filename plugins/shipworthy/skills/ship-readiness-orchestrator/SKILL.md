@@ -51,6 +51,8 @@ If goal mode is available but explicit authorization is absent or ambiguous, ask
 
 > Shipworthy full blast is a long-running audit. Reply yes to authorize persistent goal mode and parallel subagents for this Shipworthy run.
 
+If the previous assistant message asked the combined authorization question and the user replies `yes`, `yes for both`, `authorized`, or equivalent, treat that as explicit authorization for both persistent goal mode and parallel subagents. In Codex, when a goal tool is available and platform policy allows it, create or continue the persistent Shipworthy goal before lane dispatch, then record `goal_mode_status: active` or the platform-specific result. If goal creation fails or is unavailable, record `goal_mode_status: unavailable` or `goal_mode_status: failed` and continue with a goal-equivalent resumable ledger; if subagent dispatch is unavailable despite authorization, record the dispatch limitation separately.
+
 If the platform has goal mode but authorization is denied, unavailable, or not received after the gate question, record `goal_mode_status: not_authorized` and continue with a goal-equivalent resumable ledger. If the platform has no goal mode, record `goal_mode_status: unavailable` and continue with the same goal-equivalent resumable ledger. Goal-mode fallback is orchestration debt, not a reason to skip frontier closure, verifier gates, or the HTML report.
 
 ## Start Gate

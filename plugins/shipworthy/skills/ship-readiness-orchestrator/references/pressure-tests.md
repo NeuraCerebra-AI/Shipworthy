@@ -15,6 +15,7 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - Scenario 0E: Downgraded Shipready Run Still Emits HTML Report
 - Scenario 0F: Follow-Up Finds More Means First Run Was Not Exhausted
 - Scenario 0G: Goal Mode And Parallel Subagents Authorized
+- Scenario 0H: User Says Yes To Combined Authorization
 - Scenario 1: Broad Local App Readiness
 - Scenario 2: Screenshot-Only UX Teardown
 - Scenario 3: High-Risk Workflow
@@ -44,6 +45,7 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent treats missing authorization in the initial prompt as "not received" instead of asking the gate question and stopping.
 - The agent runs sequentially because authorization was denied or not received after the gate was asked, but fails to report `sequential fallback because multi-agent authorization was not granted`.
 - The agent sees `/goal are we shipworthy?` or explicit goal-mode authorization and fails to record `goal_mode_status`.
+- The agent asks the combined goal/subagent authorization question, the user says `yes`, and the agent proceeds without starting or continuing persistent goal mode when the platform goal tool is available and policy allows it.
 - The agent implies that Shipworthy instructions override Codex or Claude Code goal-mode policy.
 - The agent fails to use a goal-equivalent resumable ledger when persistent goal mode is unavailable or not authorized.
 - The agent treats source, CLI, HTTP, tests, logs, docs, provider checks, or database probes as a substitute for actual frontend path-walking in a full flagship run.
@@ -247,6 +249,31 @@ Expected behavior:
 - Records explicit authorization for parallel subagents / delegation / multi-agent work and proceeds without asking again.
 - If persistent goal mode is unavailable despite the prompt, records `goal_mode_status: unavailable` and uses a goal-equivalent resumable ledger.
 - The HTML report checkpoint includes goal_mode_status, multi_agent_authorization, frontier burn-down, exhaustion_status, and report_generation_status.
+
+## Scenario 0H: User Says Yes To Combined Authorization
+
+Turn 1:
+
+```text
+are we shipworthy?
+```
+
+Expected behavior for turn 1:
+
+- Routes to `ship-readiness-orchestrator` full blast and reads the required sub-skill bodies.
+- If Codex goal mode and subagent authorization both need explicit authorization, asks exactly: `Shipworthy full blast is a long-running audit. Reply yes to authorize persistent goal mode and parallel subagents for this Shipworthy run.`
+- Stops after the question and does not perform target analysis, lane dispatch, repo reading, or sequential fallback in that same response.
+
+Turn 2: `yes`
+
+Expected behavior for turn 2:
+
+- Treats `yes` as explicit authorization for both persistent goal mode and parallel subagents because it answers the combined gate question.
+- In Codex, when a goal tool is available and platform policy allows it, starts or continues a persistent Shipworthy goal before lane dispatch and records `goal_mode_status: active` or the platform-specific result.
+- If persistent goal mode is unavailable or goal creation fails, records `goal_mode_status: unavailable` or `goal_mode_status: failed` and uses a goal-equivalent resumable ledger instead of pretending goal mode is active.
+- Records explicit authorization for parallel subagents / delegation / multi-agent work and proceeds to the lane roster when safe.
+- If subagent tooling is unavailable or unsafe despite authorization, records that dispatch limitation separately from goal-mode status.
+- Does not imply that Shipworthy instructions override Codex or Claude Code goal-mode or subagent policy.
 
 ## Scenario 1: Broad Local App Readiness
 
