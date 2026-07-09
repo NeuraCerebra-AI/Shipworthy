@@ -54,10 +54,11 @@ Then ask:
 /goal are we shipworthy?
 ```
 
-⛴️ In Codex, `/goal` helps Shipworthy keep going across a long audit. When
-Shipworthy asks to authorize persistent goal mode and parallel subagents, answer `yes`; it is recommended for best results, authorizes both, and Codex starts or continues the goal when available.
-Claude Code does not have the same Codex `/goal` barrier; when goal mode is
-unavailable, Shipworthy uses a goal-equivalent resumable ledger.
+⛴️ In Codex, `/goal` helps Shipworthy keep going across a long audit. It will
+ask whether to authorize persistent goal mode and parallel subagents; answer `yes`
+for the best results. Claude Code does not have the same Codex `/goal` barrier,
+but Shipworthy still uses a goal-equivalent resumable ledger when native goal
+mode is unavailable.
 
 That phrase is the flagship trigger: Shipworthy runs the full readiness
 orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
@@ -90,30 +91,47 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 
 ## 🎬 What a run looks like
 
-<div align="center"><img src="assets/sample-report.svg" alt="Illustrative readiness report: NOT READY with two blockers (a payment that succeeds in the UI but 500s on the server; a missing order-cancellation path), a coverage map over 34 paths, and an orchestration checkpoint whose independent verifier is APPROVED" width="100%"></div>
+<div align="center"><img src="assets/sample-report.svg" alt="Illustrative readiness report: NOT READY with Clear Before Ship, Fix Next, Not Proven / Not Tested, and Passed / Keep sections, a coverage map over 34 paths, and an orchestration checkpoint whose independent verifier is APPROVED" width="100%"></div>
 
 <sub>*Illustrative — the report format is real; the contents are a sample, not a live run. A recorded asciinema/GIF walkthrough → `docs/demo.gif`; PRs welcome.*</sub>
 
-> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, severity-grouped findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
+> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
+
+The report is meant to tell you what to do next, not bury you in audit prose:
+**Clear Before Ship** blocks readiness, **Fix Next** is real but non-blocking,
+**Not Proven / Not Tested** is not a pass, and **Passed / Keep** worked under
+the tested conditions. Each card says whether to Fix, Prove, Decide, Skip, or
+Keep, plus how strong the proof is.
 
 <details><summary><b>See the same report as raw text</b></summary>
 
 ```text
-── READINESS: NOT READY (2 blockers, 1 strong, 3 provisional) ──────────────
+── READINESS: NOT READY ────────────────────────────────────────────────────
 
-[Blocker][Confirmed] Checkout / guest / mobile: payment fails silently
+[Clear Before Ship][Fix][Confirmed] Checkout / guest / mobile: payment fails silently
   Evidence: POST /api/pay → 500 (network trace); UI advances to "Thank you"
   User consequence: customer believes they paid; support ticket + chargeback risk
   Fix: gate the success screen on a 2xx + persisted order id
   Verify: force a 500, confirm the UI shows a recoverable error and writes no order
 
-[Blocker][Confirmed] No path exists: "cancel an order after purchase"
+[Clear Before Ship][Fix][Confirmed] No path exists: "cancel an order after purchase"
   Evidence: full surface map — no route, button, or setting reaches cancellation
   Fix: add a cancel affordance on the order-detail screen (smallest viable path)
 
+[Fix Next][Fix][Partial] Coupon field silently ignores invalid codes
+  Evidence: 3 invalid codes → no message, no error state, field clears
+  Verify: bad code stays visible and gets a clear inline message
+
+[Not Proven / Not Tested][Prove][Not tested] Production order email
+  Evidence: avoided to prevent sending real email; logged as evidence debt
+  Prove: add a sandbox email sink and rerun the path
+
+[Passed / Keep][Keep][Confirmed] Happy-path guest checkout reaches order detail
+  Evidence: cart → address → payment sandbox → confirmation → order detail
+
 ── COVERAGE (34 discovered paths) ───────────────────────────────────────────
-  covered 21 · sampled 6 · blocked 3 (paid) · avoided 2 (prod email)
-  missing 1 (order cancellation) · evidence_debt 1 (load, not run)
+  Tried + evidenced 21 · Spot-checked 6 · Blocked 3 (paid)
+  Skipped for safety 2 (prod email) · Missing 1 · Proof missing 1 (load)
 
 ── ORCHESTRATION CHECKPOINT ─────────────────────────────────────────────────
   lanes: ship-deep-review, ship-product-workflows, ship-workflow-clarity
@@ -126,6 +144,10 @@ Or copy any single skill folder from `plugins/shipworthy/skills/` into your skil
 </details>
 
 Notice what it *doesn't* do: it never calls the app "ready," never claims the untested path passed, and never silently changes your code. It hands you the smallest fix and the exact way to verify it.
+
+At the end of a run, Shipworthy should ask whether you want to start a persistent fix goal
+for the **Clear Before Ship** items. Reply `yes` when you want it to
+apply the fixes safely, verify each one, and regenerate the Shipworthy HTML report.
 
 ## 🧩 The four skills
 

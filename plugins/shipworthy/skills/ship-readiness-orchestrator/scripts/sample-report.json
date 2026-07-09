@@ -3,41 +3,42 @@
   "generated_at": "2026-07-03",
   "verdict": "NOT READY",
   "summary": {
-    "blockers": 2,
-    "strong": 1,
-    "provisional": 3
+    "clear_before_ship": 2,
+    "fix_next": 2,
+    "not_proven_not_tested": 1,
+    "passed_keep": 1
   },
   "coverage": {
     "total_paths": 34,
     "segments": [
       {
         "kind": "covered",
-        "label": "covered",
+        "label": "Tried + evidenced",
         "value": 21
       },
       {
         "kind": "sampled",
-        "label": "sampled",
+        "label": "Spot-checked",
         "value": 6
       },
       {
         "kind": "blocked",
-        "label": "blocked (paid)",
+        "label": "Blocked (paid)",
         "value": 3
       },
       {
         "kind": "avoided",
-        "label": "avoided (prod email)",
+        "label": "Skipped for safety (prod email)",
         "value": 2
       },
       {
         "kind": "missing",
-        "label": "missing",
+        "label": "Missing",
         "value": 1
       },
       {
         "kind": "evidence_debt",
-        "label": "evidence-debt (load)",
+        "label": "Proof missing (load)",
         "value": 1
       }
     ]
@@ -45,6 +46,9 @@
   "findings": [
     {
       "severity": "blocker",
+      "section": "clear_before_ship",
+      "action": "Fix",
+      "proof": "Confirmed",
       "confidence": "confirmed",
       "title": "Guest · mobile — payment succeeds in the UI but fails on the server",
       "consequence": "Customer believes they paid → support ticket + chargeback risk",
@@ -54,6 +58,9 @@
     },
     {
       "severity": "blocker",
+      "section": "clear_before_ship",
+      "action": "Fix",
+      "proof": "Confirmed",
       "confidence": "confirmed",
       "title": "No path exists to cancel an order after purchase",
       "evidence": "Full surface map — no route, button, or setting reaches cancellation",
@@ -62,6 +69,9 @@
     },
     {
       "severity": "strong",
+      "section": "fix_next",
+      "action": "Fix",
+      "proof": "Partial",
       "confidence": "strong",
       "title": "Coupon field silently ignores invalid codes instead of explaining",
       "consequence": "Users retry the same bad code and abandon; looks broken",
@@ -70,6 +80,9 @@
     },
     {
       "severity": "provisional",
+      "section": "fix_next",
+      "action": "Fix",
+      "proof": "Partial",
       "confidence": "provisional",
       "title": "Address form loses state on browser back",
       "evidence": "Single repro on Chrome: back button clears 6 fields",
@@ -77,6 +90,9 @@
     },
     {
       "severity": "provisional",
+      "section": "not_proven_not_tested",
+      "action": "Prove",
+      "proof": "Not tested",
       "confidence": "provisional",
       "title": "Order confirmation email not verified (prod-only path avoided)",
       "evidence": "Avoided to prevent sending real email; logged as evidence debt",
@@ -84,10 +100,13 @@
     },
     {
       "severity": "provisional",
-      "confidence": "provisional",
-      "title": "Empty-cart checkout shows a spinner with no end state",
-      "evidence": "Single repro: /checkout with 0 items spins indefinitely",
-      "fix": "Redirect empty-cart checkout to the cart with a message"
+      "section": "passed_keep",
+      "action": "Keep",
+      "proof": "Confirmed",
+      "confidence": "confirmed",
+      "title": "Happy-path guest checkout reaches order detail with persisted order id",
+      "evidence": "Desktop guest flow: cart → address → payment sandbox → confirmation → order detail",
+      "verify": "Keep this path in the smoke set while fixing the blocking payment-error branch"
     }
   ],
   "checkpoint": {

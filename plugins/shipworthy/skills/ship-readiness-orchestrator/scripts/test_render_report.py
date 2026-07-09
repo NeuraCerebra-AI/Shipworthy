@@ -73,7 +73,7 @@ check("06: empty renders checkpoint note", "No orchestration checkpoint" in h)
 base_ok("07 findings title-only", {"findings":[{"title":"just a title"}]}, expect_cards=1)
 
 h=base_ok("08 unknown severity -> info", {"findings":[{"severity":"cosmic","title":"weird sev"}]}, expect_cards=1)
-check("08: info accent used", "#64748B" in h)
+check("08: unknown severity falls into not-proven action bucket", "#38BDF8" in h and "<h2>Not Proven / Not Tested</h2>" in h)
 
 # 09 XSS across every text field
 xss={"target":"<svg onload=alert(1)>","verdict":"NOT READY",
@@ -108,10 +108,11 @@ check("11: overflow-wrap present", "overflow-wrap:anywhere" in h)
 many={"findings":[{"severity":sev,"title":f"finding {i}"} for i,sev in
       enumerate(["blocker","strong","provisional","info"]*10)]}
 h=base_ok("12 many findings (40)", many, expect_cards=40)
-# assert sorted: all blockers before any strong before any provisional before any info
-order=re.findall(r'border-left-color:(#F43F5E|#F59E0B|#38BDF8|#64748B)', h)
-seq=["#F43F5E"]*10+["#F59E0B"]*10+["#38BDF8"]*10+["#64748B"]*10
-check("12: findings sorted by severity", order==seq, f"first8={order[:8]}")
+# assert sorted by action-first sections:
+# Clear Before Ship, Fix Next, Not Proven / Not Tested, Passed / Keep.
+order=re.findall(r'border-left-color:(#F43F5E|#F59E0B|#38BDF8|#34D399)', h)
+seq=["#F43F5E"]*10+["#F59E0B"]*10+["#38BDF8"]*10+["#34D399"]*10
+check("12: findings sorted by action section", order==seq, f"first8={order[:8]}")
 
 # 13 degenerate coverage values
 h=base_ok("13 bad coverage values", {"coverage":{"segments":[
@@ -122,7 +123,7 @@ check("13: no flex:nan/inf in bar", "flex:nan" not in h.lower() and "flex:inf" n
 # 14 missing summary -> derived
 h=base_ok("14 derived summary", {"findings":[{"severity":"blocker","title":"a"},{"severity":"blocker","title":"b"},
                                              {"severity":"provisional","title":"c"}]}, expect_cards=3)
-check("14: derived counts shown in stats row", 'c-blockers"><span class="n">2</span>' in h and 'c-provisional"><span class="n">1</span>' in h)
+check("14: derived counts shown in stats row", 'c-clear"><span class="n">2</span>' in h and 'c-fixnext"><span class="n">1</span>' in h)
 
 # 15/16 missing coverage / checkpoint already exercised in 06; explicit:
 base_ok("15 missing coverage only", {"verdict":"READY","findings":[{"severity":"info","title":"x"}],
@@ -193,18 +194,18 @@ check("22 checkpoint renders goal-mode and frontier exhaustion fields",
 
 # ---- new-feature assertions: grouping, coverage %, a11y, print ----
 hb = render(full)
-check("F1 blocker section +count",        'class="section tier-blockers"' in hb and '<h2>Blockers</h2><span class="count">2</span>' in hb)
-check("F2 strong section",                'class="section tier-strong"' in hb and '<h2>Strong signals</h2><span class="count">1</span>' in hb)
-check("F3 provisional section +count",    'class="section tier-provisional"' in hb and '<h2>Provisional</h2><span class="count">3</span>' in hb)
+check("F1 action-first clear section +count",        'class="section tier-clear-before-ship"' in hb and '<h2>Clear Before Ship</h2><span class="count">2</span>' in hb)
+check("F2 action-first passed section",              'class="section tier-passed-keep"' in hb and '<h2>Passed / Keep</h2><span class="count">1</span>' in hb)
+check("F3 action-first fix/prove sections",          '<h2>Fix Next</h2><span class="count">2</span>' in hb and '<h2>Not Proven / Not Tested</h2><span class="count">1</span>' in hb)
 check("F4 coverage % correct (62%)",      '<strong>62%</strong>&nbsp; covered · 21 of 34 discovered paths' in hb)
 check("F5 bar role+aria-label",           'role="img"' in hb and 'aria-label="Coverage breakdown' in hb)
-check("F6 per-segment title (a11y)",      'title="covered — 21"' in hb)
+check("F6 per-segment title (a11y)",      'title="Tried + evidenced — 21"' in hb)
 check("F7 print break-inside:avoid",      'break-inside:avoid' in hb)
 hr = render(ready)
 check("F8 no severity sections when 0 findings", '<section class="section tier-' not in hr)
 check("F9 clean note still shown",        'No blocking or open findings' in hr)
 hu = render({"findings":[{"severity":"cosmic","title":"weird sev"}]})
-check("F10 unknown severity under Notes",  '<h2>Notes</h2>' in hu)
+check("F10 unknown severity under not-proven fallback",  '<h2>Not Proven / Not Tested</h2>' in hu)
 hc = render({"coverage":{"total_paths":50,"segments":[{"kind":"covered","value":25},{"kind":"missing","value":25}]},"findings":[]})
 check("F11 coverage 50% (25 of 50)",       '<strong>50%</strong>&nbsp; covered · 25 of 50 discovered paths' in hc)
 hd = render({"coverage":{"segments":[{"kind":"covered","value":8},{"kind":"sampled","value":2}]},"findings":[]})
@@ -212,6 +213,10 @@ check("F12 coverage % derived from sum",   '<strong>80%</strong>&nbsp; covered �
 check("F13 premium report anatomy",        'class="masthead"' in hb and 'class="stamp"' in hb and 'class="stats-row"' in hb)
 check("F14 collapsible evidence details",  hb.count("<details") == 6 and "Evidence · Fix · Verify" in hb)
 check("F15 no external font links",        "fonts.googleapis.com" not in hb and "<link" not in hb.lower())
+check("F15a action/proof reading key",      "Read this by action" in hb and "Each card says what to do and how strong the proof is" in hb)
+check("F15b no old visible report sections", all(x not in hb for x in ["Strong signals", "<h2>Provisional</h2>", "<h2>Blockers</h2>"]))
+check("F15c action chips visible",          all(x in hb for x in [">Fix<", ">Prove<", ">Skip<", ">Keep<"]))
+check("F15d proof chips visible",           all(x in hb for x in [">Confirmed<", ">Partial<", ">Not tested<"]))
 
 canon_cov = render({"coverage":{"segments":[
     {"kind":"COVERED","value":10},
@@ -219,9 +224,9 @@ canon_cov = render({"coverage":{"segments":[
     {"kind":"out_of_scope","value":3},
     {"kind":"evidence_debt","value":2},
 ]},"findings":[]})
-check("F16 canonical coverage labels normalized", "covered&nbsp;<b>10</b>" in canon_cov and "evidence debt&nbsp;<b>2</b>" in canon_cov)
+check("F16 canonical coverage labels normalized", "Tried + evidenced&nbsp;<b>10</b>" in canon_cov and "Proof missing&nbsp;<b>2</b>" in canon_cov)
 check("F17 canonical coverage colors not fallback", "#334155" not in canon_cov)
-check("F18 out_of_scope shown human-readably", "out of scope&nbsp;<b>3</b>" in canon_cov)
+check("F18 out_of_scope shown human-readably", "Out of scope&nbsp;<b>3</b>" in canon_cov)
 
 canon_sev = render({"findings":[
     {"severity":"P0 Blocker","confidence":"Confirmed","title":"p0"},
@@ -229,21 +234,21 @@ canon_sev = render({"findings":[
     {"severity":"Medium","title":"medium"},
     {"severity":"LOW","title":"low"},
 ]})
-check("F19 canonical severity aliases grouped", '<h2>Blockers</h2><span class="count">1</span>' in canon_sev and '<h2>Strong signals</h2><span class="count">1</span>' in canon_sev and '<h2>Provisional</h2><span class="count">1</span>' in canon_sev and '<h2>Notes</h2><span class="count">1</span>' in canon_sev)
-check("F20 canonical severity aliases derive summary", 'c-blockers"><span class="n">1</span>' in canon_sev and 'c-strong"><span class="n">1</span>' in canon_sev and 'c-provisional"><span class="n">1</span>' in canon_sev)
+check("F19 canonical severity aliases grouped", '<h2>Clear Before Ship</h2><span class="count">1</span>' in canon_sev and '<h2>Fix Next</h2><span class="count">2</span>' in canon_sev and '<h2>Not Proven / Not Tested</h2><span class="count">1</span>' in canon_sev)
+check("F20 action-first stats derive summary", 'c-clear"><span class="n">1</span>' in canon_sev and 'c-fixnext"><span class="n">2</span>' in canon_sev and 'c-notproven"><span class="n">1</span>' in canon_sev)
 
 # ---- de-duplication assertions (no repeated severity/confidence) ----
 hb = render(full)
 check("D1 no 'Strong \u00b7 Strong'",          "Strong \u00b7 Strong" not in hb)
 check("D2 no 'Provisional \u00b7 Provisional'","Provisional \u00b7 Provisional" not in hb)
 check("D3 no 'Blocker' word on finding cards",  hb.count("pill") == 0 or ">Blocker<" not in hb)
-check("D4 blockers show 'Confirmed' chip",      ">Confirmed<" in hb)
+check("D4 clear cards show proof chip",          ">Confirmed<" in hb)
 h_ii = render({"findings":[{"severity":"provisional","confidence":"inferred","title":"x"}]})
 check("D5 differing confidence shows chip",      ">Inferred<" in h_ii)
 h_ss = render({"findings":[{"severity":"strong","confidence":"strong","title":"x"}]})
-check("D6 equal sev/conf shows NO chip",         'class="pill' not in h_ss)
+check("D6 equal old sev/conf still shows action/proof chips",  'class="pill' in h_ss and ">Keep<" in h_ss and ">Partial<" in h_ss)
 h_pp = render({"findings":[{"severity":"provisional","confidence":"Provisional","title":"x"}]})
-check("D7 case-insensitive dedup",               'class="pill' not in h_pp)
+check("D7 case-insensitive proof normalization", ">Partial<" in h_pp)
 check("D8 numbered finding cards",               'class="finding-num">01<' in hb)
 
 # ---- interactive-mode assertions (opt-in --interactive) ----
@@ -257,7 +262,7 @@ check("I4 interactive has controls bar",         'class="controls"' in di)
 check("I5 filter buttons per present severity",  di.count('class="fbtn on"') >= 3)
 check("I6 interactive has search input",         'class="search"' in di and 'type="search"' in di)
 check("I7 interactive has inline <script>",      "<script>" in di and "</script>" in di)
-check("I8 findings carry data-sev",              'data-sev="blocker"' in di and 'data-sev="provisional"' in di)
+check("I8 findings carry data-section",          'data-section="clear_before_ship"' in di and 'data-section="not_proven_not_tested"' in di)
 check("I9 is-hidden + collapsed styles present", ".is-hidden" in di and ".collapsed" in di)
 _hl = di.lower()
 _ext = bool(_re.search(r'src\s*=\s*["\']?https?://', _hl)) or ("<link" in _hl) or ("@import" in _hl) or bool(_re.search(r'url\(\s*["\']?https?://', _hl))

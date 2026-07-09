@@ -14,6 +14,10 @@ LANES = ORCH / "references" / "lane-prompts.md"
 README = ROOT.parents[1] / "README.md"
 ARCH = ROOT.parents[1] / "ARCHITECTURE.md"
 INSTALL = ROOT.parents[1] / "install.sh"
+HERO_SVG = ROOT.parents[1] / "assets" / "hero.svg"
+FLOW_SVG = ROOT.parents[1] / "assets" / "flow.svg"
+SAMPLE_SVG = ROOT.parents[1] / "assets" / "sample-report.svg"
+ARCH_SVG = ROOT.parents[1] / "assets" / "architecture.svg"
 
 PASS = []
 FAIL = []
@@ -35,6 +39,10 @@ lanes = read(LANES)
 readme = read(README)
 arch = read(ARCH)
 install = read(INSTALL)
+hero_svg = read(HERO_SVG)
+flow_svg = read(FLOW_SVG)
+sample_svg = read(SAMPLE_SVG)
+arch_svg = read(ARCH_SVG)
 all_text = "\n".join([skill, pressure, html, exports, waves, lanes, readme, arch, install])
 frontmatter = skill.split("---", 2)[1]
 description = next((line.split(":", 1)[1].strip() for line in frontmatter.splitlines() if line.startswith("description:")), "")
@@ -74,6 +82,12 @@ stale_optional_report_phrase = "For rapid, narrow, or static constrained passes,
 ck("H10 constrained reports not optional by default", stale_optional_report_phrase not in html)
 ck("H11 final answer requires HTML path", "Every Shipworthy final answer must include" in read(ORCH / "references" / "final-report-contract.md"))
 ck("H12 report contract includes generation fields", all(x in html for x in ["report_generation_status", "report_path", "ledger_path", "evidence_locations"]))
+ck("H13 visual report uses action-first sections", all(x in html for x in ["Clear Before Ship", "Fix Next", "Not Proven / Not Tested", "Passed / Keep"]))
+ck("H14 visual report documents action/proof chips", all(x in html for x in ["Fix | Prove | Decide | Skip | Keep", "Confirmed | Partial | Inferred | Not tested"]))
+ck("H15 visual report bans old visible buckets", all(x not in html for x in ["Strong signals", "Working Signals", "visible category: `Provisional`"]))
+ck("H16 final report contract uses action-first sections", all(x in read(ORCH / "references" / "final-report-contract.md") for x in ["Clear Before Ship", "Fix Next", "Not Proven / Not Tested", "Passed / Keep"]))
+ck("H17 inline final CTA asks for persistent fix goal", "Recommended next step: reply **yes** and I’ll start a persistent fix goal" in skill or "Recommended next step: reply **yes** and I'll start a persistent fix goal" in skill)
+ck("H18 inline CTA requires verify and regenerate report", "verify each one" in skill.lower() and "regenerate the shipworthy html report" in skill.lower())
 
 ck("A1 shared runtime agent rule", "single coordinated runtime driver" in skill.lower())
 ck("A2 isolated contexts allow parallel runtime drivers", "isolated" in skill.lower() and "browser profiles" in skill.lower())
@@ -143,6 +157,13 @@ ck("D12 live regression requires absolute HTML path", "absolute HTML path" in li
 ck("D13 live regression blocks missing-report completion", "HTML report: MISSING/BLOCKED" in live and "must not imply completion" in live)
 ck("D14 live regression forbids substituting target artifacts", "does not substitute target-owned HTML" in live and "Markdown ledgers" in live and "screenshots" in live and "chat summaries" in live)
 ck("D15 pressure tests link TraceFlow regression", "references/live-regressions/traceflow-html-report-miss.md" in pressure)
+ck("D16 README explains action-first report sections", all(x in readme for x in ["Clear Before Ship", "Fix Next", "Not Proven / Not Tested", "Passed / Keep"]))
+ck("D17 README raw sample uses new taxonomy", "READINESS: NOT READY" in readme and "Clear Before Ship" in readme and "Passed / Keep" in readme and "Strong signals" not in readme)
+ck("D18 README mentions final fix-goal handoff", "persistent fix goal" in readme.lower() and "regenerate the Shipworthy HTML report" in readme)
+ck("D19 sample SVG uses action-first labels", all(x in sample_svg for x in ["Clear Before Ship", "Not Proven / Not Tested", "Passed / Keep"]))
+ck("D20 sample SVG removes old report labels", all(x not in sample_svg for x in ["2 blockers", "1 strong", "3 provisional", "[Blocker]"]))
+ck("D21 flow SVG mentions action-first handoff", "Clear Before Ship" in flow_svg and "fix goal" in flow_svg.lower())
+ck("D22 hero or architecture SVG references no-overclaim action report", ("Clear Before Ship" in hero_svg or "Clear Before Ship" in arch_svg) and ("Passed / Keep" in hero_svg or "Passed / Keep" in arch_svg))
 
 print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
 if FAIL:

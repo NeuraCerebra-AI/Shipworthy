@@ -4,8 +4,9 @@ The audit already produces structured data — the coverage matrix and the findi
 ledger. `scripts/render_report.py` turns compact ledger JSON into **one
 self-contained HTML report** in the Shipworthy design system: masthead, verdict
 stamp, stats chips, a coverage bar with a **covered-percentage** summary,
-findings **grouped by severity** (Blockers / Strong / Provisional / Notes, each
-with a count), collapsible Evidence / Fix / Verify details, and the
+findings **grouped by action** (Clear Before Ship / Fix Next / Not Proven / Not
+Tested / Passed / Keep, each with a count), action chips, proof chips,
+collapsible Evidence / Fix / Verify details, and the
 orchestration checkpoint. It **prints cleanly to PDF** (a light print stylesheet
 keeps findings whole) and is **accessible** (the coverage bar carries an
 `aria-label`; each segment has a `title`). The output is a single file: inline
@@ -17,8 +18,8 @@ cleanly.
 
 The preferred visual direction came from a stronger hand-authored report style:
 compact premium dark layout, clearer Shipworthy masthead, rotated verdict stamp,
-stats chips, coverage legend, severity-grouped findings, numbered finding cards,
-confidence pills, and collapsible Evidence / Fix / Verify rows. Those traits are
+stats chips, coverage legend, action-first finding sections, numbered finding
+cards, action/proof pills, and collapsible Evidence / Fix / Verify rows. Those traits are
 the template target.
 
 The older renderer remains the operational model: JSON-driven, deterministic,
@@ -85,7 +86,12 @@ report style drift.
   "target": "string — what was audited",
   "generated_at": "YYYY-MM-DD (optional; defaults to today)",
   "verdict": "NOT READY | READY WITH RISKS | CONDITIONAL | READY",
-  "summary": { "blockers": 0, "strong": 0, "provisional": 0 },
+  "summary": {
+    "clear_before_ship": 0,
+    "fix_next": 0,
+    "not_proven_not_tested": 0,
+    "passed_keep": 0
+  },
   "coverage": {
     "total_paths": 0,
     "segments": [
@@ -94,8 +100,11 @@ report style drift.
     ]
   },
   "findings": [
-    { "severity": "blocker|strong|provisional|info",
-      "confidence": "confirmed|strong|provisional|inferred (optional)",
+    { "section": "clear_before_ship|fix_next|not_proven_not_tested|passed_keep",
+      "action": "Fix|Prove|Decide|Skip|Keep",
+      "proof": "Confirmed|Partial|Inferred|Not tested",
+      "severity": "backward-compatible legacy alias (optional)",
+      "confidence": "backward-compatible legacy proof alias (optional)",
       "title": "one line",
       "consequence": "user consequence (optional)",
       "evidence": "what was observed (optional)",
@@ -151,20 +160,31 @@ yield, or `exhaustion_status` is not `complete`, the report must show the
 downgrade and include a next frontier batch or resume path.
 If `report_generation_status` is not `rendered`, the final answer must say
 `HTML report: MISSING/BLOCKED` and treat the run as incomplete. `findings` are
-sorted by severity automatically; every text field is HTML-escaped; coverage
+sorted by action section automatically; every text field is HTML-escaped; coverage
 segment widths are proportional to `value`; `verdict` selects
 the banner color (rose / amber / emerald). Coverage kind aliases are normalized:
 `debt` renders as `evidence_debt`, and mixed-case kinds such as `COVERED` are accepted.
-Severity aliases are normalized too: `P0 Blocker`, `critical`, and `blocker`
-render as Blockers; `P1 Major`, `major`, `high`, and `strong` render as Strong
-signals; `P2 Moderate`, `moderate`, `medium`, and `provisional` render as
-Provisional; `P3 Minor`, `minor`, `low`, `note`, `unscored`, and `info` render
-as Notes. Unknown `kind`/`severity` values fall back to a neutral slate so the report never breaks on partial data. Setting
+Action sections are the user-facing buckets:
+
+- `Clear Before Ship`: readiness-blocking failures, missing paths, unsafe release gaps, or proof gaps.
+- `Fix Next`: real non-blocking issues to repair after blockers.
+- `Not Proven / Not Tested`: evidence debt, blocked/avoided paths, hypotheses, or unverified claims; these are not passes.
+- `Passed / Keep`: paths or choices that worked under the tested conditions.
+
+Action chips are `Fix | Prove | Decide | Skip | Keep`. Proof chips are
+`Confirmed | Partial | Inferred | Not tested`.
+
+Legacy severity aliases are accepted for old ledgers: `P0 Blocker`, `critical`,
+and `blocker` map to Clear Before Ship; `P1 Major`, `major`, `high`, `P2
+Moderate`, `moderate`, `medium`, and `provisional` map to Fix Next; `P3 Minor`,
+`minor`, `low`, `note`, `unscored`, unknown values, and `info` map to Not
+Proven / Not Tested; `strong`, `working`, `passed`, and `keep` map to Passed /
+Keep. Unknown `kind` values fall back safely so the report never breaks on partial data. Setting
 `"illustrative": true` stamps the report as a sample rather than a live run.
 
 ## Robustness
 
-The generator degrades gracefully rather than crashing on partial or hostile data: every text field is HTML-escaped (XSS-safe), unknown severity/verdict/kind values fall back to neutral styling, missing sections render a muted note, non-numeric coverage values are ignored, long unbroken strings wrap, and file I/O is UTF-8 (emoji/CJK/RTL safe). This is enforced by `scripts/test_render_report.py` across empty input, XSS payloads in every field, unicode, unknown verdicts, 40 findings, degenerate coverage, wrong types, nulls, premium layout anatomy, details rows, and default no-network/no-JS behavior. Run it with:
+The generator degrades gracefully rather than crashing on partial or hostile data: every text field is HTML-escaped (XSS-safe), unknown verdict/kind values fall back safely, unknown finding categories land in Not Proven / Not Tested, missing sections render a muted note, non-numeric coverage values are ignored, long unbroken strings wrap, and file I/O is UTF-8 (emoji/CJK/RTL safe). This is enforced by `scripts/test_render_report.py` across empty input, XSS payloads in every field, unicode, unknown verdicts, 40 findings, degenerate coverage, wrong types, nulls, premium layout anatomy, details rows, and default no-network/no-JS behavior. Run it with:
 
 ```bash
 python3 scripts/test_render_report.py

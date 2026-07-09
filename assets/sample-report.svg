@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 682" width="1000" height="682" role="img" aria-label="Illustrative Shipworthy readiness report showing NOT READY with two blockers, a coverage map, and an orchestration checkpoint">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 682" width="1000" height="682" role="img" aria-label="Illustrative Shipworthy readiness report showing NOT READY with Clear Before Ship, Fix Next, Not Proven / Not Tested, Passed / Keep, a coverage map, and an orchestration checkpoint">
   <defs>
     <linearGradient id="rbg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0B1020"/><stop offset="1" stop-color="#0A0E1B"/>
@@ -29,7 +29,7 @@
     <circle cx="30" cy="26" r="8" fill="#F43F5E"/>
     <text x="50" y="34" class="sans" font-size="24" font-weight="800" fill="#FB7185" letter-spacing="0.5">NOT READY</text>
   </g>
-  <text x="270" y="126" class="sans" font-size="15" fill="#96A4C2">2 blockers · 1 strong · 3 provisional</text>
+  <text x="270" y="126" class="sans" font-size="13.5" fill="#96A4C2">2 Clear Before Ship · 2 Fix Next · 1 Not Proven / Not Tested · 1 Passed / Keep</text>
   <text x="270" y="148" class="sans" font-size="12.5" fill="#5F6E90">nothing is called &quot;ready&quot; without evidence</text>
 
   <!-- blocker 1 -->
@@ -37,7 +37,7 @@
     <rect width="928" height="98" rx="11" fill="#0E1424" stroke="#242F49"/>
     <rect width="5" height="98" rx="2.5" fill="#F43F5E"/>
     <circle cx="26" cy="30" r="6.5" fill="#F43F5E"/>
-    <text x="42" y="35" class="sans" font-size="15.5" font-weight="700" fill="#E6ECF7">[Blocker] <tspan fill="#8EA0C1" font-weight="500">guest · mobile —</tspan> payment succeeds in the UI, fails on the server</text>
+    <text x="42" y="35" class="sans" font-size="15.5" font-weight="700" fill="#E6ECF7">Clear Before Ship <tspan fill="#8EA0C1" font-weight="500">guest · mobile —</tspan> payment succeeds in the UI, fails on the server</text>
     <text x="42" y="60" class="mono" font-size="12.5" fill="#7F8FB1">evidence:  POST /api/pay → 500 (network trace); UI still advances to &quot;Thank you&quot;</text>
     <text x="42" y="82" class="mono" font-size="12.5" fill="#7F8FB1">fix:  gate the success screen on a 2xx + persisted order id  —  verify by forcing a 500</text>
   </g>
@@ -47,7 +47,7 @@
     <rect width="928" height="76" rx="11" fill="#0E1424" stroke="#242F49"/>
     <rect width="5" height="76" rx="2.5" fill="#F43F5E"/>
     <circle cx="26" cy="28" r="6.5" fill="#F43F5E"/>
-    <text x="42" y="33" class="sans" font-size="15.5" font-weight="700" fill="#E6ECF7">[Blocker] <tspan fill="#8EA0C1" font-weight="500">missing path —</tspan> no way to cancel an order after purchase</text>
+    <text x="42" y="33" class="sans" font-size="15.5" font-weight="700" fill="#E6ECF7">Clear Before Ship <tspan fill="#8EA0C1" font-weight="500">missing path —</tspan> no way to cancel an order after purchase</text>
     <text x="42" y="58" class="mono" font-size="12.5" fill="#7F8FB1">evidence:  full surface map — no route/button/setting reaches it   ·   fix: add cancel on order-detail</text>
   </g>
 
@@ -62,12 +62,12 @@
     <rect x="785" y="0" width="143" height="16" rx="4" fill="#334155"/>
   </g>
   <g class="sans" font-size="12.5" transform="translate(36,452)">
-    <circle cx="5" cy="6" r="4.5" fill="#34D399"/><text x="17" y="10" fill="#8D9BBB">covered 21</text>
-    <circle cx="128" cy="6" r="4.5" fill="#3B82F6"/><text x="140" y="10" fill="#8D9BBB">sampled 6</text>
-    <circle cx="243" cy="6" r="4.5" fill="#F59E0B"/><text x="255" y="10" fill="#8D9BBB">blocked 3 (paid)</text>
-    <circle cx="406" cy="6" r="4.5" fill="#F43F5E" opacity="0.6"/><text x="418" y="10" fill="#8D9BBB">avoided 2 (prod email)</text>
-    <circle cx="606" cy="6" r="4.5" fill="#F43F5E"/><text x="618" y="10" fill="#8D9BBB">missing 1</text>
-    <circle cx="700" cy="6" r="4.5" fill="#334155"/><text x="712" y="10" fill="#8D9BBB">evidence-debt 1 (load)</text>
+    <circle cx="5" cy="6" r="4.5" fill="#34D399"/><text x="17" y="10" fill="#8D9BBB">Tried + evidenced 21</text>
+    <circle cx="172" cy="6" r="4.5" fill="#3B82F6"/><text x="184" y="10" fill="#8D9BBB">Spot-checked 6</text>
+    <circle cx="326" cy="6" r="4.5" fill="#F59E0B"/><text x="338" y="10" fill="#8D9BBB">Blocked 3</text>
+    <circle cx="442" cy="6" r="4.5" fill="#F43F5E" opacity="0.6"/><text x="454" y="10" fill="#8D9BBB">Skipped 2</text>
+    <circle cx="548" cy="6" r="4.5" fill="#F43F5E"/><text x="560" y="10" fill="#8D9BBB">Missing 1</text>
+    <circle cx="650" cy="6" r="4.5" fill="#334155"/><text x="662" y="10" fill="#8D9BBB">Proof missing 1</text>
   </g>
 
   <!-- checkpoint -->

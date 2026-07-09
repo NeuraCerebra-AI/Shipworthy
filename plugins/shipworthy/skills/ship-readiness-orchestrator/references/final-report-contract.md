@@ -73,55 +73,69 @@ Every Shipworthy final answer must include: verdict, report HTML path, ledger pa
    - If subagent dispatch was skipped because authorization was absent, denied, unavailable, or not received, state: `sequential fallback because multi-agent authorization was not granted`.
    - If no actual frontend path-walking occurred, state the downgrade reason and do not call the report a full Shipworthy run.
 
-3. **Release Blockers**
-   - Highest severity findings first.
-   - Include evidence, blast radius, and verification command/path.
+3. **Action Key**
+   - Read this by action: **Clear Before Ship** items block readiness. **Fix Next** items are real but non-blocking. **Not Proven / Not Tested** items are not passes. **Passed / Keep** items worked under the tested conditions.
+   - Every card must say what to do (`Fix`, `Prove`, `Decide`, `Skip`, or `Keep`) and how strong the proof is (`Confirmed`, `Partial`, `Inferred`, or `Not tested`).
 
-4. **Broken Or Risky Workflows**
-   - User-visible failures, state drift, persistence loss, blocked paths, permissions, forms, navigation, exports/imports, AI/action handoffs, recovery failures.
+4. **Clear Before Ship**
+   - Confirmed or high-confidence failures, missing paths, unsafe release gaps, or proof gaps that block readiness.
+   - Include evidence, blast radius, smallest safe fix, and verification command/path.
 
-5. **Missing Or Overcomplicated Paths**
-   - Reasonable user goals with no discoverable UX path, hidden entry points, excessive steps, repeated decisions, context switches, fragile prerequisites, dead ends, or needless recovery burden.
+5. **Fix Next**
+   - Real non-blocking workflow, quality, clarity, accessibility, state, deployment, or design issues that should be fixed after blockers.
+   - Include evidence, user consequence, smallest useful fix, and exact verification step.
+
+6. **Not Proven / Not Tested**
+   - Evidence debt, blocked checks, avoided checks, unsafe paths, unavailable tooling, untested roles/devices/states, static-only claims, hypotheses, and anything that must not be counted as passed.
+   - Include why it was not proven, what would prove it, and whether it should be resumed, explicitly skipped, or kept out of scope.
+
+7. **Passed / Keep**
+   - Paths, controls, release gates, or design choices that worked under the tested conditions and should not be disturbed casually.
+   - Include the proof condition and any regression guard worth keeping.
+
+8. **Workflow Detail Appendix**
+   - Broken or risky workflows: user-visible failures, state drift, persistence loss, blocked paths, permissions, forms, navigation, exports/imports, AI/action handoffs, recovery failures.
+   - Missing or overcomplicated paths: reasonable user goals with no discoverable UX path, hidden entry points, excessive steps, repeated decisions, context switches, fragile prerequisites, dead ends, or needless recovery burden.
    - Include expected intent, evidence, path effort, user consequence, smallest useful fix, and verification step.
 
-6. **UX, Clarity, And Design**
+9. **UX, Clarity, And Design**
    - Ugly, cluttered, generic, confusing, attention-hostile, untrustworthy, or low-momentum surfaces.
    - Tie every point to user consequence, not taste alone.
 
-7. **Product Love And Activation**
+10. **Product Love And Activation**
    - Time to value, first-run momentum, emotional payoff, repeat-use loop, share/referral moment, trust, perceived quality, onboarding drag, support burden.
    - Label strategy claims as hypotheses unless supported by evidence.
 
-8. **Accessibility And Responsive Survival**
+11. **Accessibility And Responsive Survival**
    - Keyboard/focus, accessible names, status/error exposure, zoom/reflow, mobile/touch, no-hover paths.
 
-9. **Backend/API/State Symptoms**
+12. **Backend/API/State Symptoms**
    - Only symptoms that affect user-visible workflows or trust.
 
-10. **Build/Test/Deploy/Docs Gate**
+13. **Build/Test/Deploy/Docs Gate**
    - Commands run, commands missing, failures, skipped checks, stale docs, env/config risks.
 
-11. **False Positives And Rejected Claims**
+14. **False Positives And Rejected Claims**
    - What was investigated and rejected or downgraded.
 
-12. **Coverage And Evidence**
+15. **Coverage And Evidence**
    - Coverage map summary, tools/agents used or skipped, artifact inventory, screenshots/traces/logs/commands, target fingerprint.
    - For full runs, list every discovered material path and expected intent with its coverage label and evidence debt status.
    - For full runs, also list or link the path_frontier table; no full verdict is allowed while material rows remain `unattempted`, `unknown`, or `maybe`.
    - Note redaction boundaries and sensitive evidence omitted from the report.
 
-13. **Evidence Debt**
+16. **Evidence Debt**
    - Needs-proof, blocked, avoided, untested, inferred, missing, and out-of-scope items.
 
-14. **Fix Cascade And Counterfactuals**
+17. **Fix Cascade And Counterfactuals**
    - For major recommendations, state the no-change consequence, smallest useful fix, what the fix could break, and whether the fix is reversible.
    - Downgrade broad redesigns that lack a bounded verification path.
 
-15. **Ranked Roadmap**
+18. **Ranked Roadmap**
    - Fix Now, Harden, Clarify, Preserve, Add Friction, Investigate, Do Not Change.
    - Include smallest useful fix, regression risk, and exact verification step for each item.
 
-16. **Final Drift Check**
+19. **Final Drift Check**
    - State whether every material final claim maps to ledger evidence or an explicit gap.
    - Name any conclusions removed or downgraded because they lacked a ledger row.
 
