@@ -9,6 +9,9 @@
     <linearGradient id="cov" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#22D3EE"/>
     </linearGradient>
+    <clipPath id="title-worthy-clip">
+      <rect x="250" y="106" width="430" height="104"/>
+    </clipPath>
     <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="1.4" cy="1.4" r="1.4" fill="#1B2540"/></pattern>
     <style>
       .sans{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -24,9 +27,8 @@
   <!-- LEFT COLUMN (kept within x<720, clear of the card at x=858) -->
   <text x="80" y="92" class="sans" fill="#5B6B8C" font-size="15" font-weight="700" letter-spacing="3.5">CLAUDE CODE · CODEX — AGENT SKILL SUITE</text>
 
-  <text x="78" y="188" class="sans" font-size="90" font-weight="800" letter-spacing="-2">
-    <tspan fill="#E8EEF7">Ship</tspan><tspan fill="#34D399">worthy</tspan>
-  </text>
+  <text x="78" y="188" class="sans" fill="#E8EEF7" font-size="90" font-weight="800" letter-spacing="-2">Shipworthy</text>
+  <text x="78" y="188" class="sans" fill="#34D399" font-size="90" font-weight="800" letter-spacing="-2" clip-path="url(#title-worthy-clip)">Shipworthy</text>
 
   <text x="82" y="238" class="sans" fill="#A6B3CC" font-size="24" font-weight="600">Autonomous, evidence-graded</text>
   <text x="82" y="268" class="sans" fill="#A6B3CC" font-size="24" font-weight="600">product-readiness audits — for apps &amp; AI agents.</text>
@@ -49,28 +51,29 @@
       <circle cx="26" cy="23" r="7" fill="#F43F5E"/>
       <text x="44" y="30" class="sans" fill="#FB7185" font-size="21" font-weight="800" letter-spacing="0.5">NOT READY</text>
     </g>
-    <text x="220" y="90" class="mono" fill="#8FA0C0" font-size="12.5">2 Clear Before Ship</text>
+    <text x="24" y="124" class="mono" fill="#8FA0C0" font-size="12.5">2 fixes required before ship</text>
 
-    <text x="24" y="140" class="sans" fill="#8195B5" font-size="13" font-weight="600">COVERAGE · 34 paths</text>
-    <g transform="translate(24,150)">
+    <text x="24" y="144" class="sans" fill="#8195B5" font-size="13" font-weight="600">COVERAGE · 34 paths</text>
+    <g transform="translate(24,154)">
       <rect x="0"   y="0" width="150" height="14" rx="4" fill="url(#cov)"/>
       <rect x="154" y="0" width="48"  height="14" rx="4" fill="#3B82F6" opacity="0.85"/>
       <rect x="206" y="0" width="32"  height="14" rx="4" fill="#F59E0B" opacity="0.9"/>
       <rect x="242" y="0" width="22"  height="14" rx="4" fill="#F43F5E" opacity="0.55"/>
       <rect x="268" y="0" width="24"  height="14" rx="4" fill="#334155"/>
     </g>
-    <g class="sans" font-size="11.5" fill="#6B7C9C" transform="translate(24,182)">
+    <g class="sans" font-size="11" fill="#6B7C9C" transform="translate(24,185)">
       <circle cx="4" cy="6" r="4" fill="#34D399"/><text x="14" y="10">Tried 21</text>
       <circle cx="96" cy="6" r="4" fill="#3B82F6"/><text x="106" y="10">Spot 6</text>
       <circle cx="184" cy="6" r="4" fill="#F59E0B"/><text x="194" y="10">Blocked 3</text>
     </g>
-    <g class="sans" font-size="11.5" fill="#6B7C9C" transform="translate(24,202)">
-      <circle cx="4" cy="6" r="4" fill="#F43F5E" opacity="0.6"/><text x="14" y="10">Missing 1</text>
-      <circle cx="96" cy="6" r="4" fill="#34D399"/><text x="106" y="10">Passed / Keep</text>
+    <g class="sans" font-size="11" fill="#6B7C9C" transform="translate(24,205)">
+      <circle cx="4" cy="6" r="4" fill="#F43F5E" opacity="0.6"/><text x="14" y="10">Skipped 2</text>
+      <circle cx="96" cy="6" r="4" fill="#F43F5E"/><text x="106" y="10">Missing 1</text>
+      <circle cx="184" cy="6" r="4" fill="#334155"/><text x="194" y="10">Proof missing 1</text>
     </g>
 
-    <line x1="24" y1="220" x2="320" y2="220" stroke="#1E2A45"/>
-    <g transform="translate(24,226)">
+    <line x1="24" y1="222" x2="320" y2="222" stroke="#1E2A45"/>
+    <g transform="translate(24,228)">
       <circle cx="8" cy="9" r="7" fill="#0E2A1E" stroke="#34D399"/>
       <path d="M4.6 9 L7.2 11.4 L11.6 6.2" fill="none" stroke="#34D399" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
       <text x="24" y="13" class="mono" fill="#7E90B2" font-size="12.5">independent verifier · APPROVED</text>

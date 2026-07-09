@@ -236,6 +236,7 @@ canon_sev = render({"findings":[
 ]})
 check("F19 canonical severity aliases grouped", '<h2>Clear Before Ship</h2><span class="count">1</span>' in canon_sev and '<h2>Fix Next</h2><span class="count">2</span>' in canon_sev and '<h2>Not Proven / Not Tested</h2><span class="count">1</span>' in canon_sev)
 check("F20 action-first stats derive summary", 'c-clear"><span class="n">1</span>' in canon_sev and 'c-fixnext"><span class="n">2</span>' in canon_sev and 'c-notproven"><span class="n">1</span>' in canon_sev)
+check("F21 stats label says required fixes", '<span class="l">Required Fixes</span>' in hb)
 
 # ---- de-duplication assertions (no repeated severity/confidence) ----
 hb = render(full)

@@ -26,7 +26,7 @@
     <rect x="-118" y="-3" width="236" height="24" rx="12" fill="#1B1440" stroke="#5B3F9E"/>
     <text x="0" y="13" text-anchor="middle" class="sans" font-size="12.5" font-weight="700" fill="#C4B5FD">THE ONE EVIDENCE LEDGER</text>
   </g>
-  <text x="520" y="146" text-anchor="middle" class="sans" font-size="13.5" fill="#9AA7C4">coverage matrix · Clear Before Ship / Passed / Keep report · no-overclaim gate</text>
+  <text x="520" y="146" text-anchor="middle" class="sans" font-size="13.5" fill="#9AA7C4">coverage matrix · action-first report · no-overclaim gate</text>
 
   <!-- dispatch arrows -->
   <path d="M470 170 C 360 220, 250 250, 200 296" fill="none" stroke="#43507A" stroke-width="1.6" marker-end="url(#arw)"/>

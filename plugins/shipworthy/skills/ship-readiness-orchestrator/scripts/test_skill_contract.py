@@ -163,10 +163,15 @@ ck("D16 README explains action-first report sections", all(x in readme for x in 
 ck("D17 README raw sample uses new taxonomy", "READINESS: NOT READY" in readme and "Clear Before Ship" in readme and "Passed / Keep" in readme and "Strong signals" not in readme)
 ck("D18 README mentions final fix-goal handoff", "persistent fix goal" in readme.lower() and "regenerate the Shipworthy HTML report" in readme)
 ck("D18b README fix handoff mentions subagents", "using authorized subagents where helpful" in readme.lower())
-ck("D19 sample SVG uses action-first labels", all(x in sample_svg for x in ["Clear Before Ship", "Not Proven / Not Tested", "Passed / Keep"]))
+ck("D19 sample SVG uses clear action-summary labels", all(x in sample_svg for x in ["Clear Before Ship", "2 fixes required before ship", "1 proof gap", "1 passed path"]))
 ck("D20 sample SVG removes old report labels", all(x not in sample_svg for x in ["2 blockers", "1 strong", "3 provisional", "[Blocker]"]))
-ck("D21 flow SVG mentions action-first handoff", "Clear Before Ship" in flow_svg and "fix goal" in flow_svg.lower())
-ck("D22 hero or architecture SVG references no-overclaim action report", ("Clear Before Ship" in hero_svg or "Clear Before Ship" in arch_svg) and ("Passed / Keep" in hero_svg or "Passed / Keep" in arch_svg))
+ck("D21 flow SVG uses clear action terminology", "Action report" in flow_svg and "Fix · Prove · Keep" in flow_svg)
+ck("D22 architecture SVG uses general action-report language", "action-first report" in arch_svg)
+ck("D23 hero SVG avoids unclear required-fix count", "2 Clear Before Ship" not in hero_svg and "2 fixes required before ship" in hero_svg)
+ck("D24 hero coverage legend uses coverage terminology only", "Passed / Keep" not in hero_svg and "Skipped 2" in hero_svg and "Proof missing 1" in hero_svg)
+ck("D25 sample SVG uses clear required-fix summary", "2 Clear Before Ship" not in sample_svg and "2 fixes required before ship" in sample_svg)
+ck("D26 hero title uses renderer-safe clipped direct fills", all(x in hero_svg for x in ['id="title-worthy-clip"', 'clip-path="url(#title-worthy-clip)"', 'fill="#E8EEF7"', 'fill="#34D399"']) and hero_svg.count(">Shipworthy</text>") == 2 and "<tspan" not in hero_svg)
+ck("D27 hero title preserves original full-word typography", hero_svg.count('font-size="90" font-weight="800" letter-spacing="-2"') >= 2)
 
 print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
 if FAIL:

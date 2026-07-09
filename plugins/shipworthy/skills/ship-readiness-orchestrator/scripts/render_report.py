@@ -509,7 +509,7 @@ def render(data, interactive=False):
     <div class="stamp"><span class="stamp-text">{esc(verdict_label)}</span><span class="stamp-sub">Status · Evidence gated</span></div>
     <p class="epigraph">&ldquo;nothing is called &lsquo;ready&rsquo; without evidence&rdquo;</p>
     <div class="stats-row">
-      <div class="stat-chip c-clear"><span class="n">{esc(clear)}</span><span class="l">Clear</span></div>
+      <div class="stat-chip c-clear"><span class="n">{esc(clear)}</span><span class="l">Required Fixes</span></div>
       <div class="stat-chip c-fixnext"><span class="n">{esc(fix_next)}</span><span class="l">Fix Next</span></div>
       <div class="stat-chip c-notproven"><span class="n">{esc(not_proven)}</span><span class="l">Not Proven</span></div>
       <div class="stat-chip c-passed"><span class="n">{esc(passed_keep)}</span><span class="l">Passed</span></div>

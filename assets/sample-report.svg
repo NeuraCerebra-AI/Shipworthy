@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 682" width="1000" height="682" role="img" aria-label="Illustrative Shipworthy readiness report showing NOT READY with Clear Before Ship, Fix Next, Not Proven / Not Tested, Passed / Keep, a coverage map, and an orchestration checkpoint">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 682" width="1000" height="682" role="img" aria-label="Illustrative Shipworthy readiness report showing NOT READY with two fixes required before ship, follow-up fixes, proof gaps, passed paths, a coverage map, and an orchestration checkpoint">
   <defs>
     <linearGradient id="rbg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0B1020"/><stop offset="1" stop-color="#0A0E1B"/>
@@ -29,7 +29,7 @@
     <circle cx="30" cy="26" r="8" fill="#F43F5E"/>
     <text x="50" y="34" class="sans" font-size="24" font-weight="800" fill="#FB7185" letter-spacing="0.5">NOT READY</text>
   </g>
-  <text x="270" y="126" class="sans" font-size="13.5" fill="#96A4C2">2 Clear Before Ship · 2 Fix Next · 1 Not Proven / Not Tested · 1 Passed / Keep</text>
+  <text x="270" y="126" class="sans" font-size="13.2" fill="#96A4C2">2 fixes required before ship · 2 next fixes · 1 proof gap · 1 passed path</text>
   <text x="270" y="148" class="sans" font-size="12.5" fill="#5F6E90">nothing is called &quot;ready&quot; without evidence</text>
 
   <!-- blocker 1 -->
