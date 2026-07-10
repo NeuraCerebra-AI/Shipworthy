@@ -170,8 +170,8 @@ ck("D22 architecture SVG uses general action-report language", "action-first rep
 ck("D23 hero SVG avoids unclear required-fix count", "2 Clear Before Ship" not in hero_svg and "2 fixes required before ship" in hero_svg)
 ck("D24 hero coverage legend uses coverage terminology only", "Passed / Keep" not in hero_svg and "Skipped 2" in hero_svg and "Proof missing 1" in hero_svg)
 ck("D25 sample SVG uses clear required-fix summary", "2 Clear Before Ship" not in sample_svg and "2 fixes required before ship" in sample_svg)
-ck("D26 hero title uses renderer-safe clipped direct fills", all(x in hero_svg for x in ['id="title-worthy-clip"', 'clip-path="url(#title-worthy-clip)"', 'fill="#E8EEF7"', 'fill="#34D399"']) and hero_svg.count(">Shipworthy</text>") == 2 and "<tspan" not in hero_svg)
-ck("D27 hero title preserves original full-word typography", hero_svg.count('font-size="90" font-weight="800" letter-spacing="-2"') >= 2)
+ck("D26 hero title uses renderer-stable vector outlines", all(x in hero_svg for x in ['id="title-wordmark"', 'data-wordmark-part="ship"', 'data-wordmark-part="worthy"', 'fill="#E8EEF7"', 'fill="#34D399"']) and 'id="title-worthy-clip"' not in hero_svg and 'clip-path="url(#title-worthy-clip)"' not in hero_svg)
+ck("D27 hero title preserves the complete two-color wordmark", hero_svg.count('data-wordmark-glyph=') == 10 and hero_svg.count('data-wordmark-part="ship"') == 1 and hero_svg.count('data-wordmark-part="worthy"') == 1)
 
 print(f"\n==== SKILL CONTRACT: {len(PASS)} passed, {len(FAIL)} failed ====")
 if FAIL:
