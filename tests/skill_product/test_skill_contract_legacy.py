@@ -154,7 +154,7 @@ ck("B11 four public skill names remain exact", all(f"name: {name}" in read(path)
 public_trigger_phrases = {
     SKILL: ["are we shipworthy?", "check shipworthiness"],
     PRODUCT_WORKFLOWS: ["product workflow audits", "try every path"],
-    DEEP_REVIEW: ["deep review", "implementation-plan critique"],
+    DEEP_REVIEW: ["explicitly invokes or names ship-deep-review", "required controller"],
     WORKFLOW_CLARITY: ["workflow clarity", "where users get lost"],
 }
 ck("B12 all four public skill trigger descriptions remain recognizable", all(all(phrase in read(path).split("---", 2)[1].lower() for phrase in phrases) for path, phrases in public_trigger_phrases.items()))

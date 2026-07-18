@@ -1,9 +1,44 @@
 ---
 name: ship-deep-review
-description: Use when the user explicitly asks for deep review, deep audit, multi-wave review, product-readiness audit, hostile review, implementation-plan critique, research validation, or says to use this skill and focus on a substantive target. Do NOT use for simple factual lookups, ordinary single-pass code review, routine implementation, or generic requests about agent count or parallelism without a review target.
+description: Use only when the user explicitly invokes or names ship-deep-review, or when an active ship-readiness-orchestrator run explicitly loads it as the required controller. Do not activate from generic audit, review, critique, validation, research, or readiness language; an explicit instruction not to use ship-deep-review always prevents activation.
 ---
 
 # Shipworthy Deep Review
+
+## Activation Gate
+
+First honor any explicit instruction not to use `ship-deep-review`; it always
+closes this gate, including during an orchestrator handoff.
+
+Continue only when one of these conditions is present:
+
+1. The user explicitly invokes or names `ship-deep-review`; or
+2. `ship-readiness-orchestrator` is already active from an operational
+   Shipworthy/readiness request and explicitly loads `ship-deep-review` as its
+   required controller.
+
+Generic audit or review language never satisfies this gate, regardless of how
+comprehensive, adversarial, evidence-first, hostile, multi-stage, or “deep” the
+request sounds. These phrases alone are not triggers:
+
+- deep review
+- deep audit
+- comprehensive audit
+- adversarial or hostile review
+- evidence-first audit
+- multi-wave or multi-stage review
+- product-readiness audit
+- implementation-plan critique
+- research validation
+
+If neither permitted condition exists, do not continue: the agent must not load
+the skill’s references, apply this workflow, create claim ledgers, coverage
+matrices, evidence-debt registers, or waves, or dispatch review agents. Handle
+the request normally or route it to another applicable skill without using this
+protocol.
+
+Once this gate legitimately opens, continue with the deep-review protocol below
+unchanged.
 
 Deep Review is a repo-agnostic companion workflow for evidence-heavy investigation. It is a review controller, not a domain substitute: use repo instructions, browser tools, MCPs, security skills, research skills, and Superpowers where they fit the target.
 
