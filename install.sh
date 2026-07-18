@@ -23,12 +23,20 @@ if find "$SRC" -type d -name __pycache__ -o -type f \( -name '*.pyc' -o -name '*
 fi
 
 stamp="$(date -u +%Y%m%d%H%M%S).$$"
-stages=() installed=() backup_skills=() backup_dests=() backup_paths=() created_dirs=()
+stages=() installed=() backup_skills=() backup_dests=() backup_paths=() backup_roots=() created_dirs=()
 
 cleanup_stages() { local stage; for stage in "${stages[@]}"; do rm -rf "$stage"; done; }
 cleanup_created_dirs() {
   local i
   for ((i=${#created_dirs[@]}-1; i>=0; i--)); do rmdir "${created_dirs[$i]}" 2>/dev/null || true; done
+}
+cleanup_backup_roots() {
+  local i root
+  for ((i=${#backup_roots[@]}-1; i>=0; i--)); do
+    root="${backup_roots[$i]}"
+    rmdir "$root" 2>/dev/null || true
+    rmdir "$(dirname "$root")" 2>/dev/null || true
+  done
 }
 rollback() {
   local path i
@@ -38,6 +46,7 @@ rollback() {
     mv "${backup_paths[$i]}" "${backup_dests[$i]}/${backup_skills[$i]}" || true
   done
   cleanup_stages
+  cleanup_backup_roots
   cleanup_created_dirs
 }
 
@@ -66,7 +75,15 @@ for index in "${!DESTINATIONS[@]}"; do
   dest="${DESTINATIONS[$index]}"; stage="${stages[$index]}"
   for skill in "${SKILLS[@]}"; do
     if [[ -e "$dest/$skill" ]]; then
-      backup="$dest/$skill.bak.$stamp"
+      backup_root="$(dirname "$dest")/shipworthy-backups/$stamp"
+      if [[ ! -d "$backup_root" ]]; then
+        if mkdir -p "$backup_root"; then
+          backup_roots+=("$backup_root")
+        else
+          result=$?; echo "error: backup directory creation failed; restoring prior state" >&2; rollback; exit "$result"
+        fi
+      fi
+      backup="$backup_root/$skill"
       if mv "$dest/$skill" "$backup"; then
         backup_skills+=("$skill"); backup_dests+=("$dest"); backup_paths+=("$backup")
         echo "backup: $backup"

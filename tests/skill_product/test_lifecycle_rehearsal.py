@@ -48,9 +48,10 @@ class LifecycleRehearsalTests(unittest.TestCase):
             result = subprocess.run([ROOT / "install.sh", "--target", "codex"], env={**os.environ, "HOME": home}, capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertTrue(all((destination / name / "SKILL.md").is_file() for name in SKILLS))
-            backups = list(destination.glob(SKILLS[0] + ".bak.*"))
+            backups = list((Path(home) / ".agents/shipworthy-backups").glob("*/" + SKILLS[0]))
             self.assertEqual(1, len(backups))
             self.assertEqual("prior state", (backups[0] / "sentinel.txt").read_text(encoding="utf-8"))
+            self.assertEqual([], list(destination.glob("*.bak.*")))
 
     def test_claude_target_never_writes_codex_location(self) -> None:
         with tempfile.TemporaryDirectory() as home:
@@ -119,7 +120,7 @@ class LifecycleRehearsalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             prior_skills(home / ".agents/skills", "codex-prior")
-            fake_bin = failing_mv(home, '$1 == */ship-product-workflows && $2 == *.bak.*')
+            fake_bin = failing_mv(home, '$1 == */ship-product-workflows && $2 == */shipworthy-backups/*/ship-product-workflows')
             before = digest_tree(home)
             result = subprocess.run([ROOT / "install.sh", "--target", "codex"], env={**os.environ, "HOME": directory, "PATH": f"{fake_bin}:{os.environ['PATH']}"}, capture_output=True, text=True)
             self.assertEqual(97, result.returncode)

@@ -92,7 +92,8 @@ cd Shipworthy
 ./install.sh --target claude  # installs into ~/.claude/skills
 ```
 Use `--target both` only when you intentionally maintain both manual installations.
-Existing copies receive timestamped backups. Each skill also works independently.
+Existing copies receive timestamped backups outside the active skill-discovery
+directory. Each skill also works independently.
 </details>
 
 ## 🎬 What a run looks like
