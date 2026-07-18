@@ -1,0 +1,49 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-BROWSER-TRACE-001",
+      "channel": "trace",
+      "descriptor": {
+        "byte_size": 31,
+        "declared_media_type": "application/zip",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/playwright/checkout-trace.zip"
+      }
+    }
+  ],
+  "finding_ids": [],
+  "generated_at": "2026-07-15T12:01:00Z",
+  "host": {
+    "driver": "existing-playwright-suite",
+    "family": "claude_code"
+  },
+  "limitations": [
+    "Only the configured Chromium project was replayed."
+  ],
+  "mode": "deterministic_replay",
+  "not_proven": [
+    "Other browser engines were not tested."
+  ],
+  "producer": {
+    "name": "target-repository-playwright",
+    "version": "1.54.0"
+  },
+  "schema_name": "shipworthy/browser-evidence-envelope",
+  "schema_version": "1.0",
+  "steps": [
+    {
+      "action": "Replay the target-owned checkout test",
+      "observed_outcome": "The configured assertion passed.",
+      "step_id": "replay-checkout"
+    }
+  ],
+  "target": {
+    "fingerprint": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "path_intent": "checkout/existing-regression"
+  },
+  "unavailable_channels": [
+    "recording"
+  ]
+}
+

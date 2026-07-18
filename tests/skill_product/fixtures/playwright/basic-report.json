@@ -1,0 +1,119 @@
+{
+  "config": {
+    "version": "1.54.0"
+  },
+  "suites": [
+    {
+      "title": "checkout",
+      "file": "tests/checkout.spec.ts",
+      "specs": [
+        {
+          "id": "checkout-valid-card",
+          "title": "accepts valid card",
+          "file": "tests/checkout.spec.ts",
+          "line": 10,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "projectId": "chromium-default",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "test-results/checkout/screenshot.png"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "checkout-expired-card",
+          "title": "rejects expired card",
+          "file": "tests/checkout.spec.ts",
+          "line": 20,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "projectId": "chromium-default",
+              "expectedStatus": "passed",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "retry": 0,
+                  "attachments": [
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "test-results/expired/trace.zip"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "checkout-bank-redirect",
+          "title": "bank redirect",
+          "file": "tests/checkout.spec.ts",
+          "line": 30,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "projectId": "chromium-default",
+              "expectedStatus": "skipped",
+              "status": "skipped",
+              "results": [
+                {
+                  "status": "skipped",
+                  "retry": 0,
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "checkout-receipt",
+          "title": "eventually loads receipt",
+          "file": "tests/checkout.spec.ts",
+          "line": 40,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "projectId": "chromium-default",
+              "expectedStatus": "passed",
+              "status": "flaky",
+              "results": [
+                {
+                  "status": "failed",
+                  "retry": 0,
+                  "attachments": []
+                },
+                {
+                  "status": "passed",
+                  "retry": 1,
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

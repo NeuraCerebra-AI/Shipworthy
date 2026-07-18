@@ -114,6 +114,59 @@ Every run records a target fingerprint (repo/branch/commit/dirty state, runtime 
 
 If a required sub-skill can't be found or read, the orchestrator's **Sub-Skill Load Gate** stops normal execution, reports the missing skill, and continues only with an explicitly downgraded fallback (recorded as evidence debt). This is why the four skills ship together but also install independently: the graph forms when they're all present, and fails loudly — never silently — when one is missing.
 
+## Four self-contained skills
+
+The installed product is exactly four independently usable skills. Detailed
+contracts and schemas live under each skill's own references; deterministic
+HTML, SARIF, and evidence-bundle transforms are the three standard-library
+scripts inside the orchestrator. Development tests, fixtures, parity checks,
+and lifecycle rehearsals remain repository-only.
+
+Codex and Claude plugin managers own normal installation. The manual installer
+is an explicit-target fallback that validates all four sources, preserves
+timestamped backups, and restores the exact prior skill state after failure.
+It never touches audit evidence, and it does not automate uninstall.
+
+Legacy comparison, installed parity, and rollback assurance are repository test
+behaviors, not additional installed machinery. Legacy retirement remains governed
+by `docs/phase0/legacy-transform-retirement.md`.
+
+## Lean host-native evidence flow
+
+The four skills remain Shipworthy's user-facing product. Codex or Claude owns
+adaptive browser execution, while an existing target-owned Playwright setup may
+produce deterministic regression evidence. Shipworthy does not launch either
+browser path. It accepts only bounded, caller-supplied evidence and attachments.
+
+```text
+Codex/Claude native browser ─┐
+                            ├─ skill-owned contracts ─ canonical ledger
+Existing Playwright report ─┘                     ├─ HTML
+                                                  ├─ SARIF
+                                                  └─ evidence bundle
+```
+
+Both inputs converge on one immutable evidence shape and then attach to finding
+IDs that already exist in the canonical v1 ledger. The attachment transform
+preserves finding identity, action, proof, severity, confidence, gate, and
+verifier status. Missing artifacts, unavailable evidence channels, and genuine
+limitations remain named evidence debt. A screenshot proves only the visible
+state at capture time; Playwright evidence is deterministic only to the extent
+supported by the supplied report, local attachments, and target-owned test.
+
+The host owns browser control, shell/test execution, target-repository safety,
+and the decision to reuse an existing Playwright setup. Skill references own
+bounded validation, conservative normalization, lineage, proof ceilings, and
+evidence-debt rules. The three local scripts only transform supplied final data;
+they do not launch browsers, install dependencies, call networks, or mutate the
+audited target.
+
+This boundary deliberately excludes a Shipworthy browser runner or DSL,
+database, persistence service, daemon, public CLI product, MCP server, portal,
+external-provider integration, scheduler, credential store, hosted runner,
+account system, and billing or multi-tenant infrastructure. Those surfaces are
+not implied by the adapter layer and are not authorized by this architecture.
+
 ## The evidence-state contract (for contributors)
 
 If you extend a lane, your packet must carry, per finding: severity, confidence, provenance tag, and a coverage label. Do **not**:

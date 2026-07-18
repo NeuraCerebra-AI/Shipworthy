@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-07-09T12:00:00Z",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "report_input_id": "RPT-CHECKOUT-001",
+  "schema_name": "shipworthy/readiness-report-input",
+  "schema_version": "1.0",
+  "source_ledger": {
+    "artifacts": [
+      {
+        "artifact_id": "ART-COUPON-001",
+        "availability": "available",
+        "custody_state": "LOCAL_CONTENT_INTEGRITY",
+        "descriptor": {
+          "byte_size": 128,
+          "declared_media_type": "application/json",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "digest_algorithm": "sha256",
+          "relative_path": "evidence/coupon-invalid.json"
+        },
+        "lineage": {
+          "operation": "contract-fixture",
+          "producer": "shipworthy-contract-tests",
+          "source_ids": []
+        }
+      }
+    ],
+    "completion_status": "complete",
+    "evidence_debt": [],
+    "findings": [
+      {
+        "action": "Fix",
+        "artifact_ids": [
+          "ART-COUPON-001"
+        ],
+        "confidence": "Strong",
+        "finding_id": "FND-COUPON-001",
+        "proof": "Partial",
+        "revision": 1,
+        "section": "fix_next",
+        "severity": "P1 Major",
+        "subject": {
+          "kind": "workflow",
+          "location": "src/checkout/coupon.py",
+          "ref": "checkout.invalid-coupon",
+          "title": "Invalid coupon feedback"
+        },
+        "summary": "Invalid coupons have no recoverable explanation.",
+        "verifier_status": "approved"
+      }
+    ],
+    "gate": {
+      "policy": "confirmed_only"
+    },
+    "generated_at": "2026-07-09T12:00:00Z",
+    "ledger_id": "LED-CHECKOUT-001",
+    "producer": {
+      "name": "shipworthy-contract-tests",
+      "version": "1.0.0"
+    },
+    "readiness_disposition": "conditionally_ready",
+    "revision": 1,
+    "schema_name": "shipworthy/readiness-ledger",
+    "schema_version": "1.0"
+  }
+}
+

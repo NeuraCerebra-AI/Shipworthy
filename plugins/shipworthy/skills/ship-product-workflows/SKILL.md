@@ -51,6 +51,13 @@ Wrong-route recovery: if evidence shows the route was wrong, state the mismatch,
 - For fixture-only, screenshot-only, or supplied-diff-only audits, do not blend in ambient workspace/repo context unless the user named it or it is necessary to explain an adjacent risk. If used, label it as supporting context, not as truth about the supplied artifact.
 - Do not click mutating, paid, destructive, permission-changing, privacy-sensitive, publishing, approval, production, or irreversible actions without explicit safe-test permission or a disposable fixture.
 - For broad, high-stakes, or runtime-heavy audits, use agents, waves, Playwright, browser tools, or Computer Use when available and permitted. If tools or agents are unavailable, report the evidence gap instead of implying they ran.
+
+### Browser evidence route
+
+Read this skill's `references/runtime-evidence-and-tools.md` before choosing a browser evidence path. Use a Codex- or Claude-hosted native browser or computer-use capability as the default for adaptive exploration. Use an existing target-owned Playwright setup only for deterministic replay, explicit assertions, isolated contexts, traces, cross-browser checks, or CI regression proof. Never install Playwright or change the target application merely to obtain browser evidence; record an unavailable capability as evidence debt.
+
+A screenshot proves only the state visible at capture time; it does not prove an entire workflow. Neither native nor Playwright evidence may silently upgrade a finding to `Confirmed` or verifier status to `approved`. Include in the audit output the chosen evidence mode, selection reason, observed step boundary, artifacts, limitations, and not-proven statements when this skill runs standalone; return to the orchestrator when lane-dispatched the same bounded evidence context. Shipworthy operates through the four public skills and their skill-owned resources without requiring another product surface.
+
 - For major, full-pass, long-running, agent-assisted, or compaction-prone audits, maintain a living audit ledger. Write it to disk when file writes are allowed and useful; otherwise keep it as an explicit report section or proposed artifact path. Treat it as a provisional flight recorder, not a scope lock.
 - Call `$ship-workflow-clarity` for clarity lanes rather than recreating its full rubric in this skill.
 - Lead with findings. Put scores last, omit them by default, and never use naked scores or decimal grades.

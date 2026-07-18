@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Simulation suite for make_bundle.py — zip validity, manifest integrity
 (recompute SHA-256), include/exclude flags, and graceful failure."""
-import os, sys, json, subprocess, zipfile, hashlib
+import os, sys, json, subprocess, zipfile, hashlib, tempfile
+import unittest
+from pathlib import Path
+
+if __name__ != "__main__":
+    raise unittest.SkipTest("legacy aggregate suite runs as a direct script")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SAMPLE = os.path.join(HERE, "sample-report.json")
-SCRIPT = os.path.join(HERE, "make_bundle.py")
-TMP = os.path.join(HERE, "_bundle_tmp")
+SCRIPT_DIR = Path(__file__).resolve().parents[2] / "plugins" / "shipworthy" / "skills" / "ship-readiness-orchestrator" / "scripts"
+SAMPLE = os.path.join(HERE, "fixtures", "sample-report.json")
+SCRIPT = str(SCRIPT_DIR / "make_bundle.py")
+TMP = tempfile.mkdtemp(prefix="shipworthy-bundle-test-")
 os.makedirs(TMP, exist_ok=True)
 
 PASS, FAIL = [], []

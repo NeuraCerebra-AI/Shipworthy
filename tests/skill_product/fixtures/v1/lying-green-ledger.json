@@ -1,0 +1,39 @@
+{
+  "artifacts": [],
+  "completion_status": "complete",
+  "evidence_debt": [],
+  "findings": [
+    {
+      "action": "Prove",
+      "artifact_ids": [],
+      "confidence": "Provisional",
+      "finding_id": "FND-NOT-TESTED-001",
+      "proof": "Not tested",
+      "revision": 1,
+      "section": "not_proven_not_tested",
+      "severity": "Unscored",
+      "subject": {
+        "kind": "evidence_gap",
+        "location": null,
+        "ref": "checkout.production-email",
+        "title": "Production email path was not tested"
+      },
+      "summary": "The path lacks safe runtime proof.",
+      "verifier_status": "needs-proof"
+    }
+  ],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-LYING-GREEN-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "ready",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

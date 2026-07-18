@@ -34,19 +34,22 @@ Shipworthy finds all of the above **and refuses the last one.** It treats "try e
 
 ## ⚡ Install in 30 seconds
 
-Paste this into **Claude Code** or **Codex**:
+Use the host's plugin manager so installation, updates, and removal stay owned by
+the app. The plugin bundles all four self-contained skills.
 
-```text
-Go to https://github.com/NeuraCerebra-AI/Shipworthy and install the Shipworthy skills into this app's skills directory. Install all four skills, use the repo instructions, and reload skills if your app supports it.
-```
-
-Want the exact **Claude Code** commands instead? The plugin bundles all four skills:
+In **Claude Code**:
 
 ```bash
 /plugin marketplace add NeuraCerebra-AI/Shipworthy
 /plugin install shipworthy@shipworthy
-/reload-skills
+/reload-plugins
 ```
+
+In **Codex**, add this repository as a plugin source and install `shipworthy`
+through the plugin UI. Restart Codex if the four skills are not visible
+immediately. Exact native Codex install/reload/upgrade/uninstall commands have
+not been exercised in this migration and remain **NOT_PROVEN**; the advanced
+manual fallback below is the only locally rehearsed install path.
 
 Then ask:
 
@@ -80,13 +83,16 @@ logs, provider checks, database probes, and docs are supporting evidence, not a
 substitute for walking the product like a user.
 
 <details>
-<summary><b>Prefer a manual install (Codex, or copy the folders)?</b></summary>
+<summary><b>Advanced manual fallback</b></summary>
 
 ```bash
 git clone https://github.com/NeuraCerebra-AI/Shipworthy.git
-cd shipworthy && ./install.sh   # copies the 4 skills into ~/.claude/skills or ~/.codex/skills
+cd Shipworthy
+./install.sh --target codex   # installs into ~/.agents/skills
+./install.sh --target claude  # installs into ~/.claude/skills
 ```
-Or copy any single skill folder from `plugins/shipworthy/skills/` into your skills directory — each one works on its own.
+Use `--target both` only when you intentionally maintain both manual installations.
+Existing copies receive timestamped backups. Each skill also works independently.
 </details>
 
 ## 🎬 What a run looks like
@@ -179,7 +185,15 @@ Shipworthy isn't a "ship faster" boilerplate and it isn't a linter. It's the thi
 
 ## 🔒 Safe by design
 
-Skills are **self-contained markdown** — no bundled executables that run on install, no telemetry, no credential access, no network calls of their own, no auto-update. When auditing, Shipworthy is **read-only by default** and uses only the tools you already have (browser, agents) inside an explicit safe-test boundary; it stops at mutating, paid, destructive, publishing, or production actions unless you authorize the exact action in a disposable environment. It reports the smallest useful fix and an exact verification step — it does not apply fixes unless you ask after the review.
+Skills are **self-contained folders** — markdown instructions and local resources,
+plus three optional standard-library output scripts that never run during
+installation. There is no telemetry, credential access, network call, or
+auto-update of their own. When auditing, Shipworthy is **read-only by default**
+and uses only the tools you already have (browser, agents) inside an explicit
+safe-test boundary; it stops at mutating, paid, destructive, publishing, or
+production actions unless you authorize the exact action in a disposable
+environment. It reports the smallest useful fix and an exact verification step
+— it does not apply fixes unless you ask after the review.
 
 ## 🙋 FAQ
 

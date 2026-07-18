@@ -1,0 +1,16 @@
+{
+  "name": "shipworthy",
+  "owner": {"name": "Warren Cain", "url": "https://github.com/NeuraCerebra-AI"},
+  "plugins": [
+    {
+      "name": "shipworthy",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/NeuraCerebra-AI/Shipworthy.git",
+        "ref": "main"
+      },
+      "description": "Four self-contained Shipworthy product-readiness skills.",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -37,7 +37,7 @@ Before target analysis, agent dispatch, runtime testing, design critique, or fin
 2. Resolve and read the full `SKILL.md` for `ship-deep-review`.
 3. Resolve and read the full `SKILL.md` for `ship-product-workflows`.
 4. Resolve and read the full `SKILL.md` for `ship-workflow-clarity`.
-5. If a required sub-skill cannot be found or read, stop normal execution, report the missing skill, and continue only with an explicitly downgraded fallback.
+5. If a sub-skill cannot be found or read, report it and continue as a **bounded standalone audit** using this skill's local references. Record the missing lane and lost independent coverage as evidence debt, keep the mandatory HTML report, and do not claim full multi-lane Shipworthy coverage.
 
 Do not infer these sub-skills from their names. Do not dispatch a product or clarity lane before the matching sub-skill body has been read.
 
@@ -84,6 +84,10 @@ For every full Shipworthy invocation, after the Multi-Agent Authorization Gate a
 > I will run the full flagship Shipworthy audit unless you explicitly narrow scope. That means I will use the actual frontend through browser, in-app browser, Chrome, Playwright, or Computer Use when available; interact like a human; map the path universe; attempt every safe discoverable user path; record blocked, avoided, unsafe, and unavailable paths as evidence debt; and use source, CLI, HTTP, tests, logs, and docs as supporting evidence, not as a substitute for frontend path-walking. If I cannot perform actual frontend path-walking, I will label the result conditional, static, or limited, not a full Shipworthy run.
 
 Actual frontend path-walking is required for a full flagship run when a runnable UI, hosted app, local dev server, browser-hosted prototype, desktop app, Chrome session, in-app browser surface, or Computer Use target is available. Human-style frontend evidence means action sequences through the product UI with observed screens/states and artifacts such as screenshots, DOM/UI/accessibility snapshots, console/network traces, recordings, or Computer Use screenshots.
+
+Read `references/browser-evidence-routing.md` before selecting a frontend tool. Use the host's native browser or computer-use capability by default for adaptive exploration. Use an existing target-owned Playwright setup only for deterministic replay, explicit assertions, isolated contexts, traces, cross-browser checks, or CI regression proof. Record the selection and its proof boundary in the ledger; the tool choice never changes the canonical proof or verifier rules.
+
+Shipworthy operates through the four public skills and their skill-owned resources. Continue to route and report through those skills without requiring another product surface.
 
 Source, CLI, HTTP, tests, logs, docs, Railway/provider checks, and database probes are supporting evidence, not as a substitute for frontend path-walking. Use them to find routes, explain symptoms, verify backend causes, and support release gates, but do not let them replace the actual product walk.
 
@@ -197,6 +201,10 @@ When the user asks for "beloved", "viral", "attention-retaining", or similar pro
 Load only the references needed for the current pass:
 
 - Read `references/lane-prompts.md` before dispatching product, clarity, design, verifier, or release-gate lanes.
+- Read `references/browser-evidence-routing.md` before native browser, computer-use, or Playwright work.
+- Read `references/host-execution-recipes.md` before invoking target-owned execution. Follow its ordered delegation from existing repository tests, through native adaptive exploration and existing deterministic Playwright replay, to an explicitly authorized target-owned test proposal; otherwise record evidence debt.
+- Read `references/ledger-validation-contract.md` before structured render or import; use its `references/schemas/readiness-ledger.schema.json`, `references/schemas/report-input.schema.json`, or `references/schemas/browser-evidence-envelope.schema.json` as selected by the declared input type.
+- Read `references/evidence-import-contract.md` only for browser, Playwright, or legacy structured input.
 - Read `references/evidence-state.md` before creating ledgers, coverage matrices, path labels, severity/confidence normalization, evidence debt, evidence storage, or readiness claims.
 - Read `references/final-report-contract.md` before writing the final report or roadmap.
 - Read `references/archetype-overlays.md` when the target matches a known product archetype (checkout, auth, ai-chat, dashboard, …). The `profiles/*.json` seed path discovery with priors — expected intents, common failure modes, and frequently-missing paths — as **hypotheses to confirm or disprove with evidence, never a pass/fail checklist**.

@@ -1,0 +1,24 @@
+{
+  "artifacts": [],
+  "completion_status": "complete",
+  "evidence_debt": [],
+  "findings": [],
+  "gate": {
+    "blocking_finding_ids": [
+      "FND-NOT-PRESENT-001"
+    ],
+    "outcome": "failed",
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-MISMATCH-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "ready",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

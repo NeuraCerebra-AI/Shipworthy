@@ -10,7 +10,23 @@ Default output has no JavaScript; --interactive adds inline no-network controls.
 Every text field is HTML-escaped; the renderer degrades gracefully on partial or
 degenerate data instead of crashing.
 """
-import sys, json, html, datetime, re
+import sys, json, html, datetime, re, os, tempfile
+sys.dont_write_bytecode = True
+MAX_INPUT_BYTES = 16 * 1024 * 1024
+
+def atomic_write_text(path, value):
+    destination = os.path.abspath(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=os.path.dirname(destination), prefix="." + os.path.basename(destination) + ".", delete=False) as handle:
+            temporary = handle.name
+            handle.write(value)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, destination)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
 
 COV = {
     "covered": "#34D399", "sampled": "#3B82F6", "blocked": "#F59E0B",
@@ -107,6 +123,86 @@ VERDICT = {
     "READY":            ("#0B241A", "#1E6B4E", "#34D399"),
 }
 VERDICT_NEUTRAL = ("#141A28", "#2A3654", "#AEBAD4")  # unknown verdict -> neutral, not alarming
+
+V1_SEVERITY = {
+    "P0 Blocker": "blocker", "P1 Major": "strong",
+    "P2 Moderate": "provisional", "P3 Minor": "info", "Unscored": "info",
+}
+V1_VERDICT = {
+    "ready": "READY", "conditionally_ready": "CONDITIONAL",
+    "not_ready": "NOT READY", "cannot_determine": "NOT READY",
+}
+
+def project_input(data):
+    """Project validated v1 ledger/report-input data into the stable report shape."""
+    if not isinstance(data, dict):
+        return {}
+    wrapper = data if data.get("schema_name") == "shipworthy/readiness-report-input" else None
+    ledger = data.get("source_ledger") if wrapper else data
+    if not isinstance(ledger, dict) or ledger.get("schema_name") != "shipworthy/readiness-ledger":
+        return data
+    artifacts = {
+        row.get("artifact_id"): row for row in ledger.get("artifacts", [])
+        if isinstance(row, dict) and row.get("artifact_id")
+    }
+    findings = []
+    for row in ledger.get("findings", []):
+        if not isinstance(row, dict):
+            continue
+        subject = row.get("subject") if isinstance(row.get("subject"), dict) else {}
+        artifact_ids = [value for value in row.get("artifact_ids", []) if value in artifacts]
+        evidence = []
+        for artifact_id in artifact_ids:
+            artifact = artifacts[artifact_id]
+            descriptor = artifact.get("descriptor") if isinstance(artifact.get("descriptor"), dict) else {}
+            lineage = artifact.get("lineage") if isinstance(artifact.get("lineage"), dict) else {}
+            evidence.append(
+                f"{artifact_id} ({artifact.get('availability')}; {descriptor.get('relative_path')}; "
+                f"sha256={descriptor.get('digest') or 'not sealed'}; producer={lineage.get('producer')}; "
+                f"operation={lineage.get('operation')})"
+            )
+        finding = {
+            "record_id": row.get("finding_id"), "record_kind": "finding",
+            "title": f"{row.get('finding_id')} — {subject.get('title')}",
+            "consequence": row.get("summary"), "action": row.get("action"),
+            "proof": row.get("proof"), "confidence": row.get("confidence"),
+            "section": row.get("section"),
+            "severity": V1_SEVERITY.get(row.get("severity"), "info"),
+            "canonical_severity": row.get("severity"),
+            "artifact_ids": artifact_ids,
+            "evidence": "Artifacts: " + "; ".join(evidence) if evidence else "No evidence artifact is attached to this record.",
+            "verify": f"Proof: {row.get('proof')}; confidence: {row.get('confidence')}; verifier: {row.get('verifier_status')}.",
+        }
+        if subject.get("location"):
+            finding["location"] = {"file": subject["location"]}
+        findings.append(finding)
+    for row in ledger.get("evidence_debt", []):
+        if not isinstance(row, dict):
+            continue
+        findings.append({
+            "record_id": row.get("debt_id"), "record_kind": "evidence_debt",
+            "title": f"{row.get('debt_id')} — Evidence required for {row.get('subject')}",
+            "consequence": row.get("reason"), "action": "Prove", "proof": "Not tested",
+            "confidence": "Hypothesis", "section": "not_proven_not_tested",
+            "severity": "info", "canonical_severity": "Unscored",
+            "artifact_ids": row.get("artifact_ids", []),
+            "evidence": f"Evidence-debt status: {row.get('status')}",
+            "fix": row.get("proof_needed"), "verify": f"Evidence-debt status: {row.get('status')}.",
+        })
+    producer = ledger.get("producer") if isinstance(ledger.get("producer"), dict) else {}
+    projected = {
+        "target": ledger.get("ledger_id", "target"),
+        "generated_at": ledger.get("generated_at"),
+        "verdict": V1_VERDICT.get(ledger.get("readiness_disposition"), "NOT READY"),
+        "findings": findings,
+        "checkpoint": {
+            "producer": f"{producer.get('name')} {producer.get('version')}",
+            "completion_status": ledger.get("completion_status"),
+            "gate_policy": (ledger.get("gate") or {}).get("policy"),
+            "source_report_input": wrapper.get("report_input_id") if wrapper else None,
+        },
+    }
+    return projected
 
 def esc(x): return html.escape("" if x is None else str(x))
 
@@ -257,6 +353,7 @@ def finding_html(f, idx):
     return "".join(parts)
 
 def render(data, interactive=False):
+    data = project_input(data)
     if not isinstance(data, dict): data = {}
     target = esc(data.get("target", "target"))
     gen = esc(data.get("generated_at") or datetime.date.today().isoformat())
@@ -531,18 +628,22 @@ def render(data, interactive=False):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     interactive = "--interactive" in sys.argv[1:]
-    inp = args[0] if len(args) > 0 else "sample-report.json"
-    out = args[1] if len(args) > 1 else "readiness-report.html"
+    if len(args) != 2:
+        print("usage: render_report.py INPUT.json OUTPUT.html [--interactive]", file=sys.stderr)
+        sys.exit(2)
+    inp = args[0]
+    out = args[1]
     try:
+        if os.path.getsize(inp) > MAX_INPUT_BYTES:
+            print(f"error: input too large (limit {MAX_INPUT_BYTES} bytes)", file=sys.stderr); sys.exit(2)
         with open(inp, encoding="utf-8") as fh:
             data = json.load(fh)
     except FileNotFoundError:
-        print(f"error: input file not found: {inp}", file=sys.stderr); sys.exit(1)
+        print(f"error: input file not found: {inp}", file=sys.stderr); sys.exit(2)
     except json.JSONDecodeError as e:
-        print(f"error: {inp} is not valid JSON ({e})", file=sys.stderr); sys.exit(1)
+        print(f"error: {inp} is not valid JSON ({e})", file=sys.stderr); sys.exit(2)
     html_out = render(data, interactive=interactive)
-    with open(out, "w", encoding="utf-8") as fh:
-        fh.write(html_out)
+    atomic_write_text(out, html_out)
     print(f"wrote {out} ({len(html_out)} bytes) from {inp}")
 
 if __name__ == "__main__":

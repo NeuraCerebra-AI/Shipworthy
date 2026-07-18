@@ -14,6 +14,14 @@ an **inline report plus a mandatory self-contained HTML report** rendered from
 the final ledger. Other files are for when the user wants to **share, archive,
 gate, or automate**.
 
+## Relationship to host execution
+
+Read `host-execution-recipes.md` before asking the host to invoke a repository-owned test.
+This export reference does not run target commands: it only describes transforms of a
+finished ledger and recognition of already-produced test evidence. Keep generated reports,
+JUnit, SARIF, traces, and bundles as local-only artifacts unless the user explicitly approves
+a destination. Optional CI remains a target-owned recipe, not a Shipworthy runner.
+
 ## The scripts (all take the ledger JSON)
 
 | Script | Produces | Use when |
@@ -72,4 +80,5 @@ For new/fixed on a PR, upload SARIF for both the base and head commits (GitHub c
 stable fingerprints (already emitted) keep the comparison accurate across runs.
 
 > The generated SARIF validates against the official SARIF 2.1.0 schema, and all three
-> generators are covered by simulation suites (`scripts/test_*.py`) run in CI.
+> generators are covered by repository-only simulation suites run in CI; test
+> code is not installed with the skill.

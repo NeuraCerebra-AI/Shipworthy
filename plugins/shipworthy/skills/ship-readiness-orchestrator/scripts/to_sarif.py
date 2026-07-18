@@ -21,7 +21,32 @@ Design notes:
   (high-precision; provisional findings never block a build). Override via the ledger's
   optional "policy": {"fail_on": ["blocker"], "require_confirmed": true}.
 """
-import sys, json, hashlib, re
+import sys, json, hashlib, re, os, tempfile, importlib.util
+sys.dont_write_bytecode = True
+MAX_INPUT_BYTES = 16 * 1024 * 1024
+
+def project_input(data):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "render_report.py")
+    spec = importlib.util.spec_from_file_location("shipworthy_render_projection", path)
+    if spec is None or spec.loader is None:
+        raise ImportError("cannot load report projection")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.project_input(data)
+
+def atomic_write_json(path, value):
+    destination = os.path.abspath(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=os.path.dirname(destination), prefix="." + os.path.basename(destination) + ".", delete=False) as handle:
+            temporary = handle.name
+            json.dump(value, handle, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, destination)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
 
 TOOL_URI = "https://github.com/NeuraCerebra-AI/shipworthy"
 LEVEL = {"blocker": "error", "strong": "warning", "provisional": "note", "info": "note"}
@@ -68,6 +93,7 @@ def result_for(f):
     return res
 
 def to_sarif(data):
+    data = project_input(data)
     if not isinstance(data, dict): data = {}
     findings = [f for f in (data.get("findings") or []) if isinstance(f, dict)]
     used = sorted({(f.get("severity") if f.get("severity") in LEVEL else "info") for f in findings})
@@ -77,7 +103,7 @@ def to_sarif(data):
         "shortDescription": {"text": f"Shipworthy {RULE_NAME[sev]}"},
         "defaultConfiguration": {"level": LEVEL[sev]},
     } for sev in used]
-    return {
+    document = {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
         "runs": [{
@@ -91,8 +117,43 @@ def to_sarif(data):
             "results": [result_for(f) for f in findings],
         }],
     }
+    run = document["runs"][0]
+    for source, result in zip(findings, run["results"]):
+        if source.get("record_id"):
+            result["partialFingerprints"] = {
+                "shipworthyRecordHash/v1": hashlib.sha256(
+                    f"{source.get('record_kind', 'finding')}\0{source['record_id']}".encode("utf-8")
+                ).hexdigest()
+            }
+            result["properties"] = {
+                "record_id": source["record_id"],
+                "record_kind": source.get("record_kind", "finding"),
+                "action": source.get("action"), "proof": source.get("proof"),
+                "section": source.get("section"),
+                "canonical_severity": source.get("canonical_severity"),
+            }
+    if any(row.get("record_id") for row in findings):
+        failures, policy, require_confirmed = gate_failures(data, projected=True)
+        run["properties"] = {
+            "counts": {
+                "canonical_findings": sum(1 for row in findings if row.get("record_kind", "finding") == "finding"),
+                "evidence_debt": sum(1 for row in findings if row.get("record_kind") == "evidence_debt"),
+                "total_report_rows": len(findings),
+            },
+            "gate": {
+                "policy": "confirmed_only" if require_confirmed else "configured",
+                "outcome": "fail" if failures else "pass",
+                "blocking_finding_ids": [
+                    row.get("record_id") for row in findings
+                    if row.get("title") in failures and row.get("record_id")
+                ],
+            },
+        }
+    return document
 
-def gate_failures(data):
+def gate_failures(data, projected=False):
+    if not projected:
+        data = project_input(data)
     policy = data.get("policy") if isinstance(data.get("policy"), dict) else DEFAULT_POLICY
     fail_on = policy.get("fail_on", DEFAULT_POLICY["fail_on"])
     require_confirmed = policy.get("require_confirmed", DEFAULT_POLICY["require_confirmed"])
@@ -107,16 +168,19 @@ def gate_failures(data):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     gate = "--gate" in sys.argv[1:]
-    inp = args[0] if len(args) > 0 else "readiness-report.json"
-    out = args[1] if len(args) > 1 else "readiness.sarif"
+    if len(args) != 2:
+        print("usage: to_sarif.py INPUT.json OUTPUT.sarif [--gate]", file=sys.stderr); sys.exit(2)
+    inp, out = args
     try:
+        if os.path.getsize(inp) > MAX_INPUT_BYTES:
+            print(f"error: input too large (limit {MAX_INPUT_BYTES} bytes)", file=sys.stderr); sys.exit(2)
         with open(inp, encoding="utf-8") as fh: data = json.load(fh)
     except FileNotFoundError:
         print(f"error: input not found: {inp}", file=sys.stderr); sys.exit(2)
     except json.JSONDecodeError as e:
         print(f"error: {inp} is not valid JSON ({e})", file=sys.stderr); sys.exit(2)
     sarif = to_sarif(data)
-    with open(out, "w", encoding="utf-8") as fh: json.dump(sarif, fh, indent=2)
+    atomic_write_json(out, sarif)
     n = len(sarif["runs"][0]["results"])
     errs = sum(1 for r in sarif["runs"][0]["results"] if r["level"] == "error")
     print(f"wrote {out}: {n} results ({errs} error-level) from {inp}")

@@ -1,0 +1,59 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-CHECKOUT-500",
+      "availability": "available",
+      "custody_state": "LOCAL_CONTENT_INTEGRITY",
+      "descriptor": {
+        "byte_size": 256,
+        "declared_media_type": "application/json",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/checkout-500.json"
+      },
+      "lineage": {
+        "operation": "contract-fixture",
+        "producer": "shipworthy-contract-tests",
+        "source_ids": []
+      }
+    }
+  ],
+  "completion_status": "complete",
+  "evidence_debt": [],
+  "findings": [
+    {
+      "action": "Fix",
+      "artifact_ids": [
+        "ART-CHECKOUT-500"
+      ],
+      "confidence": "Confirmed",
+      "finding_id": "FND-CHECKOUT-001",
+      "proof": "Confirmed",
+      "revision": 1,
+      "section": "clear_before_ship",
+      "severity": "P0 Blocker",
+      "subject": {
+        "kind": "workflow",
+        "location": "src/checkout/payment.py",
+        "ref": "checkout.payment-server-error",
+        "title": "Payment failure advances to success"
+      },
+      "summary": "The UI advances after a server-side payment failure.",
+      "verifier_status": "approved"
+    }
+  ],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-BLOCKER-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "not_ready",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

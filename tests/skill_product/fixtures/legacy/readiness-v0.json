@@ -1,0 +1,27 @@
+{
+  "coverage": {
+    "segments": [],
+    "total_paths": 1
+  },
+  "findings": [
+    {
+      "action": "Fix",
+      "confidence": "confirmed",
+      "evidence": "A legacy free-text evidence field",
+      "proof": "Confirmed",
+      "section": "clear_before_ship",
+      "severity": "blocker",
+      "title": "Legacy unversioned finding"
+    }
+  ],
+  "generated_at": "2026-07-03",
+  "summary": {
+    "clear_before_ship": 1,
+    "fix_next": 0,
+    "not_proven_not_tested": 0,
+    "passed_keep": 0
+  },
+  "target": "legacy-checkout-app",
+  "verdict": "NOT READY"
+}
+

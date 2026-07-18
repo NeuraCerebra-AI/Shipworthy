@@ -1,53 +1,93 @@
 #!/usr/bin/env bash
-# Shipworthy installer — copies the four ship-* skills into your agent's skills directory.
-# Safe by default: never overwrites without a timestamped backup.
+# Advanced manual fallback for installing the four Shipworthy skills.
 set -euo pipefail
+
+usage() { echo "usage: ./install.sh --target codex|claude|both" >&2; exit 2; }
+[[ $# -eq 2 && "$1" == "--target" ]] || usage
+TARGET="$2"
+[[ "$TARGET" == "codex" || "$TARGET" == "claude" || "$TARGET" == "both" ]] || usage
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$REPO_DIR/plugins/shipworthy/skills"
+SKILLS=(ship-readiness-orchestrator ship-deep-review ship-product-workflows ship-workflow-clarity)
+DESTINATIONS=()
+[[ "$TARGET" == "codex" || "$TARGET" == "both" ]] && DESTINATIONS+=("$HOME/.agents/skills")
+[[ "$TARGET" == "claude" || "$TARGET" == "both" ]] && DESTINATIONS+=("$HOME/.claude/skills")
 
-# Pick a target skills dir: honor $SKILLS_DIR, else Claude Code, else Codex, else prompt.
-if [[ -n "${SKILLS_DIR:-}" ]]; then
-  DEST="$SKILLS_DIR"
-elif [[ -d "$HOME/.claude/skills" ]]; then
-  DEST="$HOME/.claude/skills"
-elif [[ -d "$HOME/.codex/skills" ]]; then
-  DEST="$HOME/.codex/skills"
-else
-  echo "No skills directory found (~/.claude/skills or ~/.codex/skills)."
-  read -r -p "Enter target skills directory to create: " DEST
+for skill in "${SKILLS[@]}"; do
+  [[ -f "$SRC/$skill/SKILL.md" ]] || { echo "error: incomplete source skill: $skill" >&2; exit 3; }
+done
+if find "$SRC" -type d -name __pycache__ -o -type f \( -name '*.pyc' -o -name '*.pyo' \) | grep -q .; then
+  echo "error: source skills contain generated cache files" >&2
+  exit 3
 fi
-mkdir -p "$DEST"
 
-echo "Tip: in Claude Code the one-command route is:  /plugin marketplace add NeuraCerebra-AI/Shipworthy  &&  /plugin install shipworthy@shipworthy"
-echo ""
-echo "Installing Shipworthy skills -> $DEST"
-for skill in ship-readiness-orchestrator ship-deep-review ship-product-workflows ship-workflow-clarity; do
-  if [[ -d "$DEST/$skill" ]]; then
-    bak="$DEST/$skill.bak.$(date +%Y%m%d%H%M%S)"
-    echo "  • $skill exists -> backing up to $(basename "$bak")"
-    mv "$DEST/$skill" "$bak"
+stamp="$(date -u +%Y%m%d%H%M%S).$$"
+stages=() installed=() backup_skills=() backup_dests=() backup_paths=() created_dirs=()
+
+cleanup_stages() { local stage; for stage in "${stages[@]}"; do rm -rf "$stage"; done; }
+cleanup_created_dirs() {
+  local i
+  for ((i=${#created_dirs[@]}-1; i>=0; i--)); do rmdir "${created_dirs[$i]}" 2>/dev/null || true; done
+}
+rollback() {
+  local path i
+  for path in "${installed[@]}"; do rm -rf "$path"; done
+  for ((i=${#backup_paths[@]}-1; i>=0; i--)); do
+    rm -rf "${backup_dests[$i]}/${backup_skills[$i]}"
+    mv "${backup_paths[$i]}" "${backup_dests[$i]}/${backup_skills[$i]}" || true
+  done
+  cleanup_stages
+  cleanup_created_dirs
+}
+
+# Stage every requested host before changing either one.
+for dest in "${DESTINATIONS[@]}"; do
+  for directory in "$(dirname "$dest")" "$dest"; do
+    if [[ ! -d "$directory" ]]; then
+      if mkdir "$directory"; then
+        created_dirs+=("$directory")
+      else
+        cleanup_stages; cleanup_created_dirs; exit 4
+      fi
+    fi
+  done
+  if ! stage="$(mktemp -d "$dest/.shipworthy-stage.XXXXXX")"; then
+    cleanup_stages; cleanup_created_dirs; exit 4
   fi
-  cp -r "$SRC/$skill" "$DEST/$skill"
-  echo "  ✓ $skill"
+  stages+=("$stage")
+  for skill in "${SKILLS[@]}"; do
+    if ! cp -R "$SRC/$skill" "$stage/$skill"; then cleanup_stages; cleanup_created_dirs; exit 4; fi
+    [[ -f "$stage/$skill/SKILL.md" ]] || { cleanup_stages; cleanup_created_dirs; echo "error: staged skill is incomplete: $skill" >&2; exit 4; }
+  done
 done
 
-cat <<'NEXT'
+for index in "${!DESTINATIONS[@]}"; do
+  dest="${DESTINATIONS[$index]}"; stage="${stages[$index]}"
+  for skill in "${SKILLS[@]}"; do
+    if [[ -e "$dest/$skill" ]]; then
+      backup="$dest/$skill.bak.$stamp"
+      if mv "$dest/$skill" "$backup"; then
+        backup_skills+=("$skill"); backup_dests+=("$dest"); backup_paths+=("$backup")
+        echo "backup: $backup"
+      else
+        result=$?; echo "error: backup failed; restoring prior state" >&2; rollback; exit "$result"
+      fi
+    fi
+    if mv "$stage/$skill" "$dest/$skill"; then
+      installed+=("$dest/$skill"); echo "installed: $dest/$skill"
+    else
+      result=$?; echo "error: install failed; restoring prior state" >&2; rollback; exit "$result"
+    fi
+  done
+done
+cleanup_stages
 
-Done. All four skills are independently installable, and the orchestrator will
-conduct the other three when present (it fails loudly, not silently, if one is missing).
-
-Try it in Claude Code or Codex:
-
-  /goal are we shipworthy? Target: ./my-app
-
-That flagship phrase triggers the full Shipworthy orchestrator by default:
-goal persistence when available, minimum verified waves, frontier closure over all
-safe discoverable user paths, evidence debt, verifier gates, and the mandatory
-self-contained HTML report. Codex may ask for authorization and stop; answer
-"yes" for persistent goal mode and parallel subagents (recommended for best results). Claude Code generally
-does not have that Codex /goal barrier. Do not implement fixes unless the user
-asks after the audit.
-
-Or run a single lane, e.g. ship-workflow-clarity on one confusing screen.
-NEXT
+cat <<'EOF'
+Done. Restart Codex, or run /reload-plugins in Claude Code.
+Manual uninstall is intentionally not automated; remove only the explicitly named
+manual skill directories after reviewing any backups.
+Try: are we shipworthy?
+For a full run, Shipworthy may ask for authorization and stop; answer explicitly
+before it uses persistent goal mode or parallel subagents.
+EOF

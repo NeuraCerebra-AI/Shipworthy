@@ -1,0 +1,59 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-INCONSISTENT-001",
+      "availability": "available",
+      "custody_state": "LOCAL_CONTENT_INTEGRITY",
+      "descriptor": {
+        "byte_size": 128,
+        "declared_media_type": "application/json",
+        "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/inconsistent-blocker.json"
+      },
+      "lineage": {
+        "operation": "contract-fixture",
+        "producer": "shipworthy-contract-tests",
+        "source_ids": []
+      }
+    }
+  ],
+  "completion_status": "complete",
+  "evidence_debt": [],
+  "findings": [
+    {
+      "action": "Keep",
+      "artifact_ids": [
+        "ART-INCONSISTENT-001"
+      ],
+      "confidence": "Confirmed",
+      "finding_id": "FND-INCONSISTENT-001",
+      "proof": "Confirmed",
+      "revision": 1,
+      "section": "passed_keep",
+      "severity": "P0 Blocker",
+      "subject": {
+        "kind": "release_gate",
+        "location": null,
+        "ref": "release.blocker-hidden",
+        "title": "Confirmed blocker hidden under Keep"
+      },
+      "summary": "A confirmed P0 must map to the blocking action taxonomy.",
+      "verifier_status": "approved"
+    }
+  ],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-INCONSISTENT-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "ready",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

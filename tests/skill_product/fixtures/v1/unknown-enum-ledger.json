@@ -1,0 +1,39 @@
+{
+  "artifacts": [],
+  "completion_status": "complete",
+  "evidence_debt": [],
+  "findings": [
+    {
+      "action": "Keep",
+      "artifact_ids": [],
+      "confidence": "Hypothesis",
+      "finding_id": "FND-UNKNOWN-001",
+      "proof": "Inferred",
+      "revision": 1,
+      "section": "passed_keep",
+      "severity": "P9 Impossible",
+      "subject": {
+        "kind": "workflow",
+        "location": null,
+        "ref": "unknown.enum",
+        "title": "Unknown severity"
+      },
+      "summary": "This fixture must fail closed.",
+      "verifier_status": "needs-proof"
+    }
+  ],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-UNKNOWN-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "conditionally_ready",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

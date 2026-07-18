@@ -48,6 +48,8 @@ Start with expected-intent discovery, path discovery, path_frontier additions, a
 
 For a full flagship Shipworthy run with any runnable UI/app surface, begin from actual frontend path-walking through the designated browser, in-app browser, Chrome, Playwright, or Computer Use tool. Source/CLI/HTTP/tests/logs/docs evidence can map, explain, and corroborate paths, but it is supporting evidence, not as a substitute for frontend path-walking.
 
+Read `browser-evidence-routing.md` before browser work: native browser or computer-use is the default for adaptive exploration; existing target-owned Playwright is reserved for deterministic replay and regression needs. Include the selection reason and proof boundary in the lane packet. A screenshot proves only the state visible at capture time and does not prove an entire workflow. Neither route may silently upgrade proof to `Confirmed` or verifier status to `approved`.
+
 Assess path effort for each material goal: step count, decision count, context switches, repeated inputs, waits, hidden prerequisites, detours, dead ends, unclear labels, and recovery burden. Flag paths that technically work but are unreasonably long, fragile, buried, or cognitively expensive.
 
 Use runtime/browser evidence when available: screenshots, recordings, DOM/UI tree, accessibility tree, console, network, API/log snippets, route traces, state snapshots, persistence checks, and code anchors that explain user-visible behavior.

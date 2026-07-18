@@ -1,0 +1,49 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-MISSING-001",
+      "availability": "missing",
+      "custody_state": "LOCAL_CONTENT_INTEGRITY",
+      "descriptor": {
+        "byte_size": null,
+        "declared_media_type": "application/json",
+        "digest": null,
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/missing-result.json"
+      },
+      "lineage": {
+        "operation": "contract-fixture",
+        "producer": "shipworthy-contract-tests",
+        "source_ids": []
+      }
+    }
+  ],
+  "completion_status": "incomplete",
+  "evidence_debt": [
+    {
+      "artifact_ids": [
+        "ART-MISSING-001"
+      ],
+      "debt_id": "ED-MISSING-001",
+      "proof_needed": "Regenerate and seal the missing result artifact.",
+      "reason": "The expected local evidence file is absent.",
+      "status": "needs-proof",
+      "subject": "artifact.missing-result"
+    }
+  ],
+  "findings": [],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-MISSING-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "cannot_determine",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

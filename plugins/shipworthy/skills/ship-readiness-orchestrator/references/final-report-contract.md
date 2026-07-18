@@ -26,6 +26,7 @@ Before writing the final report, assemble:
 - goal_mode_status, persistent goal objective if active, or goal-equivalent resumable ledger status if goal mode was unavailable/not authorized;
 - multi-agent authorization status, agent/tool execution status, and any platform limits that affected the run;
 - frontend path-walk status: whether actual frontend path-walking occurred, the frontend tool used, runtime target, path-walk status, and downgrade reason if absent or partial;
+- confirmation that `browser-evidence-routing.md` was read, plus browser evidence mode and selection reason, observed step boundary, artifact references, limitations, and not-proven statements; a screenshot proves only the state visible at capture time and does not prove an entire workflow;
 - report generation status, readiness-report HTML path, readiness-report JSON or ledger path, and evidence locations;
 - final claim ledger;
 - final coverage matrix;

@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 import sys, re, json
+import unittest
+from pathlib import Path
 from html.parser import HTMLParser
+if __name__ != "__main__":
+    raise unittest.SkipTest("legacy aggregate suite runs as a direct script")
+sys.dont_write_bytecode = True
+SCRIPT_DIR = Path(__file__).resolve().parents[2] / "plugins" / "shipworthy" / "skills" / "ship-readiness-orchestrator" / "scripts"
+sys.path.insert(0, str(SCRIPT_DIR))
 from render_report import render, VERDICT, VERDICT_NEUTRAL
 
 VOID = {"meta","br","img","input","hr","link","area","base","col","embed","source","track","wbr"}
@@ -50,7 +57,7 @@ def base_ok(name, data, expect_cards=None, expect_verdict=None):
     return h
 
 # ---- scenarios --------------------------------------------------------------
-full = json.load(open(__import__("os").path.join(__import__("os").path.dirname(__import__("os").path.abspath(__file__)),"sample-report.json")))
+full = json.load(open(__import__("os").path.join(__import__("os").path.dirname(__import__("os").path.abspath(__file__)),"fixtures","sample-report.json")))
 base_ok("01 baseline NOT READY", full, expect_cards=6, expect_verdict="NOT READY")
 
 ready = {"target":"clean-app","verdict":"READY","summary":{"blockers":0,"strong":0,"provisional":0},

@@ -1,0 +1,102 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-ALL-SCREENSHOT-001",
+      "channel": "screenshot",
+      "descriptor": {
+        "byte_size": 11,
+        "declared_media_type": "image/png",
+        "digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/all/screenshot.png"
+      }
+    },
+    {
+      "artifact_id": "ART-ALL-DOM-001",
+      "channel": "dom_accessibility",
+      "descriptor": {
+        "byte_size": 12,
+        "declared_media_type": "application/json",
+        "digest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/all/accessibility.json"
+      }
+    },
+    {
+      "artifact_id": "ART-ALL-CONSOLE-001",
+      "channel": "console",
+      "descriptor": {
+        "byte_size": 13,
+        "declared_media_type": "application/json",
+        "digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/all/console.json"
+      }
+    },
+    {
+      "artifact_id": "ART-ALL-NETWORK-001",
+      "channel": "network",
+      "descriptor": {
+        "byte_size": 14,
+        "declared_media_type": "application/json",
+        "digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/all/network.json"
+      }
+    },
+    {
+      "artifact_id": "ART-ALL-TRACE-001",
+      "channel": "trace",
+      "descriptor": {
+        "byte_size": 15,
+        "declared_media_type": "application/zip",
+        "digest": "5555555555555555555555555555555555555555555555555555555555555555",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/all/trace.zip"
+      }
+    },
+    {
+      "artifact_id": "ART-ALL-RECORDING-001",
+      "channel": "recording",
+      "descriptor": {
+        "byte_size": 16,
+        "declared_media_type": "video/webm",
+        "digest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/all/recording.webm"
+      }
+    }
+  ],
+  "finding_ids": [
+    "FND-ALL-CHANNELS-001"
+  ],
+  "generated_at": "2026-07-15T12:02:00Z",
+  "host": {
+    "driver": "complete-synthetic-driver",
+    "family": "other"
+  },
+  "limitations": [],
+  "mode": "deterministic_replay",
+  "not_proven": [
+    "This synthetic fixture proves contract coverage, not a product workflow."
+  ],
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "schema_name": "shipworthy/browser-evidence-envelope",
+  "schema_version": "1.0",
+  "steps": [
+    {
+      "action": "Collect each supported browser evidence channel",
+      "observed_outcome": "Six sealed local descriptors were declared.",
+      "step_id": "collect-all-channels"
+    }
+  ],
+  "target": {
+    "fingerprint": "7777777777777777777777777777777777777777777777777777777777777777",
+    "path_intent": "contract/all-channels"
+  },
+  "unavailable_channels": []
+}
+

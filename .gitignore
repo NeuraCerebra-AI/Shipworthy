@@ -22,7 +22,10 @@ npm-debug.log*
 # Shipworthy evidence output (ledgers/traces are run artifacts, not source)
 /tmp/ship-*/
 **/audit-ledger.md
+!plugins/shipworthy/skills/ship-product-workflows/templates/audit-ledger.md
 evidence/
+!docs/phase0/evidence/
+!docs/phase0/evidence/lean-host-native-red-green-ledger.md
 outputs/
 
 # Demo capture artifacts (record locally; don't commit large casts by default)

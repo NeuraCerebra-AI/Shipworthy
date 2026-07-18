@@ -1,0 +1,71 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-BROWSER-SCREENSHOT-001",
+      "channel": "screenshot",
+      "descriptor": {
+        "byte_size": 17,
+        "declared_media_type": "image/png",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/checkout.png"
+      }
+    },
+    {
+      "artifact_id": "ART-BROWSER-DOM-001",
+      "channel": "dom_accessibility",
+      "descriptor": {
+        "byte_size": 23,
+        "declared_media_type": "application/json",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "digest_algorithm": "sha256",
+        "relative_path": "evidence/browser/checkout-accessibility.json"
+      }
+    }
+  ],
+  "finding_ids": [
+    "FND-CHECKOUT-001"
+  ],
+  "generated_at": "2026-07-15T12:00:00Z",
+  "host": {
+    "driver": "in-app-browser",
+    "family": "codex"
+  },
+  "limitations": [
+    "No isolated browser context was available."
+  ],
+  "mode": "exploratory",
+  "not_proven": [
+    "The screenshot proves only the visible state at capture time.",
+    "Cross-browser behavior was not tested."
+  ],
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "schema_name": "shipworthy/browser-evidence-envelope",
+  "schema_version": "1.0",
+  "steps": [
+    {
+      "action": "Open the checkout path",
+      "observed_outcome": "The checkout page rendered.",
+      "step_id": "open-checkout"
+    },
+    {
+      "action": "Submit an empty checkout form",
+      "observed_outcome": "Required-field messages became visible.",
+      "step_id": "submit-empty-form"
+    }
+  ],
+  "target": {
+    "fingerprint": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "path_intent": "checkout/empty-submit"
+  },
+  "unavailable_channels": [
+    "console",
+    "network",
+    "trace",
+    "recording"
+  ]
+}
+

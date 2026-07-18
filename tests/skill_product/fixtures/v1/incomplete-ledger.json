@@ -1,0 +1,29 @@
+{
+  "artifacts": [],
+  "completion_status": "incomplete",
+  "evidence_debt": [
+    {
+      "artifact_ids": [],
+      "debt_id": "ED-LOAD-001",
+      "proof_needed": "Run the bounded load check in a disposable environment.",
+      "reason": "No safe runtime was available.",
+      "status": "needs-proof",
+      "subject": "checkout.load-capacity"
+    }
+  ],
+  "findings": [],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-INCOMPLETE-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "cannot_determine",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

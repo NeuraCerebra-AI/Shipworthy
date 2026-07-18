@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import sys
+import unittest
 
-ROOT = Path(__file__).resolve().parents[3]
+if __name__ != "__main__":
+    raise unittest.SkipTest("legacy aggregate suite runs as a direct script")
+
+REPO = Path(__file__).resolve().parents[2]
+ROOT = REPO / "plugins" / "shipworthy"
 ORCH = ROOT / "skills" / "ship-readiness-orchestrator"
 SKILL = ORCH / "SKILL.md"
 PRESSURE = ORCH / "references" / "pressure-tests.md"
@@ -11,13 +16,18 @@ HTML = ORCH / "references" / "visual-html-report.md"
 EXPORTS = ORCH / "references" / "exports-and-ci.md"
 WAVES = ROOT / "skills" / "ship-deep-review" / "references" / "wave-protocol.md"
 LANES = ORCH / "references" / "lane-prompts.md"
-README = ROOT.parents[1] / "README.md"
-ARCH = ROOT.parents[1] / "ARCHITECTURE.md"
-INSTALL = ROOT.parents[1] / "install.sh"
-HERO_SVG = ROOT.parents[1] / "assets" / "hero.svg"
-FLOW_SVG = ROOT.parents[1] / "assets" / "flow.svg"
-SAMPLE_SVG = ROOT.parents[1] / "assets" / "sample-report.svg"
-ARCH_SVG = ROOT.parents[1] / "assets" / "architecture.svg"
+BROWSER_ROUTING = ORCH / "references" / "browser-evidence-routing.md"
+HOST_EXECUTION = ORCH / "references" / "host-execution-recipes.md"
+PRODUCT_WORKFLOWS = ROOT / "skills" / "ship-product-workflows" / "SKILL.md"
+DEEP_REVIEW = ROOT / "skills" / "ship-deep-review" / "SKILL.md"
+WORKFLOW_CLARITY = ROOT / "skills" / "ship-workflow-clarity" / "SKILL.md"
+README = REPO / "README.md"
+ARCH = REPO / "ARCHITECTURE.md"
+INSTALL = REPO / "install.sh"
+HERO_SVG = REPO / "assets" / "hero.svg"
+FLOW_SVG = REPO / "assets" / "flow.svg"
+SAMPLE_SVG = REPO / "assets" / "sample-report.svg"
+ARCH_SVG = REPO / "assets" / "architecture.svg"
 
 PASS = []
 FAIL = []
@@ -36,6 +46,9 @@ html = read(HTML)
 exports = read(EXPORTS)
 waves = read(WAVES)
 lanes = read(LANES)
+browser_routing = read(BROWSER_ROUTING) if BROWSER_ROUTING.exists() else ""
+host_execution = read(HOST_EXECUTION) if HOST_EXECUTION.exists() else ""
+product_workflows = read(PRODUCT_WORKFLOWS)
 readme = read(README)
 arch = read(ARCH)
 install = read(INSTALL)
@@ -104,7 +117,7 @@ ck("A10 lane prompts carry authorization status", "multi-agent authorization sta
 ck("A11 final report exposes skipped agent dispatch", "authorization status" in read(EXPORTS).lower() or "authorization status" in read(ORCH / "references" / "final-report-contract.md").lower())
 ck("A12 architecture includes authorization gate", "multi-agent authorization gate" in arch.lower())
 ck("A13 README says agents require authorization", "uses agents where authorized" in readme.lower())
-ck("A14 HTML checkpoint carries authorization", "multi_agent_authorization" in html and "authorization" in read(ORCH / "scripts" / "sample-report.json").lower())
+ck("A14 HTML checkpoint carries authorization", "multi_agent_authorization" in html and "authorization" in read(REPO / "tests" / "skill_product" / "fixtures" / "sample-report.json").lower())
 ck("A15 plain trigger must ask then stop", "ask the authorization question and stop" in skill.lower())
 ck("A16 no same-turn sequential fallback before asking", "do not continue sequentially in the same response" in skill.lower())
 ck("A17 not received only after unanswered gate", "not received means the user failed to answer after the authorization question was asked" in skill.lower())
@@ -118,6 +131,50 @@ ck("F6 final report gate requires frontend path-walk status", "frontend path-wal
 ck("F7 verifier fails full claim without path-walk", "fail the full-run claim if no browser/computer-use/frontend path-walk occurred" in pressure.lower() or "fail the full-run claim if no browser/computer-use/frontend path-walk occurred" in lanes.lower())
 ck("F8 pressure tests forbid source-only flagship", "source/cli/http-only readiness audit is not a full shipworthy run" in pressure.lower())
 ck("F9 README says full uses frontend when available", "actual frontend" in readme.lower() and "supporting evidence" in readme.lower())
+
+browser_reference = browser_routing.lower()
+final_report_contract = read(ORCH / "references" / "final-report-contract.md").lower()
+ck("B1 browser evidence routing reference exists", BROWSER_ROUTING.is_file())
+ck("B2 canonical reference defaults adaptive exploration to native host tools", all(x in browser_reference for x in ["native browser", "computer-use", "default for adaptive exploration"]))
+ck("B3 canonical reference limits Playwright to deterministic proof uses", all(x in browser_reference for x in ["deterministic replay", "explicit assertions", "isolated contexts", "traces", "cross-browser", "ci regression proof"]))
+ck("B4 canonical reference bounds screenshot proof", "a screenshot proves only the state visible at capture time" in browser_reference and "does not prove an entire workflow" in browser_reference)
+ck("B5 canonical reference forbids proof and verifier inflation", all(x in browser_reference for x in ["must not silently upgrade", "`confirmed`", "`approved`"]))
+ck("B6 canonical reference forbids installation and evidence-only target mutation", all(x in browser_reference for x in ["never installs playwright", "never change the target application merely to obtain browser evidence"]))
+ck("B7 orchestrator explicitly loads routing reference and records decision boundary", all(x in skill.lower() for x in ["read `references/browser-evidence-routing.md`", "selection", "proof boundary"]))
+ck("B8 product workflow loads local browser guidance and distinguishes standalone output", all(x in product_workflows.lower() for x in ["runtime-evidence-and-tools.md", "include in the audit output", "return to the orchestrator when lane-dispatched", "neither native nor playwright evidence may silently upgrade"]))
+ck("B9 lane prompt explicitly loads routing reference and returns decision context", all(x in lanes.lower() for x in ["read `browser-evidence-routing.md`", "selection reason", "proof boundary"]))
+ck("B10 final-report contract records routing reference and evidence context", all(x in final_report_contract for x in ["browser-evidence-routing.md", "selection reason", "observed step boundary", "not-proven statements"]))
+expected_skill_names = {
+    "ship-readiness-orchestrator": SKILL,
+    "ship-product-workflows": PRODUCT_WORKFLOWS,
+    "ship-deep-review": DEEP_REVIEW,
+    "ship-workflow-clarity": WORKFLOW_CLARITY,
+}
+ck("B11 four public skill names remain exact", all(f"name: {name}" in read(path) for name, path in expected_skill_names.items()))
+public_trigger_phrases = {
+    SKILL: ["are we shipworthy?", "check shipworthiness"],
+    PRODUCT_WORKFLOWS: ["product workflow audits", "try every path"],
+    DEEP_REVIEW: ["deep review", "implementation-plan critique"],
+    WORKFLOW_CLARITY: ["workflow clarity", "where users get lost"],
+}
+ck("B12 all four public skill trigger descriptions remain recognizable", all(all(phrase in read(path).split("---", 2)[1].lower() for phrase in phrases) for path, phrases in public_trigger_phrases.items()))
+ck("B13 public routing surfaces preserve four-skill standalone operation", all("four public skills" in text_value.lower() and "without requiring another product surface" in text_value.lower() for text_value in [browser_routing, skill, product_workflows]))
+ck("B14 mandatory HTML contract survives browser routing", "mandatory html report" in skill.lower() and "every shipworthy final answer must include" in final_report_contract)
+
+host_execution_reference = host_execution.lower()
+ck("E1 host execution recipe exists", HOST_EXECUTION.is_file())
+execution_order_markers = [
+    "1. **discover and run target-owned tests.**",
+    "2. **use native browser or computer-use for adaptive discovery.**",
+    "3. **reuse an existing target-owned playwright setup for deterministic replay.**",
+    "4. **propose a minimal target-owned playwright test only with explicit user authorization.**",
+    "5. **record unavailable execution as evidence debt.**",
+]
+execution_order_positions = [host_execution_reference.find(marker) for marker in execution_order_markers]
+ck("E2 host execution recipe preserves the required decision order", all(position >= 0 for position in execution_order_positions) and execution_order_positions == sorted(execution_order_positions))
+ck("E3 orchestrator loads the host execution reference", "read `references/host-execution-recipes.md`" in skill.lower())
+ck("E4 target tests never replace the flagship frontend gate", "supporting evidence and never replace" in host_execution_reference and "required native frontend path-walk" in host_execution_reference)
+ck("E5 exports link the passive host execution boundary", "host-execution-recipes.md" in exports.lower() and "does not run target commands" in exports.lower())
 
 ck("G1 goal mode persistence gate exists", "## Goal Mode Persistence Gate" in skill)
 ck("G2 goal gate has policy caveat", "do not imply that shipworthy instructions override platform goal-mode policy" in skill.lower())

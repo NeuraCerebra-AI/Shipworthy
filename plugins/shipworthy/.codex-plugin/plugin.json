@@ -1,0 +1,8 @@
+{
+  "name": "shipworthy",
+  "version": "0.1.0",
+  "description": "Four self-contained, evidence-graded product-readiness skills.",
+  "skills": "./skills/",
+  "license": "MIT",
+  "repository": "https://github.com/NeuraCerebra-AI/shipworthy"
+}

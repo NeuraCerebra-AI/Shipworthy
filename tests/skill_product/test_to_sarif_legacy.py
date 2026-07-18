@@ -3,13 +3,20 @@
 fingerprint stability, honest location handling, and the policy gate exit codes.
 Dependency-free (no jsonschema) so it runs in minimal CI."""
 import os, sys, json, subprocess
+import unittest
+from pathlib import Path
+
+if __name__ != "__main__":
+    raise unittest.SkipTest("legacy aggregate suite runs as a direct script")
+sys.dont_write_bytecode = True
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+SCRIPT_DIR = Path(__file__).resolve().parents[2] / "plugins" / "shipworthy" / "skills" / "ship-readiness-orchestrator" / "scripts"
+sys.path.insert(0, str(SCRIPT_DIR))
 from to_sarif import to_sarif  # noqa: E402
 
-SAMPLE = os.path.join(HERE, "sample-report.json")
-SCRIPT = os.path.join(HERE, "to_sarif.py")
+SAMPLE = os.path.join(HERE, "fixtures", "sample-report.json")
+SCRIPT = str(SCRIPT_DIR / "to_sarif.py")
 data = json.load(open(SAMPLE, encoding="utf-8"))
 
 PASS, FAIL = [], []

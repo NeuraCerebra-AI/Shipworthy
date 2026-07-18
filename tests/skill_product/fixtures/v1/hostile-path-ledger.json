@@ -1,0 +1,38 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "ART-HOSTILE-001",
+      "availability": "available",
+      "custody_state": "LOCAL_CONTENT_INTEGRITY",
+      "descriptor": {
+        "byte_size": 64,
+        "declared_media_type": "application/json",
+        "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "digest_algorithm": "sha256",
+        "relative_path": "../../etc/passwd"
+      },
+      "lineage": {
+        "operation": "contract-fixture",
+        "producer": "shipworthy-contract-tests",
+        "source_ids": []
+      }
+    }
+  ],
+  "completion_status": "complete",
+  "evidence_debt": [],
+  "findings": [],
+  "gate": {
+    "policy": "confirmed_only"
+  },
+  "generated_at": "2026-07-09T12:00:00Z",
+  "ledger_id": "LED-HOSTILE-001",
+  "producer": {
+    "name": "shipworthy-contract-tests",
+    "version": "1.0.0"
+  },
+  "readiness_disposition": "ready",
+  "revision": 1,
+  "schema_name": "shipworthy/readiness-ledger",
+  "schema_version": "1.0"
+}
+

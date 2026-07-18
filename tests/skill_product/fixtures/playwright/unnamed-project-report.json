@@ -1,0 +1,30 @@
+{
+  "config": {
+    "version": "1.54.0"
+  },
+  "suites": [
+    {
+      "title": "default project suite",
+      "file": "tests/default.spec.ts",
+      "specs": [
+        {
+          "id": "default-project-test",
+          "title": "uses unnamed project",
+          "file": "tests/default.spec.ts",
+          "line": 7,
+          "column": 2,
+          "tests": [
+            {
+              "projectId": "",
+              "projectName": "",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "results": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

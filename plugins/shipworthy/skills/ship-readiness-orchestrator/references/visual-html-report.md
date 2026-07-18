@@ -75,9 +75,18 @@ report style drift.
    no-JS. Other formats — SARIF, evidence bundle, merge gate — are in
    `references/exports-and-ci.md`.
 
-3. Point the user to `readiness-report.html`. A worked example ships as
-   `scripts/sample-report.json` — `python3 scripts/render_report.py scripts/sample-report.json`
-   produces a complete demo report.
+   Discover a compatible runtime in this order: `python3`, then `python`, then
+   Windows `py -3`. Verify `major.minor` first and require Python 3.11 or newer;
+   do not run a candidate merely because the command exists. If none is
+   compatible, use the **instruction-only fallback**: have the host write one
+   self-contained, escaped HTML document directly from the final ledger and this
+   fixed contract, with no external resources. Record deterministic script
+   execution, SARIF, and bundle generation as `NOT_PROVEN`; do not omit the
+   mandatory HTML report or pretend the fallback was script-rendered.
+
+3. Point the user to `readiness-report.html`. Repository contributors can use
+   the repository-only fixtures under `tests/`; installed skills contain no
+   samples or development test data.
 
 ## JSON contract
 
@@ -184,8 +193,4 @@ Keep. Unknown `kind` values fall back safely so the report never breaks on parti
 
 ## Robustness
 
-The generator degrades gracefully rather than crashing on partial or hostile data: every text field is HTML-escaped (XSS-safe), unknown verdict/kind values fall back safely, unknown finding categories land in Not Proven / Not Tested, missing sections render a muted note, non-numeric coverage values are ignored, long unbroken strings wrap, and file I/O is UTF-8 (emoji/CJK/RTL safe). This is enforced by `scripts/test_render_report.py` across empty input, XSS payloads in every field, unicode, unknown verdicts, 40 findings, degenerate coverage, wrong types, nulls, premium layout anatomy, details rows, and default no-network/no-JS behavior. Run it with:
-
-```bash
-python3 scripts/test_render_report.py
-```
+The generator degrades gracefully rather than crashing on partial or hostile data: every text field is HTML-escaped (XSS-safe), unknown verdict/kind values fall back safely, unknown finding categories land in Not Proven / Not Tested, missing sections render a muted note, non-numeric coverage values are ignored, long unbroken strings wrap, and file I/O is UTF-8 (emoji/CJK/RTL safe). Repository-only simulation suites cover empty input, XSS payloads in every field, Unicode, unknown verdicts, 40 findings, degenerate coverage, wrong types, nulls, layout anatomy, details rows, and default no-network/no-JS behavior.

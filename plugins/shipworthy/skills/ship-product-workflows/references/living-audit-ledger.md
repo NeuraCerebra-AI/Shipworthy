@@ -92,23 +92,23 @@ Prefer concise deltas over rewriting the whole ledger. Preserve the latest usefu
 
 A useful ledger includes:
 
-- audit identity, target, route, mode, evidence path, and risk gate;
-- safe-test boundary and avoided actions;
-- provisional scope and current working scope;
-- initial unknowns and discovery questions;
-- discovery/cartography inventory;
-- new paths discovered;
-- scope expansion candidates;
-- coverage map with labels;
-- execution log;
-- findings ledger;
-- clarity lane packets;
-- evidence inventory;
-- agent/wave packets;
-- reroute log;
-- assumptions and open questions;
-- blocked or avoided paths;
-- `Resume Here` with current state and next action.
+- `Audit Identity`: audit name, target, route, mode, evidence path, and risk gate;
+- `Safe-Test Boundary And Avoided Actions`: allowed, avoided, and authorization-gated actions;
+- `Scope`: provisional scope, current working scope, and exclusions;
+- `Initial Unknowns And Discovery Questions`: the questions that guide discovery;
+- `Discovery And Cartography Inventory`: discovered surfaces, states, sources, and status;
+- `New Paths Discovered`: paths found after the initial map;
+- `Scope Expansion Candidates`: candidate additions and their disposition;
+- `Coverage Map`: paths and their canonical coverage labels;
+- `Execution Log`: material actions, results, evidence, and follow-up;
+- `Findings Ledger`: findings, severity, confidence, status, and evidence;
+- `Clarity Lane Packets`: clarity-lane scope, results, assumptions, and warnings;
+- `Evidence Inventory`: artifacts, locations, provenance, confidence, and limitations;
+- `Agent And Wave Packets`: lane or wave coverage, evidence, findings, and next paths;
+- `Reroute Log`: routing changes, triggers, and consequences;
+- `Assumptions And Open Questions`: unresolved assumptions, questions, and evidence needs;
+- `Blocked Or Avoided Paths`: paths not exercised, reasons, and safe next steps;
+- `Resume Here`: current state and the exact next action.
 
 Use `templates/audit-ledger.md` when creating a reusable artifact. For a smaller ledger, keep the same section names but omit empty or irrelevant sections.
 
