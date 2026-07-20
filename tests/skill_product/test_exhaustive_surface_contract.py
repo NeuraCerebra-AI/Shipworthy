@@ -102,6 +102,17 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.product)
 
+    def test_top_level_gate_prevents_false_closure_on_material_substates(self) -> None:
+        for phrase in (
+            "spawned surface gets its own surface row",
+            "disabled control is `blocked`",
+            "unavailable capability gets a feature row",
+            "reload or re-entry gets a separate transition row",
+            "sampled_with_justification",
+            "observed_effect_code",
+        ):
+            self.assertIn(phrase, self.product)
+
     def test_closed_frontier_requires_two_independent_zero_yield_passes(self) -> None:
         for document in (self.orchestrator, self.evidence, self.discovery):
             self.assertIn("two qualifying zero-yield discovery passes", document)

@@ -64,6 +64,11 @@ def load_and_validate_oracle(surface_path: Path, defect_path: Path) -> tuple[dic
     if defects.get("schema_version") != "shipworthy-gauntlet-defects-v1":
         raise ValueError("unsupported defect oracle version")
     items = surface.get("items")
+    supporting_routes = surface.get("supporting_routes")
+    if not isinstance(supporting_routes, list) or not supporting_routes:
+        raise ValueError("surface oracle must declare supporting routes")
+    if len(set(supporting_routes)) != len(supporting_routes) or any(normalize_route(route) != route for route in supporting_routes):
+        raise ValueError("supporting routes must be unique normalized paths")
     if not isinstance(items, list) or len(items) != 18:
         raise ValueError("surface oracle must contain exactly eighteen cases")
     keys: set[str] = set()
@@ -104,6 +109,22 @@ def _control_parts(key: str) -> tuple[str, ...] | None:
     return parts if len(parts) == 9 and parts[:2] == ("control", "surface") else None
 
 
+def _transition_parts(key: str) -> tuple[str, ...] | None:
+    parts = tuple(key.split(":"))
+    return parts if len(parts) == 12 and parts[0] == "transition" and parts[2:4] == ("control", "surface") else None
+
+
+def _accepted_states(item: dict[str, Any], expected: str) -> set[str]:
+    return {normalize_token(value) for value in item.get("accepted_surface_states", [expected])}
+
+
+def _behavior_tokens(*values: str) -> set[str]:
+    tokens: set[str] = set()
+    for value in values:
+        tokens.update(normalize_token(value).split("-"))
+    return tokens
+
+
 def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
     if row.get("semantic_key") == item["semantic_key"]:
         return True
@@ -112,13 +133,43 @@ def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
     aliases = {normalize_token(item["identity"]), *(normalize_token(value) for value in item.get("accepted_aliases", []))}
     if item["kind"] == "feature":
         return normalize_token(str(row.get("semantic_key", "")).removeprefix("feature:")) in aliases
-    if item["kind"] != "control":
-        return False
-    actual, expected = _control_parts(str(row.get("semantic_key", ""))), _control_parts(item["semantic_key"])
-    if actual is None or expected is None:
-        return False
-    identity = row.get("control_identity", {}).get("name", actual[6])
-    return actual[2:6] == expected[2:6] and actual[7:] == expected[7:] and normalize_token(identity) in aliases
+    if item["kind"] == "control":
+        actual, expected = _control_parts(str(row.get("semantic_key", ""))), _control_parts(item["semantic_key"])
+        if actual is None or expected is None:
+            return False
+        identity = normalize_token(row.get("control_identity", {}).get("name", actual[6]))
+        same_surface = (
+            actual[2] == expected[2]
+            and actual[4:6] == expected[4:6]
+            and actual[3] in _accepted_states(item, expected[3])
+        )
+        exact_behavior = actual[7:] == expected[7:] and identity in aliases
+        actual_behavior = _behavior_tokens(identity, actual[7], actual[8])
+        expected_behavior = _behavior_tokens(expected[7], expected[8])
+        equivalent_behavior = expected_behavior.issubset(actual_behavior)
+        return same_surface and (exact_behavior or equivalent_behavior)
+    if item["kind"] == "transition":
+        actual, expected = _transition_parts(str(row.get("semantic_key", ""))), _transition_parts(item["semantic_key"])
+        if actual is None or expected is None:
+            return False
+        transition_aliases = {
+            *aliases,
+            normalize_token(item.get("control_identity", "")),
+            normalize_token(expected[8]),
+        }
+        return (
+            actual[4] == expected[4]
+            and actual[6:8] == expected[6:8]
+            and actual[5] in _accepted_states(item, expected[5])
+            and actual[9] == expected[9]
+            and normalize_token(actual[8]) in transition_aliases
+        )
+    return False
+
+
+def _row_route(row: dict[str, Any]) -> str | None:
+    match = re.search(r"(?:^|:)surface:([^:]+):", str(row.get("semantic_key", "")))
+    return match.group(1) if match else None
 
 
 def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dict[str, Any], mode: str) -> dict[str, Any]:
@@ -185,11 +236,13 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         if not any(matches(finding, defect) for defect in expected_defects)
     ]
 
+    known_routes = set(oracle.get("supporting_routes", []))
     unexpected = [
         row for index, row in enumerate(rows)
         if index not in matched_rows
         and row.get("kind") != "intent"
         and row.get("material", True)
+        and _row_route(row) not in known_routes
     ]
     if reasons:
         status = "FAIL"

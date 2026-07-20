@@ -80,6 +80,8 @@ transition keys from that parent as documented. Shorthand keys such as `surface:
 routes, and prose aliases are invalid. Validate the final ledger against the
 supplied readiness schema; if any key fails its type-specific grammar, the run must not claim schema validation or frontier closure.
 
+Before closure, apply these row-level checks. A material spawned surface gets its own surface row; do not leave an opened menu, dialog, drawer, palette, popover, or visually actionable subregion attached only to its trigger. A disabled control is `blocked` with zero invocation attempts, not `covered`; an unavailable capability gets a feature row with its reason. A reload or re-entry gets a separate transition row whenever it proves or disproves persistence. `sampled_with_justification` cannot replace direct coverage of the only role/state/viewport instance that establishes a material variant. Every `Fix` finding must point to its exact frontier rows and include a compact `observed_effect_code` plus evidence references.
+
 ## Audit Workflow
 
 1. Capture the ask, artifact, environment, credentials, fixture data, device targets, safe-test permission, and mutation boundaries.

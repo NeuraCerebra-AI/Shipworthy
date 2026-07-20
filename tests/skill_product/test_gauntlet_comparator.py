@@ -154,6 +154,41 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_equivalent_behavioral_keys_match_without_private_state_vocabulary(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "control:surface:/projects:editing:member:desktop:save:button:persist":
+                "control:surface:/projects:normal:member:desktop:save:button:persist",
+            "transition:draft:control:surface:/projects:draft:member:desktop:publish:button:publish:published":
+                "transition:draft:control:surface:/projects:normal:member:desktop:publish:button:publish:published-without-visible-state",
+            "control:surface:/projects:editing:member:desktop:archive:button:disabled":
+                "control:surface:/projects:normal:member:desktop:archive:button:disabled",
+        }
+        for row in result["rows"]:
+            if row["semantic_key"] in replacements:
+                row["semantic_key"] = replacements[row["semantic_key"]]
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
+    def test_known_fixture_route_inventory_is_classified_but_unknown_route_is_reviewed(self) -> None:
+        result = self.complete_result()
+        result["rows"].append(
+            {
+                "semantic_key": "control:surface:/projects:normal:member:desktop:help:link:open-help",
+                "kind": "control",
+                "status": "covered",
+                "material": True,
+                "evidence_refs": ["evidence/help.json"],
+            }
+        )
+        result["summary"]["control"] += 1
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+        result["rows"][-1]["semantic_key"] = "control:surface:/ghost:normal:member:desktop:help:link:open-help"
+        packet = self.compare(result)
+        self.assertEqual("REVIEW_REQUIRED", packet["status"])
+        self.assertEqual(1, len(packet["unexpected_rows"]))
+
     def test_separate_incomplete_runs_are_not_aggregated(self) -> None:
         first = self.complete_result()
         second = self.complete_result()

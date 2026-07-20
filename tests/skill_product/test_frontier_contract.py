@@ -186,6 +186,17 @@ class FrontierContractTests(unittest.TestCase):
         self.assertIsNone(re.fullmatch(pattern, "control:projects/save"))
         self.assertIsNotNone(re.fullmatch(pattern, "surface:/dashboard:normal:member:desktop"))
 
+        finding = ledger["$defs"]["Finding"]
+        fix_contracts = [
+            item["then"].get("required", [])
+            for item in finding["allOf"]
+            if item.get("if", {}).get("properties", {}).get("action", {}).get("const") == "Fix"
+        ]
+        self.assertIn(
+            ["affected_semantic_keys", "observed_effect_code", "evidence_refs"],
+            fix_contracts,
+        )
+
     def test_schema_subset_resolves_only_bounded_same_directory_refs(self) -> None:
         from tests.skill_product.support.schema_subset import SchemaReferenceError, validate
 
