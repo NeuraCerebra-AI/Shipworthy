@@ -6,7 +6,7 @@
       "id": "DEFECT-MISLEADING-SUCCESS",
       "affected_semantic_keys": ["transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"],
       "observed_effect_code": "success-without-persistence",
-      "accepted_observation_aliases": ["success-toast-but-save-failed", "save_false_success_not_persisted", "stale_session_false_success"],
+      "accepted_observation_aliases": ["success-toast-but-save-failed", "save_false_success_not_persisted", "stale_session_false_success", "edit-success-without-persistence"],
       "materiality": "release-blocking",
       "minimum_proof": "before_after",
       "required_modes": ["runtime-only", "full-evidence"]
@@ -24,7 +24,7 @@
       "id": "DEFECT-FALSE-AFFORDANCE",
       "affected_semantic_keys": ["surface:/dashboard:upgrade-card:member:desktop"],
       "observed_effect_code": "false-affordance-noninteractive",
-      "accepted_observation_aliases": ["looks-clickable-but-is-not", "upgrade_false_affordance", "actionable-looking-noninteractive"],
+      "accepted_observation_aliases": ["looks-clickable-but-is-not", "upgrade_false_affordance", "actionable-looking-noninteractive", "upgrade-apparent-action-no-navigation"],
       "materiality": "material",
       "minimum_proof": "runtime_visual",
       "required_modes": ["runtime-only", "full-evidence"]
@@ -33,7 +33,7 @@
       "id": "DEFECT-DISABLED-CONTROL",
       "affected_semantic_keys": ["control:surface:/projects:editing:member:desktop:archive:button:disabled"],
       "observed_effect_code": "unexplained-disabled-control",
-      "accepted_observation_aliases": ["disabled-without-explanation", "published_state_archive_unclear"],
+      "accepted_observation_aliases": ["disabled-without-explanation", "published_state_archive_unclear", "archive-control-unexplained-disabled"],
       "materiality": "material",
       "minimum_proof": "runtime_visual",
       "required_modes": ["runtime-only", "full-evidence"]

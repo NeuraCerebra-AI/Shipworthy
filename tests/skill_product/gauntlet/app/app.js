@@ -1,6 +1,11 @@
 const $ = (selector) => document.querySelector(selector);
 const show = (element, visible = true) => { if (element) element.hidden = !visible; };
 
+function setValidation(input, status, message, invalid) {
+  status.textContent = message;
+  input.setAttribute("aria-invalid", String(invalid));
+}
+
 async function api(path, body = {}) {
   const response = await fetch(path, {
     method: "POST",
@@ -100,7 +105,7 @@ $("#cancel-create")?.addEventListener("click", closeProjectForm);
 $("#project-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const result = await api("/api/projects", {name: $("#new-name").value});
-  $("#form-error").textContent = result.status === 201 ? "Created" : "Name is required";
+  setValidation($("#new-name"), $("#form-error"), result.status === 201 ? "Created" : "Name is required", result.status !== 201);
   if (result.status === 201) await loadState();
 });
 $("#save-real")?.addEventListener("click", async () => {
@@ -128,7 +133,7 @@ $("#stale")?.addEventListener("click", async () => {
 $("#invite")?.addEventListener("click", () => $("#invite-dialog").showModal());
 $("#send-invite")?.addEventListener("click", async () => {
   const result = await api("/api/invite", {email: $("#invite-email").value});
-  $("#invite-status").textContent = result.status === 200 ? "Invitation queued" : "Valid email is required";
+  setValidation($("#invite-email"), $("#invite-status"), result.status === 200 ? "Invitation queued" : "Valid email is required", result.status !== 200);
   if (result.status === 200) await loadState();
 });
 $("#close-invite")?.addEventListener("click", () => $("#invite-dialog").close());
@@ -144,15 +149,15 @@ $("#export")?.addEventListener("click", () => {
 });
 $("#start-import")?.addEventListener("click", async () => {
   const file = $("#import-file").files[0];
-  if (!file) { $("#import-status").textContent = "Choose a JSON export"; return; }
+  if (!file) { setValidation($("#import-file"), $("#import-status"), "Choose a JSON export", true); return; }
   try {
     const value = JSON.parse(await file.text());
-    if (typeof value.project !== "string") { $("#import-status").textContent = "Invalid JSON export"; return; }
+    if (typeof value.project !== "string") { setValidation($("#import-file"), $("#import-status"), "Invalid JSON export", true); return; }
     const result = await api("/api/projects", {name: value.project});
-    $("#import-status").textContent = result.status === 201 ? "Import completed" : "Import failed";
+    setValidation($("#import-file"), $("#import-status"), result.status === 201 ? "Import completed" : "Import failed", result.status !== 201);
     if (result.status === 201) await loadState();
   } catch (_) {
-    $("#import-status").textContent = "Invalid JSON export";
+    setValidation($("#import-file"), $("#import-status"), "Invalid JSON export", true);
   }
 });
 route();

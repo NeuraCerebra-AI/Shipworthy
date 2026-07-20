@@ -116,6 +116,7 @@
     {
       "id": "CASE-DISABLED-CONTROL", "case_id": "unexplained-disabled-control", "kind": "control",
       "semantic_key": "control:surface:/projects:editing:member:desktop:archive:button:disabled", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["control:surface:/projects:normal:admin:desktop:archive:button:disabled"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Archive", "control_type": "button", "disambiguator": "disabled", "materiality": "material", "availability_condition": "member editing project", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["blocked"], "full-evidence": ["blocked"]}, "minimum_evidence_class": "runtime_visual", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]

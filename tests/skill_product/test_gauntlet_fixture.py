@@ -171,6 +171,19 @@ class GauntletFixtureTests(unittest.TestCase):
             logical = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")]
             self.assertLessEqual(len(logical), 300, path)
 
+    def test_supporting_forms_have_named_dialog_and_associated_validation(self) -> None:
+        html = (APP / "index.html").read_text(encoding="utf-8")
+        script = (APP / "app.js").read_text(encoding="utf-8")
+        self.assertIn('<dialog id="invite-dialog" aria-labelledby="invite-title">', html)
+        self.assertIn('id="invite-title"', html)
+        for input_id, status_id in (
+            ("new-name", "form-error"),
+            ("invite-email", "invite-status"),
+            ("import-file", "import-status"),
+        ):
+            self.assertRegex(html, rf'id="{input_id}"[^>]*aria-describedby="{status_id}"')
+        self.assertIn('setAttribute("aria-invalid"', script)
+
 
 if __name__ == "__main__":
     unittest.main()

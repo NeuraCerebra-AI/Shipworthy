@@ -128,8 +128,17 @@ def _behavior_tokens(*values: str) -> set[str]:
     return tokens
 
 
+def _canonical_viewport_key(value: str) -> str:
+    return re.sub(r":(desktop|mobile|tablet)-[1-9][0-9]*(?=:)", r":\1", value)
+
+
 def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
-    if row.get("semantic_key") in {item["semantic_key"], *item.get("accepted_semantic_keys", [])}:
+    actual_key = _canonical_viewport_key(str(row.get("semantic_key", "")))
+    accepted_keys = {
+        _canonical_viewport_key(key)
+        for key in {item["semantic_key"], *item.get("accepted_semantic_keys", [])}
+    }
+    if actual_key in accepted_keys:
         return True
     if row.get("kind") != item["kind"]:
         return False
@@ -137,7 +146,7 @@ def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
     if item["kind"] == "feature":
         return normalize_token(str(row.get("semantic_key", "")).removeprefix("feature:")) in aliases
     if item["kind"] == "control":
-        actual, expected = _control_parts(str(row.get("semantic_key", ""))), _control_parts(item["semantic_key"])
+        actual, expected = _control_parts(actual_key), _control_parts(item["semantic_key"])
         if actual is None or expected is None:
             return False
         identity = normalize_token(row.get("control_identity", {}).get("name", actual[6]))
@@ -152,7 +161,7 @@ def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
         equivalent_behavior = expected_behavior.issubset(actual_behavior)
         return same_surface and (exact_behavior or equivalent_behavior)
     if item["kind"] == "transition":
-        actual, expected = _transition_parts(str(row.get("semantic_key", ""))), _transition_parts(item["semantic_key"])
+        actual, expected = _transition_parts(actual_key), _transition_parts(item["semantic_key"])
         if actual is None or expected is None:
             return False
         transition_aliases = {

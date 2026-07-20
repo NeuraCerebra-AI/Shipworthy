@@ -116,12 +116,23 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
     def test_closure_reconciles_raw_interactions_findings_and_frontier_rows(self) -> None:
         for phrase in (
             "reconcile every raw runtime observation to frontier rows",
+            "observation-to-frontier reconciliation table",
             "one control row per distinct observed input mechanism",
             "one transition row per observed state boundary",
             "includes the affected transition row",
             "disabled without an observed explanation or recovery route is a finding",
+            "Canonical browser viewport key values are `desktop`, `mobile`, or `tablet`",
+            "Record exact pixel dimensions in observations",
         ):
             self.assertIn(phrase, self.product)
+
+        for phrase in (
+            "raw observation has no corresponding distinct input control",
+            "spawned surface",
+            "state-boundary transition",
+            "finding lineage",
+        ):
+            self.assertIn(phrase, self.prompts)
 
         for phrase in (
             "re-census newly revealed controls",

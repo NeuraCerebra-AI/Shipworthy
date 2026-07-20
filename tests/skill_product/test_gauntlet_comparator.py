@@ -285,6 +285,30 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_exact_browser_width_suffixes_match_canonical_viewport_classes(self) -> None:
+        result = self.complete_result()
+        for row in result["rows"]:
+            row["semantic_key"] = row["semantic_key"].replace(":desktop:", ":desktop-1200:").replace(":mobile:", ":mobile-390:")
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [
+                key.replace(":desktop:", ":desktop-1200:").replace(":mobile:", ":mobile-390:")
+                for key in finding["affected_semantic_keys"]
+            ]
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
+    def test_equivalent_observed_effect_codes_remain_lineage_bound(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "success-without-persistence": "edit-success-without-persistence",
+            "false-affordance-noninteractive": "upgrade-apparent-action-no-navigation",
+            "unexplained-disabled-control": "archive-control-unexplained-disabled",
+        }
+        for finding in result["findings"]:
+            finding["observed_effect_code"] = replacements.get(finding["observed_effect_code"], finding["observed_effect_code"])
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_observed_false_affordance_may_be_missing_or_blocked(self) -> None:
         for status in ("missing", "blocked"):
             result = self.complete_result()
