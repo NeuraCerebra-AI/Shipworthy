@@ -136,6 +136,24 @@ class GauntletComparatorTests(unittest.TestCase):
         self.assertEqual("REVIEW_REQUIRED", packet["status"])
         self.assertEqual(1, len(packet["unexpected_findings"]))
 
+    def test_non_defect_report_rows_do_not_become_unexpected_defects(self) -> None:
+        result = self.complete_result()
+        result["findings"].extend(
+            [
+                {"action": action, "affected_semantic_keys": ["surface:/support"], "observed_effect_code": "support", "evidence_refs": ["evidence/support.json"]}
+                for action in ("Keep", "Skip", "Prove")
+            ]
+        )
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_accepted_identity_alias_matches_without_private_vocabulary(self) -> None:
+        result = self.complete_result()
+        expected = "control:surface:/dashboard:normal:member:desktop:command-palette:keyboard:open"
+        row = next(item for item in result["rows"] if item["semantic_key"] == expected)
+        row["semantic_key"] = "control:surface:/dashboard:normal:member:desktop:quick-actions:keyboard:open"
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_separate_incomplete_runs_are_not_aggregated(self) -> None:
         first = self.complete_result()
         second = self.complete_result()

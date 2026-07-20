@@ -76,6 +76,23 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.discovery)
 
+    def test_variant_closure_covers_spawned_surfaces_and_canonical_states(self) -> None:
+        for phrase in (
+            "Canonical surface states",
+            "`normal` for the default interactive state",
+            "open every safe control that can spawn a menu, dialog, drawer, palette, popover, or nested route",
+            "Test each material surface at every relevant supplied role and viewport",
+            "record a reload/re-entry proof as its own transition row",
+            "visible unavailable capability or disabled feature flag",
+            "Synthetic role selectors",
+        ):
+            self.assertIn(phrase, self.discovery)
+
+    def test_materiality_distinguishes_verdict_rows_from_lineage_support(self) -> None:
+        self.assertIn("Set `material: false` only for a structural lineage/support row", self.discovery)
+        self.assertIn("could not independently change the readiness verdict", self.discovery)
+        self.assertIn("Do not use ordinal names such as `save-primary`", self.discovery)
+
     def test_closed_frontier_requires_two_independent_zero_yield_passes(self) -> None:
         for document in (self.orchestrator, self.evidence, self.discovery):
             self.assertIn("two qualifying zero-yield discovery passes", document)

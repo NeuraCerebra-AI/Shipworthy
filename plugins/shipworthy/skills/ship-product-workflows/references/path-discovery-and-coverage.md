@@ -57,6 +57,20 @@ Do not collapse material variants into values such as `member/admin`,
 then parent each control and transition to the exact surface variant where it exists. Reuse a feature parent where useful;
 do not invent a second frontier merely to summarize variants.
 
+Canonical surface states are behavioral, not prose synonyms: use `normal` for the default interactive state, then `empty`, `editing`, `draft`, `invalid`, or `stale` when that state materially changes the available behavior. For a material spawned overlay or subregion, use its normalized purpose such as `avatar-menu` or `upgrade-card`. Use the actual browser URL path, not an invented logical object route. The role axis carries `member` or `admin`; do not repeat the role as the state.
+
+Use the exact accessible name in `control_identity.name` and therefore in the
+key. The disambiguator describes behavior (`persist`, `visual-only`,
+`open-dialog`, `download`, `disabled`), not DOM position. Do not use ordinal names such as `save-primary` or `first-save` when the observed behavior is
+known. Use compact outcome states such as `created`, `published`, `restored`,
+`not-persisted`, or `lost`, rather than copying a full toast sentence.
+
+Set `material: false` only for a structural lineage/support row whose own
+behavior could not independently change the readiness verdict. Navigation,
+feature, and surface parents that exist only to connect a material descendant
+may be nonmaterial; any risky, broken, missing, blocked, role/state-specific, or
+user-consequential behavior remains material.
+
 Use only the `shipworthy-methods-v1` canonical method families:
 
 - `runtime_human_interaction`: adaptive interaction through the visible product;
@@ -69,6 +83,14 @@ A renamed method_detail does not create an independent method family. Reconcile 
 Closed multi-source exhaustion requires two qualifying zero-yield discovery passes from distinct canonical method families. Each pass records its family, role, fixture, viewport, starting and ending frontier digests, and new semantic keys. A pass qualifies only when it began from the current frontier, produced no new semantic keys, and did not merely relabel the same method.
 
 Do not call the lane exhausted while material paths remain `unattempted`, `unknown`, or `maybe`, or while the last discovery/testing pass found new material routes, controls, roles, states, device variants, or user intents.
+
+Before a zero-yield claim, open every safe control that can spawn a menu, dialog, drawer, palette, popover, or nested route and census the spawned surface. Test each material surface at every relevant supplied role and viewport; a mobile check of one representative screen does not prove a mobile-only control elsewhere. Trigger documented or discoverable keyboard commands, inventory visible unavailable capability or disabled feature flag messaging, and record a reload/re-entry proof as its own transition row whenever persistence is claimed or disproved.
+
+Synthetic role selectors supplied by a bounded test fixture change fixture
+state; they are not authentication or authorization boundaries unless the
+target explicitly claims they are. Test their role-dependent surfaces without
+inventing a security escalation finding. Real production role changes still
+require the normal authorization and mutation safeguards.
 
 When the supplied target is a resettable synthetic fixture and its controller
 provides a working reset contract, use the supplied reset mechanism and treat

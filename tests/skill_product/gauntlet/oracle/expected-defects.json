@@ -4,7 +4,7 @@
   "defects": [
     {
       "id": "DEFECT-MISLEADING-SUCCESS",
-      "affected_semantic_keys": ["transition:editing:control:surface:/projects/alpha:editing:member:desktop:save:button:persist:not-persisted"],
+      "affected_semantic_keys": ["transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"],
       "observed_effect_code": "success-without-persistence",
       "accepted_observation_aliases": ["success-toast-but-save-failed"],
       "materiality": "release-blocking",
@@ -13,7 +13,7 @@
     },
     {
       "id": "DEFECT-RELOAD-LOSS",
-      "affected_semantic_keys": ["transition:apparently-saved:control:surface:/projects/alpha:editing:member:desktop:reload:browser:verify:lost"],
+      "affected_semantic_keys": ["transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost"],
       "observed_effect_code": "reload-data-loss",
       "accepted_observation_aliases": ["changes-disappear-after-reload"],
       "materiality": "release-blocking",
@@ -31,7 +31,7 @@
     },
     {
       "id": "DEFECT-DISABLED-CONTROL",
-      "affected_semantic_keys": ["control:surface:/projects/alpha:editing:member:desktop:archive:button:disabled"],
+      "affected_semantic_keys": ["control:surface:/projects:editing:member:desktop:archive:button:disabled"],
       "observed_effect_code": "unexplained-disabled-control",
       "accepted_observation_aliases": ["disabled-without-explanation"],
       "materiality": "material",

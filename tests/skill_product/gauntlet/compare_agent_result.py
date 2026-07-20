@@ -99,6 +99,28 @@ def _counts(rows: list[dict[str, Any]]) -> dict[str, int]:
     return {kind: sum(row.get("kind") == kind for row in rows) for kind in KINDS}
 
 
+def _control_parts(key: str) -> tuple[str, ...] | None:
+    parts = tuple(key.split(":"))
+    return parts if len(parts) == 9 and parts[:2] == ("control", "surface") else None
+
+
+def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
+    if row.get("semantic_key") == item["semantic_key"]:
+        return True
+    if row.get("kind") != item["kind"]:
+        return False
+    aliases = {normalize_token(item["identity"]), *(normalize_token(value) for value in item.get("accepted_aliases", []))}
+    if item["kind"] == "feature":
+        return normalize_token(str(row.get("semantic_key", "")).removeprefix("feature:")) in aliases
+    if item["kind"] != "control":
+        return False
+    actual, expected = _control_parts(str(row.get("semantic_key", ""))), _control_parts(item["semantic_key"])
+    if actual is None or expected is None:
+        return False
+    identity = row.get("control_identity", {}).get("name", actual[6])
+    return actual[2:6] == expected[2:6] and actual[7:] == expected[7:] and normalize_token(identity) in aliases
+
+
 def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dict[str, Any], mode: str) -> dict[str, Any]:
     reasons: list[str] = []
     rows = agent.get("rows") if isinstance(agent.get("rows"), list) else []
@@ -115,12 +137,14 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         if mode in item["required_modes"] and item.get("decoy_policy") != "negative_control"
     }
     missing: list[str] = []
+    matched_rows: set[int] = set()
     for key, item in required.items():
-        grouped = by_key.get(key, [])
+        grouped = [(index, row) for index, row in enumerate(rows) if _matches_item(row, item)]
         if not grouped:
             missing.append(key)
             continue
-        row = grouped[0]
+        index, row = grouped[0]
+        matched_rows.add(index)
         allowed = item["allowed_dispositions_by_mode"][mode]
         if row.get("status") not in allowed:
             reasons.append(f"invalid terminal disposition for {key}")
@@ -138,6 +162,7 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         reasons.append("JSON/HTML closure contradiction")
 
     observed_findings = agent.get("findings") if isinstance(agent.get("findings"), list) else []
+    defect_findings = [finding for finding in observed_findings if finding.get("action", "Fix") == "Fix"]
     expected_defects = [defect for defect in defects.get("defects", []) if mode in defect["required_modes"]]
 
     def matches(finding: dict[str, Any], defect: dict[str, Any]) -> bool:
@@ -151,18 +176,18 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
 
     missed_defects = [
         defect["id"] for defect in expected_defects
-        if not any(matches(finding, defect) for finding in observed_findings)
+        if not any(matches(finding, defect) for finding in defect_findings)
     ]
     if missed_defects:
         reasons.append(f"expected defect misses: {len(missed_defects)}")
     unexpected_findings = [
-        finding for finding in observed_findings
+        finding for finding in defect_findings
         if not any(matches(finding, defect) for defect in expected_defects)
     ]
 
     unexpected = [
-        row for row in rows
-        if row.get("semantic_key") not in required
+        row for index, row in enumerate(rows)
+        if index not in matched_rows
         and row.get("kind") != "intent"
         and row.get("material", True)
     ]

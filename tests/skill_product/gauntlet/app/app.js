@@ -24,6 +24,8 @@ function applyRole(role) {
   show($("#admin-controls"), role === "admin");
   show($("#admin-permission"), role !== "admin");
   $("#invite").disabled = role !== "admin";
+  $("#role-member").setAttribute("aria-pressed", String(role === "member"));
+  $("#role-admin").setAttribute("aria-pressed", String(role === "admin"));
 }
 
 function route() {
@@ -107,6 +109,9 @@ $("#export")?.addEventListener("click", () => {
 });
 $("#start-import")?.addEventListener("click", () => {
   $("#import-status").textContent = $("#import-file").files.length ? "Import completed" : "Choose a JSON export";
+});
+$("#save-profile")?.addEventListener("click", () => {
+  $("#profile-status").textContent = "Profile saved";
 });
 route();
 applyRole(localStorage.getItem("gauntlet-role") || "member");

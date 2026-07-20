@@ -63,6 +63,13 @@ class GauntletOracleTests(unittest.TestCase):
             self.assertTrue(item["required_modes"])
             self.assertTrue(item["allowed_dispositions_by_mode"])
 
+    def test_oracle_routes_and_controls_match_the_observable_fixture(self) -> None:
+        surface, _ = load_and_validate_oracle(ORACLE, DEFECTS)
+        keys = {item["semantic_key"] for item in surface["items"]}
+        self.assertFalse(any("/projects/alpha" in key or "/projects/new" in key for key in keys))
+        recovery = next(item for item in surface["items"] if item["id"] == "CASE-INVALID-RECOVERY")
+        self.assertEqual("Create", recovery["control_identity"])
+
     def test_schema_documents_are_local_and_versioned(self) -> None:
         for name in ("surface-oracle.schema.json", "expected-defects.schema.json"):
             data = json.loads((ORACLE.parent / name).read_text(encoding="utf-8"))

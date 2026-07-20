@@ -10,8 +10,9 @@
   <header>
     <a class="brand" href="/dashboard">Northstar</a>
     <nav><a href="/projects">Projects</a><a href="/team">Team</a><a href="/admin/data">Data</a></nav>
-    <button data-supporting-control="role-member" data-expected-effect="bind-member-role" id="role-member">Member</button>
-    <button data-supporting-control="role-admin" data-expected-effect="bind-admin-role" id="role-admin">Admin</button>
+    <span role="group" aria-label="Synthetic audit role"><button data-supporting-control="role-member" data-expected-effect="bind-member-role" id="role-member">Member</button>
+    <button data-supporting-control="role-admin" data-expected-effect="bind-admin-role" id="role-admin">Admin</button></span>
+    <span class="fixture-note">Synthetic fixture roles; not sign-in controls.</span>
     <button id="avatar" data-case-id="avatar-settings" aria-haspopup="menu">WC</button>
     <div id="avatar-menu" hidden><a href="/settings/profile">Profile settings</a></div>
   </header>
@@ -29,7 +30,7 @@
       <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Right-click for actions</span></article>
       <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
       <p id="duplicate-status" aria-live="polite"></p>
-      <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create first project</button></div>
+      <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
       <form id="project-form" hidden><label>Name <input id="new-name"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><p id="form-error"></p></form>
       <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
     </section>
@@ -50,13 +51,14 @@
 
     <section id="team">
       <h2>Team</h2>
-      <button data-case-id="mobile-invite" id="invite">Invite member</button>
+      <p id="invite-permission">Inviting requires the Admin fixture role.</p>
+      <button data-case-id="mobile-invite" id="invite" aria-describedby="invite-permission">Invite member</button>
       <dialog id="invite-dialog"><p>Invite a teammate</p><label>Email <input id="invite-email" type="email"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status"></p></dialog>
     </section>
 
     <section id="admin">
       <h2>Data administration</h2>
-      <p id="admin-permission" hidden>Switch to the Admin role to manage workspace data.</p>
+      <p id="admin-permission" hidden>Select the Admin fixture role to inspect workspace data controls.</p>
       <div id="admin-controls"><button data-case-id="admin-export" id="export">Export data</button>
       <button data-case-id="avoided-delete" class="danger">Delete all data</button></div>
     </section>
@@ -72,7 +74,8 @@
 
     <section id="profile">
       <h2>Profile settings</h2>
-      <label>Display name <input value="Warren"></label>
+      <label>Display name <input id="profile-name" value="Warren"></label>
+      <button id="save-profile" data-supporting-control="save-profile" data-expected-effect="profile-saved">Save profile</button><p id="profile-status" aria-live="polite"></p>
       <p>Avatar and profile preferences are managed here.</p>
     </section>
 
