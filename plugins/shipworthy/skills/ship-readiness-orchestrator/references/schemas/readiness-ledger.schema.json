@@ -373,6 +373,16 @@
         "action": {
           "$ref": "#/$defs/Action"
         },
+        "affected_semantic_keys": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "type": "array",
+          "uniqueItems": true
+        },
         "artifact_ids": {
           "items": {
             "maxLength": 67,
@@ -393,6 +403,21 @@
           "minLength": 5,
           "pattern": "^FND-[A-Z0-9][A-Z0-9._-]{0,62}$",
           "title": "Finding Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "observed_effect_code": {
+          "maxLength": 128,
+          "minLength": 1,
           "type": "string"
         },
         "proof": {
@@ -562,6 +587,109 @@
       ],
       "title": "SubjectKind",
       "type": "string"
+    },
+    "FrontierObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "method_taxonomy_version": {"const": "shipworthy-methods-v1"},
+        "method_family": {"enum": ["runtime_human_interaction", "runtime_structural_inventory", "static_implementation_inventory", "declared_behavior_inventory"]},
+        "method_detail": {"minLength": 1, "maxLength": 200, "type": "string"},
+        "provenance": {"minLength": 1, "maxLength": 200, "type": "string"},
+        "role": {"minLength": 1, "maxLength": 100, "type": "string"},
+        "state": {"minLength": 1, "maxLength": 100, "type": "string"},
+        "viewport": {"minLength": 1, "maxLength": 100, "type": "string"},
+        "discovery_pass_id": {"minLength": 1, "maxLength": 100, "type": "string"},
+        "evidence_refs": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 512}}
+      },
+      "required": ["method_taxonomy_version", "method_family", "method_detail", "provenance", "role", "state", "viewport", "discovery_pass_id", "evidence_refs"],
+      "type": "object"
+    },
+    "FrontierRow": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^PF-[A-Z0-9][A-Z0-9._-]{0,62}$"},
+        "kind": {"enum": ["intent", "feature", "surface", "control", "transition"]},
+        "parent_id": {"anyOf": [{"type": "string", "pattern": "^PF-[A-Z0-9][A-Z0-9._-]{0,62}$"}, {"type": "null"}]},
+        "semantic_key": {"type": "string", "minLength": 3, "maxLength": 512},
+        "normalization_version": {"const": "shipworthy-semantic-v1"},
+        "method_taxonomy_version": {"const": "shipworthy-methods-v1"},
+        "status": {"enum": ["covered", "sampled_with_justification", "blocked", "avoided", "missing", "out_of_scope", "evidence_debt", "unattempted", "unknown", "maybe"]},
+        "material": {"type": "boolean"},
+        "attempt_count": {"type": "integer", "minimum": 0},
+        "evidence_refs": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 512}},
+        "observations": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/FrontierObservation"}},
+        "control_identity": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {"type": "string", "minLength": 1, "maxLength": 200},
+            "control_type": {"type": "string", "minLength": 1, "maxLength": 100},
+            "disambiguator": {"type": "string", "minLength": 1, "maxLength": 200}
+          },
+          "required": ["name", "control_type", "disambiguator"],
+          "type": "object"
+        },
+        "before_state": {"type": "string", "minLength": 1, "maxLength": 200},
+        "after_state": {"type": "string", "minLength": 1, "maxLength": 200},
+        "terminal_reason": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "sample_justification": {"type": "string", "minLength": 1, "maxLength": 1000}
+      },
+      "required": ["id", "kind", "semantic_key", "normalization_version", "method_taxonomy_version", "status", "material", "attempt_count", "evidence_refs", "observations"],
+      "type": "object"
+    },
+    "FrontierDiscoveryPass": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 100},
+        "method_taxonomy_version": {"const": "shipworthy-methods-v1"},
+        "method_family": {"enum": ["runtime_human_interaction", "runtime_structural_inventory", "static_implementation_inventory", "declared_behavior_inventory"]},
+        "role": {"type": "string", "minLength": 1, "maxLength": 100},
+        "fixture": {"type": "string", "minLength": 1, "maxLength": 200},
+        "viewport": {"type": "string", "minLength": 1, "maxLength": 100},
+        "starting_frontier_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "ending_frontier_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "new_semantic_keys": {"type": "array", "maxItems": 1024, "uniqueItems": true, "items": {"type": "string", "minLength": 3, "maxLength": 512}}
+      },
+      "required": ["id", "method_taxonomy_version", "method_family", "role", "fixture", "viewport", "starting_frontier_digest", "ending_frontier_digest", "new_semantic_keys"],
+      "type": "object"
+    },
+    "path_frontier": {
+      "additionalProperties": false,
+      "properties": {
+        "normalization_version": {"const": "shipworthy-semantic-v1"},
+        "method_taxonomy_version": {"const": "shipworthy-methods-v1"},
+        "closure_state": {"enum": ["closed_multi_source", "incomplete", "single_source", "blocked", "static_only"]},
+        "closure_reason": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "summary": {
+          "additionalProperties": false,
+          "properties": {
+            "intent": {"type": "integer", "minimum": 0},
+            "feature": {"type": "integer", "minimum": 0},
+            "surface": {"type": "integer", "minimum": 0},
+            "control": {"type": "integer", "minimum": 0},
+            "transition": {"type": "integer", "minimum": 0}
+          },
+          "required": ["intent", "feature", "surface", "control", "transition"],
+          "type": "object"
+        },
+        "rows": {"type": "array", "maxItems": 10000, "items": {"$ref": "#/$defs/FrontierRow"}},
+        "discovery_passes": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/FrontierDiscoveryPass"}},
+        "reconciliation_differences": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "semantic_key": {"type": "string", "minLength": 3, "maxLength": 512},
+              "reason": {"type": "string", "minLength": 1, "maxLength": 1000}
+            },
+            "required": ["semantic_key", "reason"],
+            "type": "object"
+          }
+        },
+        "manifest_artifact": {"type": "string", "minLength": 1, "maxLength": 512}
+      },
+      "required": ["normalization_version", "method_taxonomy_version", "closure_state", "summary", "rows", "discovery_passes", "reconciliation_differences"],
+      "type": "object"
     },
     "VerifierStatus": {
       "enum": [
@@ -1095,6 +1223,9 @@
     },
     "producer": {
       "$ref": "#/$defs/Producer"
+    },
+    "path_frontier": {
+      "$ref": "#/$defs/path_frontier"
     },
     "readiness_disposition": {
       "$ref": "#/$defs/ReadinessDisposition"

@@ -14,8 +14,8 @@ SCHEMA_DESTINATION = ORCHESTRATOR / "references" / "schemas"
 FIXTURES = ROOT / "tests" / "skill_product" / "fixtures"
 EXPECTED_SCHEMA_HASHES = {
     "browser-evidence-envelope.schema.json": "bad61277f885bb7ba1437ab85e07edbc5a4454448e82aa664dde7005344c8024",
-    "readiness-ledger.schema.json": "73b92405402623ae7fc4ace475467df6cbb1b8f12b142ee7411405a4c8325115",
-    "report-input.schema.json": "82ba535fa07161b943f66b5f25a3ab8eccfb4ed78fe9b6412e074356aea5d0e1",
+    "readiness-ledger.schema.json": "a5ff4e630def7997e96c01e07937ad353e81915b7a5fa185726f03179a67eaca",
+    "report-input.schema.json": "9a6e6074184baca04e347508a1a3b299bb0167ced6667dd21f74fea213d3858c",
 }
 
 
@@ -28,7 +28,7 @@ def _payload(path: Path):
 
 
 class LedgerContractTest(unittest.TestCase):
-    def test_relocated_schemas_are_exact_v1_copies(self) -> None:
+    def test_installed_schemas_match_approved_v1_contract_hashes(self) -> None:
         for name, expected_hash in EXPECTED_SCHEMA_HASHES.items():
             destination = SCHEMA_DESTINATION / name
             self.assertEqual(expected_hash, _digest(destination))
@@ -111,7 +111,7 @@ class LedgerContractTest(unittest.TestCase):
             with self.assertRaisesRegex(UnsupportedKeywordError, "unevaluatedProperties"):
                 validate({}, schema)
 
-    def test_schema_subset_rejects_remote_and_external_refs(self) -> None:
+    def test_schema_subset_rejects_remote_and_missing_external_refs(self) -> None:
         from tests.skill_product.support.schema_subset import SchemaReferenceError, validate
 
         with tempfile.TemporaryDirectory() as directory:

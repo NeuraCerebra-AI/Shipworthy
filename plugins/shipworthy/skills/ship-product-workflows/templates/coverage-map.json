@@ -33,28 +33,77 @@
     }
   ],
   "path_frontier": {
-    "frontier_total": 0,
-    "frontier_covered": 0,
-    "frontier_sampled": 0,
-    "frontier_blocked": 0,
-    "frontier_missing": 0,
-    "frontier_evidence_debt": 0,
-    "frontier_unattempted": 0,
-    "new_paths_last_wave": 0,
-    "new_paths_previous_wave": 0,
-    "exhaustion_status": "unknown",
-    "next_frontier_batch": [
+    "normalization_version": "shipworthy-semantic-v1",
+    "method_taxonomy_version": "shipworthy-methods-v1",
+    "closure_state": "incomplete",
+    "closure_reason": "Material controls remain unattempted.",
+    "summary": {
+      "intent": 1,
+      "feature": 1,
+      "surface": 1,
+      "control": 1,
+      "transition": 0
+    },
+    "rows": [
       {
-        "frontierId": "PF-001",
-        "source": "",
-        "expectedIntent": "",
-        "surfaceOrRoute": "",
-        "role": "",
-        "stateOrDeviceVariant": "",
+        "id": "PF-I-001",
+        "kind": "intent",
+        "semantic_key": "intent:role:goal",
+        "normalization_version": "shipworthy-semantic-v1",
+        "method_taxonomy_version": "shipworthy-methods-v1",
+        "status": "covered",
+        "material": true,
+        "attempt_count": 1,
+        "evidence_refs": ["evidence/intent.json"],
+        "observations": []
+      },
+      {
+        "id": "PF-F-001",
+        "kind": "feature",
+        "parent_id": "PF-I-001",
+        "semantic_key": "feature:feature-name",
+        "normalization_version": "shipworthy-semantic-v1",
+        "method_taxonomy_version": "shipworthy-methods-v1",
+        "status": "covered",
+        "material": true,
+        "attempt_count": 1,
+        "evidence_refs": ["evidence/feature.json"],
+        "observations": []
+      },
+      {
+        "id": "PF-S-001",
+        "kind": "surface",
+        "parent_id": "PF-F-001",
+        "semantic_key": "surface:/route:state:role:viewport",
+        "normalization_version": "shipworthy-semantic-v1",
+        "method_taxonomy_version": "shipworthy-methods-v1",
+        "status": "covered",
+        "material": true,
+        "attempt_count": 1,
+        "evidence_refs": ["evidence/surface.json"],
+        "observations": []
+      },
+      {
+        "id": "PF-C-001",
+        "kind": "control",
+        "parent_id": "PF-S-001",
+        "semantic_key": "control:surface:/route:state:role:viewport:label:button:purpose",
+        "normalization_version": "shipworthy-semantic-v1",
+        "method_taxonomy_version": "shipworthy-methods-v1",
         "status": "unattempted",
-        "nextAction": ""
+        "material": true,
+        "attempt_count": 0,
+        "evidence_refs": [],
+        "observations": [],
+        "control_identity": {
+          "name": "Label",
+          "control_type": "button",
+          "disambiguator": "purpose"
+        }
       }
-    ]
+    ],
+    "discovery_passes": [],
+    "reconciliation_differences": []
   },
   "findings": [
     {
