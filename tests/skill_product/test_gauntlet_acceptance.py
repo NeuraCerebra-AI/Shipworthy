@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -90,6 +91,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertEqual([], list(Path(manifest["workspace"]).iterdir()))
         self.assertNotIn("product_source", manifest)
         self.assertTrue(manifest["base_url"].startswith("http://127.0.0.1:"))
+        self.assertEqual(manifest["server_pid"], os.getpgid(manifest["server_pid"]))
 
     def test_prepare_enforces_mode_specific_product_source_and_sanitizes(self) -> None:
         bad_runtime = self.command("prepare", "--mode", "runtime-only", "--skills-source", SKILLS, "--output", self.root / "bad-runtime", "--product-source", APP)

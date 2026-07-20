@@ -98,7 +98,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     log = (output / "run.log").open("w", encoding="utf-8")
     process = subprocess.Popen(
         [sys.executable, "-I", str(APP / "server.py"), "--port", "0", "--reset-token", reset_token],
-        cwd=APP, stdout=subprocess.PIPE, stderr=log, text=True,
+        cwd=APP, stdout=subprocess.PIPE, stderr=log, text=True, start_new_session=True,
     )
     try:
         line = process.stdout.readline() if process.stdout else ""
