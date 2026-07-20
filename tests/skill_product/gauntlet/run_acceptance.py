@@ -37,6 +37,7 @@ SKILL_NAMES = (
     "ship-workflow-clarity",
 )
 MAX_DIAGNOSTIC = 2_000
+COMPARISON_KINDS = ("feature", "surface", "control", "transition")
 
 
 def _json_write(path: Path, value: dict[str, Any]) -> None:
@@ -179,6 +180,27 @@ def cleanup_manifest(manifest: dict[str, Any]) -> list[str]:
     return errors
 
 
+def comparison_view(report: dict[str, Any], html: str, mode: str) -> dict[str, Any]:
+    """Accept the canonical report wrapper while retaining legacy test packets."""
+    source = report.get("source_ledger")
+    if isinstance(source, dict) and isinstance(source.get("path_frontier"), dict):
+        frontier = source["path_frontier"]
+        rows = frontier.get("rows") if isinstance(frontier.get("rows"), list) else []
+        summary = {kind: sum(row.get("kind") == kind for row in rows) for kind in COMPARISON_KINDS}
+        view = {
+            "mode": mode,
+            "closure_state": frontier.get("closure_state"),
+            "summary": summary,
+            "rows": rows,
+            "findings": source.get("findings") if isinstance(source.get("findings"), list) else [],
+        }
+    else:
+        view = dict(report)
+    closure = view.get("closure_state", "")
+    view["html_closure_state"] = closure if f'data-closure-state="{closure}"' in html else "artifact-contradiction"
+    return view
+
+
 def finalize(args: argparse.Namespace) -> dict[str, Any]:
     manifest = json.loads(Path(args.run_manifest).read_text(encoding="utf-8"))
     output = Path(manifest["output"])
@@ -194,8 +216,7 @@ def finalize(args: argparse.Namespace) -> dict[str, Any]:
         else:
             report = json.loads(required[0].read_text(encoding="utf-8"))
             html = required[2].read_text(encoding="utf-8")
-            if f'data-closure-state="{report.get("html_closure_state", "")}"' not in html:
-                report["html_closure_state"] = "artifact-contradiction"
+            report = comparison_view(report, html, manifest["mode"])
             oracle, defects = load_and_validate_oracle(ORACLE, DEFECTS)
             packet = compare_frontier(report, oracle, defects, manifest["mode"])
             _json_write(output / "comparison-packet.json", packet)

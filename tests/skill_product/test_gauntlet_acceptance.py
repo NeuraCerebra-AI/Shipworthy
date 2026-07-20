@@ -84,6 +84,23 @@ class AcceptanceHarnessTests(unittest.TestCase):
         (output / "run.log").write_text("agent completed\n", encoding="utf-8")
         return evidence
 
+    def write_canonical_agent_evidence(self, output: Path, mode: str) -> Path:
+        evidence = output / "agent-evidence"
+        evidence.mkdir()
+        comparison = complete_result(mode)
+        frontier = {
+            "closure_state": comparison["closure_state"],
+            "summary": {"intent": 0, **comparison["summary"]},
+            "rows": comparison["rows"],
+        }
+        ledger = {"path_frontier": frontier, "findings": comparison["findings"]}
+        report = {"schema_version": "1.0.0", "source_ledger": ledger}
+        (evidence / "report-input.json").write_text(json.dumps(report), encoding="utf-8")
+        (evidence / "readiness-ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
+        (evidence / "report.html").write_text('<html data-closure-state="closed_multi_source"><h1>Readiness</h1></html>', encoding="utf-8")
+        (output / "run.log").write_text("agent completed with canonical wrapper\n", encoding="utf-8")
+        return evidence
+
     def test_prepare_runtime_only_is_isolated_and_healthy(self) -> None:
         output, manifest = self.prepare("runtime-only")
         self.assertNotEqual(str(output), manifest["controller_root"])
@@ -126,6 +143,14 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertFalse(Path(manifest["controller_root"]).exists())
         self.assertFalse((output / ".acceptance-result.json.tmp").exists())
         self.assertTrue((output / "comparison-packet.json").is_file())
+
+    def test_finalize_accepts_canonical_report_input_wrapper(self) -> None:
+        output, _ = self.prepare("runtime-only")
+        evidence = self.write_canonical_agent_evidence(output, "runtime-only")
+        result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-canonical", "--agent-output", evidence)
+        self.assertEqual(0, result.returncode, result.stderr)
+        final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
+        self.assertEqual("PASS", final["status"])
 
     def test_dispatch_outcomes_map_to_not_proven_and_fail(self) -> None:
         for dispatch, expected_status, expected_code in (("unavailable", "NOT_PROVEN", 2), ("failed", "FAIL", 1), ("timeout", "FAIL", 1)):
