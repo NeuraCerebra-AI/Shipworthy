@@ -16,4 +16,4 @@ button:disabled { cursor: not-allowed; }
 .empty { padding: 1rem; border: 1px dashed #8b96aa; margin: 1rem 0; }
 #project-row { display: flex; justify-content: space-between; padding: .8rem; border: 1px solid #ccd3df; }
 .evidence-hook { display: none; }
-@media (max-width: 600px) { nav { display: none; } main { margin: .7rem auto; } #invite { width: 100%; } }
+@media (max-width: 600px) { header { flex-wrap: wrap; } nav { order: 3; width: 100%; } main { margin: .7rem auto; } #invite { width: 100%; } }

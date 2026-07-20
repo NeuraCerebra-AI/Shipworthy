@@ -9,14 +9,16 @@
 <body>
   <header>
     <a class="brand" href="/dashboard">Northstar</a>
-    <nav><a href="/projects">Projects</a><a href="/team">Team</a></nav>
+    <nav><a href="/projects">Projects</a><a href="/team">Team</a><a href="/admin/data">Data</a></nav>
+    <button data-supporting-control="role-member" data-expected-effect="bind-member-role" id="role-member">Member</button>
+    <button data-supporting-control="role-admin" data-expected-effect="bind-admin-role" id="role-admin">Admin</button>
     <button id="avatar" data-case-id="avatar-settings" aria-haspopup="menu">WC</button>
     <div id="avatar-menu" hidden><a href="/settings/profile">Profile settings</a></div>
   </header>
   <main>
     <section id="dashboard">
       <h1>Project dashboard</h1>
-      <p data-decoy="negative-control">Press K for tips</p>
+      <p data-decoy="negative-control">Keyboard-friendly navigation</p>
       <div class="upgrade-card" data-case-id="false-affordance"><strong>Upgrade now</strong><span>Unlock more capacity →</span></div>
       <button data-case-id="keyboard-palette" id="palette-button" class="quiet">Quick actions</button>
       <div id="palette" role="dialog" hidden><a href="/projects/import">Import project</a></div>
@@ -25,9 +27,10 @@
     <section id="projects">
       <h2>Projects</h2>
       <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Right-click for actions</span></article>
-      <div id="context-menu" role="menu" hidden><button role="menuitem">Duplicate</button></div>
-      <div class="empty" data-case-id="empty-state-action"><p>No archived projects</p><button id="create-first">Create first project</button></div>
-      <form id="project-form" hidden><label>Name <input id="new-name"></label><button>Create</button><p id="form-error"></p></form>
+      <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
+      <p id="duplicate-status" aria-live="polite"></p>
+      <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create first project</button></div>
+      <form id="project-form" hidden><label>Name <input id="new-name"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><p id="form-error"></p></form>
       <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
     </section>
 
@@ -35,7 +38,7 @@
       <h2>Edit Alpha</h2>
       <label>Name <input id="project-name" value="Alpha"></label>
       <button data-case-id="duplicate-save-behavior" id="save-real">Save</button>
-      <button id="save-visual">Save</button>
+      <button data-case-id="duplicate-save-behavior" id="save-visual">Save</button>
       <button data-case-id="prerequisite-publish" id="publish">Publish</button>
       <button data-case-id="unexplained-disabled-control" disabled title="Unavailable">Archive</button>
       <p id="toast" aria-live="polite"></p>
@@ -48,7 +51,7 @@
     <section id="team">
       <h2>Team</h2>
       <button data-case-id="mobile-invite" id="invite">Invite member</button>
-      <dialog id="invite-dialog"><p>Invite a teammate</p><button id="close-invite">Close</button></dialog>
+      <dialog id="invite-dialog"><p>Invite a teammate</p><label>Email <input id="invite-email" type="email"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status"></p></dialog>
     </section>
 
     <section id="admin">
@@ -61,6 +64,12 @@
       <h2>Import project</h2>
       <p>Upload a JSON export to start an import.</p>
       <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>
+    </section>
+
+    <section id="profile">
+      <h2>Profile settings</h2>
+      <label>Display name <input value="Warren"></label>
+      <p>Avatar and profile preferences are managed here.</p>
     </section>
 
     <section id="analytics" data-case-id="unavailable-feature-flag">

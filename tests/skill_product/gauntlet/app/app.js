@@ -10,6 +10,20 @@ async function api(path, body = {}) {
   return {status: response.status, body: await response.json()};
 }
 
+async function loadState() {
+  const response = await fetch("/api/state");
+  const state = await response.json();
+  const row = $("#project-row");
+  if (row) row.querySelector("strong").textContent = state.projects.join(", ");
+}
+
+function applyRole(role) {
+  localStorage.setItem("gauntlet-role", role);
+  document.body.dataset.role = role;
+  show($("#admin"), role === "admin" && location.pathname === "/admin/data");
+  $("#invite").disabled = role !== "admin";
+}
+
 function route() {
   const path = location.pathname;
   document.querySelectorAll("main > section").forEach((section) => show(section, false));
@@ -17,7 +31,7 @@ function route() {
   else if (path === "/admin/data") show($("#admin"));
   else if (path === "/projects/import") show($("#import"));
   else if (path === "/projects") { show($("#projects")); show($("#editor")); }
-  else if (path === "/settings/profile") show($("#editor"));
+  else if (path === "/settings/profile") show($("#profile"));
   else { show($("#dashboard")); show($("#analytics")); }
 }
 
@@ -33,11 +47,16 @@ $("#project-row")?.addEventListener("contextmenu", (event) => {
   event.preventDefault();
   show($("#context-menu"), true);
 });
+$("#duplicate")?.addEventListener("click", () => {
+  $("#duplicate-status").textContent = "Alpha copy added";
+  show($("#context-menu"), false);
+});
 $("#create-first")?.addEventListener("click", () => show($("#project-form"), true));
 $("#project-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const result = await api("/api/projects", {name: $("#new-name").value});
   $("#form-error").textContent = result.status === 201 ? "Created" : "Name is required";
+  if (result.status === 201) await loadState();
 });
 $("#save-real")?.addEventListener("click", async () => {
   const result = await api("/api/save-failure", {name: $("#project-name").value});
@@ -61,7 +80,12 @@ $("#stale")?.addEventListener("click", async () => {
   $("#toast").after(retry);
 });
 $("#invite")?.addEventListener("click", () => $("#invite-dialog").showModal());
+$("#send-invite")?.addEventListener("click", () => {
+  $("#invite-status").textContent = $("#invite-email").value ? "Invitation queued" : "Email is required";
+});
 $("#close-invite")?.addEventListener("click", () => $("#invite-dialog").close());
+$("#role-member")?.addEventListener("click", () => applyRole("member"));
+$("#role-admin")?.addEventListener("click", () => applyRole("admin"));
 $("#export")?.addEventListener("click", () => {
   const blob = new Blob([JSON.stringify({project: "Alpha"})], {type: "application/json"});
   const link = document.createElement("a");
@@ -71,3 +95,5 @@ $("#export")?.addEventListener("click", () => {
   URL.revokeObjectURL(link.href);
 });
 route();
+applyRole(localStorage.getItem("gauntlet-role") || "member");
+loadState();

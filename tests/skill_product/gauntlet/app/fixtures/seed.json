@@ -1,5 +1,6 @@
 {
   "project": {"id": "alpha", "name": "Alpha", "state": "draft"},
+  "projects": ["Alpha"],
   "session": "active",
   "feature_flags": {"advanced_analytics": false},
   "empty_archived_projects": true

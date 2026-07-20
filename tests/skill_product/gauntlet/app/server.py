@@ -122,6 +122,8 @@ class Handler(BaseHTTPRequestHandler):
             if not name:
                 self._json(422, {"error": "name-required"})
             else:
+                with self.server.state.lock:
+                    self.server.state.value["projects"].append(name)
                 self._json(201, {"ok": True, "name": name})
             return
         if path == "/api/stale":

@@ -87,6 +87,7 @@ class GauntletFixtureTests(unittest.TestCase):
     def test_invalid_input_and_stale_session_have_recovery_transitions(self) -> None:
         self.assertEqual(422, self.fixture.request("/api/projects", "POST", {"name": " "})[0])
         self.assertEqual(201, self.fixture.request("/api/projects", "POST", {"name": "Recovered"})[0])
+        self.assertIn("Recovered", self.fixture.request("/api/state")[1]["projects"])
         self.assertEqual(401, self.fixture.request("/api/stale", "POST", {})[0])
         self.assertEqual(200, self.fixture.request("/api/reauthenticate", "POST", {})[0])
 
@@ -116,6 +117,13 @@ class GauntletFixtureTests(unittest.TestCase):
         import re
         hooks = set(re.findall(r'data-case-id="([^"]+)"', html))
         self.assertTrue(hooks.issubset(case_ids), hooks - case_ids)
+        for button in re.findall(r"<button\b[^>]*>", html):
+            self.assertTrue("data-case-id=" in button or "data-supporting-control=" in button, button)
+            if "data-supporting-control=" in button:
+                self.assertIn("data-expected-effect=", button, button)
+        self.assertIn('id="profile"', html)
+        self.assertIn('data-supporting-control="role-admin"', html)
+        self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
         for path in (SERVER, APP / "app.js"):
             logical = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")]
             self.assertLessEqual(len(logical), 300, path)

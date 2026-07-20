@@ -63,6 +63,10 @@ def _wait_health(base_url: str, process: subprocess.Popen, timeout: float = 5.0)
     raise RuntimeError("fixture server health check timed out")
 
 
+def server_command(reset_token: str) -> list[str]:
+    return [sys.executable, "-I", str(APP / "server.py"), "--port", "0", f"--reset-token={reset_token}"]
+
+
 def prepare(args: argparse.Namespace) -> dict[str, Any]:
     output = Path(args.output).resolve()
     skills_source = Path(args.skills_source).resolve()
@@ -97,7 +101,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
 
     log = (output / "run.log").open("w", encoding="utf-8")
     process = subprocess.Popen(
-        [sys.executable, "-I", str(APP / "server.py"), "--port", "0", "--reset-token", reset_token],
+        server_command(reset_token),
         cwd=APP, stdout=subprocess.PIPE, stderr=log, text=True, start_new_session=True,
     )
     try:
@@ -109,6 +113,8 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     except Exception:
         process.terminate()
         process.wait(timeout=3)
+        if process.stdout:
+            process.stdout.close()
         log.close()
         shutil.rmtree(controller, ignore_errors=True)
         raise

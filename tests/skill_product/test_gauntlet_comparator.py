@@ -107,6 +107,19 @@ class GauntletComparatorTests(unittest.TestCase):
         self.assertEqual("REVIEW_REQUIRED", packet["status"])
         self.assertEqual(1, len(packet["unexpected_rows"]))
 
+    def test_unexpected_finding_requires_review(self) -> None:
+        result = self.complete_result()
+        result["findings"].append(
+            {
+                "affected_semantic_keys": ["surface:/unexpected"],
+                "observed_effect_code": "unexpected-material-effect",
+                "evidence_refs": ["evidence/unexpected.json"],
+            }
+        )
+        packet = self.compare(result)
+        self.assertEqual("REVIEW_REQUIRED", packet["status"])
+        self.assertEqual(1, len(packet["unexpected_findings"]))
+
     def test_separate_incomplete_runs_are_not_aggregated(self) -> None:
         first = self.complete_result()
         second = self.complete_result()

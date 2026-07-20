@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from tests.skill_product.gauntlet.compare_agent_result import load_and_validate_oracle
-from tests.skill_product.gauntlet.run_acceptance import atomic_final_result, validate_acceptance_result
+from tests.skill_product.gauntlet.run_acceptance import atomic_final_result, server_command, validate_acceptance_result
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -94,6 +94,10 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertNotIn("product_source", manifest)
         self.assertTrue(manifest["base_url"].startswith("http://127.0.0.1:"))
         self.assertEqual(manifest["server_pid"], os.getpgid(manifest["server_pid"]))
+
+    def test_prepare_accepts_reset_token_that_begins_with_dash(self) -> None:
+        command = server_command("-leading-token")
+        self.assertEqual("--reset-token=-leading-token", command[-1])
 
     def test_prepare_enforces_mode_specific_product_source_and_sanitizes(self) -> None:
         bad_runtime = self.command("prepare", "--mode", "runtime-only", "--skills-source", SKILLS, "--output", self.root / "bad-runtime", "--product-source", APP)

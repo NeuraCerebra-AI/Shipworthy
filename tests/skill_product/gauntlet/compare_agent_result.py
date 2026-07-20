@@ -138,27 +138,32 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         reasons.append("JSON/HTML closure contradiction")
 
     observed_findings = agent.get("findings") if isinstance(agent.get("findings"), list) else []
-    missed_defects: list[str] = []
-    for defect in defects.get("defects", []):
-        if mode not in defect["required_modes"]:
-            continue
+    expected_defects = [defect for defect in defects.get("defects", []) if mode in defect["required_modes"]]
+
+    def matches(finding: dict[str, Any], defect: dict[str, Any]) -> bool:
         expected_keys = set(defect["affected_semantic_keys"])
-        matched = any(
+        return (
             expected_keys.issubset(set(finding.get("affected_semantic_keys", [])))
             and normalize_token(finding.get("observed_effect_code", ""))
             in {normalize_token(defect["observed_effect_code"]), *(normalize_token(alias) for alias in defect.get("accepted_observation_aliases", []))}
             and bool(finding.get("evidence_refs"))
-            for finding in observed_findings
         )
-        if not matched:
-            missed_defects.append(defect["id"])
+
+    missed_defects = [
+        defect["id"] for defect in expected_defects
+        if not any(matches(finding, defect) for finding in observed_findings)
+    ]
     if missed_defects:
         reasons.append(f"expected defect misses: {len(missed_defects)}")
+    unexpected_findings = [
+        finding for finding in observed_findings
+        if not any(matches(finding, defect) for defect in expected_defects)
+    ]
 
     unexpected = [row for row in rows if row.get("semantic_key") not in required]
     if reasons:
         status = "FAIL"
-    elif unexpected:
+    elif unexpected or unexpected_findings:
         status = "REVIEW_REQUIRED"
     else:
         status = "PASS"
@@ -173,5 +178,6 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         "missed_defect_ids": missed_defects,
         "duplicate_semantic_keys": duplicates,
         "unexpected_rows": unexpected,
+        "unexpected_findings": unexpected_findings,
         "counts": actual_counts,
     }
