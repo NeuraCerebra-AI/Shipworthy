@@ -113,9 +113,16 @@ interface is:
 ```text
 run_acceptance.py prepare --mode runtime-only|full-evidence
                           --skills-source PATH --output PATH
-run_acceptance.py finalize --run-manifest PATH --agent-output PATH
+                          [--product-source PATH]
+run_acceptance.py finalize --run-manifest PATH \
+  --native-dispatch-status completed|unavailable|failed|timeout \
+  --native-agent-id ID --agent-output PATH \
+  [--coordinator-diagnostic TEXT]
 run_acceptance.py cleanup --run-manifest PATH
 ```
+
+`--product-source` is required for `full-evidence`, rejected for `runtime-only`,
+and is copied through the documented sanitizer rather than exposed directly.
 
 `prepare` starts and health-checks the fixture and emits a run manifest with the
 target URL, allowed paths, evidence path, server process identity, reset token,
