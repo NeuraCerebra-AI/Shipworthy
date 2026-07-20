@@ -66,7 +66,9 @@ class AcceptanceHarnessTests(unittest.TestCase):
         if source is not None:
             args.extend(("--product-source", source))
         result = self.command(*args)
-        self.assertEqual(0, result.returncode, result.stderr)
+        log = output / "run.log"
+        diagnostic = result.stderr + ("\n" + log.read_text(encoding="utf-8") if log.exists() else "")
+        self.assertEqual(0, result.returncode, diagnostic)
         self.outputs.append(output)
         manifest = json.loads((output / "run-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest, json.loads(result.stdout))
