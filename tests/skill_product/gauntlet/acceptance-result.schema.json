@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shipworthy://gauntlet/acceptance-result-v1",
+  "type": "object",
+  "required": ["schema_version", "status", "mode", "native_dispatch_status", "native_agent_id", "failure_code", "diagnostic", "comparison_status", "oracle_blindness", "filesystem_containment", "artifacts"],
+  "properties": {
+    "schema_version": {"const": "shipworthy-gauntlet-acceptance-v1"},
+    "status": {"enum": ["PASS", "FAIL", "NOT_PROVEN", "REVIEW_REQUIRED"]},
+    "mode": {"type": "string"},
+    "native_dispatch_status": {"enum": ["completed", "unavailable", "failed", "timeout", "internal"]},
+    "native_agent_id": {"type": "string"},
+    "failure_code": {"type": "string"},
+    "diagnostic": {"type": "string", "maxLength": 2000},
+    "comparison_status": {"type": "string"},
+    "oracle_blindness": {"const": "PROCEDURAL_ONLY"},
+    "filesystem_containment": {"const": "NOT_PROVEN"},
+    "artifacts": {"type": "object"}
+  }
+}
