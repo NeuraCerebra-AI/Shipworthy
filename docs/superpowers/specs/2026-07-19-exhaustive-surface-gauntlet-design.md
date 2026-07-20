@@ -117,9 +117,11 @@ run_acceptance.py --host codex|claude --mode runtime-only|full-evidence
 
 It starts and health-checks the fixture, prepares isolated host state, launches
 one bounded host process, validates required artifacts, runs the comparator,
-writes `acceptance-result.json`, terminates the complete fixture/host process
-group, and exits with the authoritative gate status. It uses `try/finally` for
-cleanup and preserves diagnostics and agent evidence on failure.
+terminates the complete fixture/host process group, retains bounded evidence,
+performs cleanup, derives the final status, atomically writes
+`acceptance-result.json`, and exits with the authoritative gate status. It uses
+`try/finally` for cleanup and preserves diagnostics and agent evidence on
+failure.
 
 ## Adversarial surface
 
@@ -551,9 +553,9 @@ fields are schema version, run ID, host, mode, start/end timestamps, isolation
 and canary result, host-process exit/timeout state, artifact paths/digests/
 validation state, agent-claimed closure, oracle-derived closure, mismatches,
 unexpected rows, review-required reasons, gate status, stable exit code,
-NOT_PROVEN reasons, and cleanup status/residual paths. The comparator validates
-its result against this schema before exit; an invalid acceptance result is
-`FAIL` for an attempted run.
+NOT_PROVEN reasons, and cleanup status/residual paths. The driver validates the
+final result against this schema; an invalid draft becomes an internal `FAIL`
+represented by a schema-valid fallback result.
 
 ## Validation boundary
 
