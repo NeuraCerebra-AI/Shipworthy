@@ -1,0 +1,4 @@
+{
+  "member": {"username": "member@example.test", "capabilities": ["projects", "team-view"]},
+  "admin": {"username": "admin@example.test", "capabilities": ["projects", "team-admin", "data-export"]}
+}

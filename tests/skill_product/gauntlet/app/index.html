@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Northstar Projects</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="/dashboard">Northstar</a>
+    <nav><a href="/projects">Projects</a><a href="/team">Team</a></nav>
+    <button id="avatar" data-case-id="avatar-settings" aria-haspopup="menu">WC</button>
+    <div id="avatar-menu" hidden><a href="/settings/profile">Profile settings</a></div>
+  </header>
+  <main>
+    <section id="dashboard">
+      <h1>Project dashboard</h1>
+      <p data-decoy="negative-control">Press K for tips</p>
+      <div class="upgrade-card" data-case-id="false-affordance"><strong>Upgrade now</strong><span>Unlock more capacity →</span></div>
+      <button data-case-id="keyboard-palette" id="palette-button" class="quiet">Quick actions</button>
+      <div id="palette" role="dialog" hidden><a href="/projects/import">Import project</a></div>
+    </section>
+
+    <section id="projects">
+      <h2>Projects</h2>
+      <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Right-click for actions</span></article>
+      <div id="context-menu" role="menu" hidden><button role="menuitem">Duplicate</button></div>
+      <div class="empty" data-case-id="empty-state-action"><p>No archived projects</p><button id="create-first">Create first project</button></div>
+      <form id="project-form" hidden><label>Name <input id="new-name"></label><button>Create</button><p id="form-error"></p></form>
+      <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
+    </section>
+
+    <section id="editor">
+      <h2>Edit Alpha</h2>
+      <label>Name <input id="project-name" value="Alpha"></label>
+      <button data-case-id="duplicate-save-behavior" id="save-real">Save</button>
+      <button id="save-visual">Save</button>
+      <button data-case-id="prerequisite-publish" id="publish">Publish</button>
+      <button data-case-id="unexplained-disabled-control" disabled title="Unavailable">Archive</button>
+      <p id="toast" aria-live="polite"></p>
+      <div data-case-id="misleading-success" class="evidence-hook" aria-hidden="true"></div>
+      <div data-case-id="reload-loss" class="evidence-hook" aria-hidden="true"></div>
+      <div data-case-id="invalid-input-recovery" class="evidence-hook" aria-hidden="true"></div>
+      <button data-case-id="stale-session-recovery" id="stale">Simulate stale session</button>
+    </section>
+
+    <section id="team">
+      <h2>Team</h2>
+      <button data-case-id="mobile-invite" id="invite">Invite member</button>
+      <dialog id="invite-dialog"><p>Invite a teammate</p><button id="close-invite">Close</button></dialog>
+    </section>
+
+    <section id="admin">
+      <h2>Data administration</h2>
+      <button data-case-id="admin-export" id="export">Export data</button>
+      <button data-case-id="avoided-delete" class="danger">Delete all data</button>
+    </section>
+
+    <section id="import">
+      <h2>Import project</h2>
+      <p>Upload a JSON export to start an import.</p>
+      <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>
+    </section>
+
+    <section id="analytics" data-case-id="unavailable-feature-flag">
+      <h2>Advanced analytics</h2><p>Feature not enabled for this workspace.</p>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+:root { color-scheme: light; font: 16px/1.45 system-ui, sans-serif; color: #172033; background: #eef2f7; }
+body { margin: 0; }
+header { display: flex; align-items: center; gap: 1rem; padding: .8rem 1.2rem; background: #172033; color: white; }
+header a { color: white; margin-right: 1rem; }
+.brand { font-weight: 800; text-decoration: none; }
+#avatar { margin-left: auto; border-radius: 50%; width: 2.5rem; height: 2.5rem; }
+#avatar-menu { position: absolute; right: 1rem; top: 3.6rem; background: white; padding: .8rem; box-shadow: 0 8px 24px #0003; }
+#avatar-menu a { color: #172033; }
+main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+section { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 3px 12px #24304a18; }
+button, input { font: inherit; }
+button { padding: .55rem .85rem; margin: .25rem; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+.danger { color: #9c1c1c; border-color: #c33; }
+.upgrade-card { display: flex; justify-content: space-between; padding: 1rem; border: 2px solid #635bff; border-radius: 8px; color: #4038b4; }
+.empty { padding: 1rem; border: 1px dashed #8b96aa; margin: 1rem 0; }
+#project-row { display: flex; justify-content: space-between; padding: .8rem; border: 1px solid #ccd3df; }
+.evidence-hook { display: none; }
+@media (max-width: 600px) { nav { display: none; } main { margin: .7rem auto; } #invite { width: 100%; } }
