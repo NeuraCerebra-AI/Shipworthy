@@ -9,7 +9,7 @@ plugins/shipworthy/skills/ship-workflow-clarity/SKILL.md
 
 Audit the supplied localhost product and independently reconcile it with only
 the supplied sanitized product source/docs/tests copy. Use the supplied
-accounts, safe boundary, reset endpoint/token, one coordinated runtime driver,
+accounts, safe boundary, reset endpoint/header/token, one coordinated runtime driver,
 and explicit output allowlist. Avoid destructive actions.
 
 Do not inspect any path outside the explicit allowlist. Do not inspect the

@@ -133,6 +133,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "base_url": server_data["base_url"],
         "accounts": {"member": "member@example.test", "admin": "admin@example.test"},
         "reset_token": reset_token,
+        "reset_header": "X-Gauntlet-Reset",
         "reset_endpoint": "/api/reset",
         "server_pid": process.pid,
         "server_script": str(APP / "server.py"),

@@ -55,6 +55,27 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.discovery)
 
+    def test_semantic_identity_is_mechanical_and_variant_rows_are_not_collapsed(self) -> None:
+        for phrase in (
+            "intent:<role>:<goal>",
+            "feature:<feature>",
+            "surface:<route>:<state>:<role>:<viewport>",
+            "control:<parent-surface-key>:<name>:<control-type>:<behavior-disambiguator>",
+            "transition:<before-state>:<parent-control-key>:<after-state>",
+            "Dotted ad hoc IDs",
+            "one surface row for each materially different role/state/viewport tuple",
+        ):
+            self.assertIn(phrase, self.discovery)
+
+    def test_resettable_synthetic_fixture_keeps_reversible_actions_in_scope(self) -> None:
+        for phrase in (
+            "resettable synthetic fixture",
+            "create, edit, validation-retry, publish, export, and download",
+            "supplied reset mechanism",
+            "explicitly destructive, external-message, payment, credential, or production action",
+        ):
+            self.assertIn(phrase, self.discovery)
+
     def test_closed_frontier_requires_two_independent_zero_yield_passes(self) -> None:
         for document in (self.orchestrator, self.evidence, self.discovery):
             self.assertIn("two qualifying zero-yield discovery passes", document)

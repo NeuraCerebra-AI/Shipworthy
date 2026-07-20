@@ -8,7 +8,7 @@ plugins/shipworthy/skills/ship-product-workflows/SKILL.md
 plugins/shipworthy/skills/ship-workflow-clarity/SKILL.md
 
 Audit only the supplied localhost product using the supplied member/admin
-accounts, safe boundary, reset endpoint/token, and output allowlist. Use one
+accounts, safe boundary, reset endpoint/header/token, and output allowlist. Use one
 coordinated runtime driver. Safe controls may be exercised; destructive actions
 must be inventoried and avoided. Reset between materially different fixtures.
 

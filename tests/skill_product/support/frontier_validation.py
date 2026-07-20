@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
@@ -40,6 +42,12 @@ CLOSURE_STATES = frozenset(
     {"closed_multi_source", "incomplete", "single_source", "blocked", "static_only"}
 )
 MAX_DIAGNOSTICS = 20
+TOKEN = r"[a-z0-9][a-z0-9-]*"
+KEY_PATTERNS = {
+    "intent": re.compile(rf"^intent:{TOKEN}:{TOKEN}$"),
+    "feature": re.compile(rf"^feature:{TOKEN}$"),
+    "surface": re.compile(rf"^surface:/[a-z0-9/_-]*:{TOKEN}:{TOKEN}:{TOKEN}$"),
+}
 
 
 class FrontierValidationError(ValueError):
@@ -73,6 +81,40 @@ def _check_evidence(references: Any, root: Path, label: str, errors: list[str]) 
         resolved = _evidence_path(reference, root)
         if resolved is None or not resolved.is_file():
             errors.append(f"{label}: evidence reference does not resolve under evidence root: {reference}")
+
+
+def _token(value: Any) -> str:
+    text = unicodedata.normalize("NFKC", str(value)).strip().casefold()
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+
+
+def _check_semantic_key(
+    row: dict[str, Any], parent: dict[str, Any] | None, label: str, errors: list[str]
+) -> None:
+    kind, key = row.get("kind"), row.get("semantic_key")
+    if not isinstance(key, str):
+        return
+    pattern = KEY_PATTERNS.get(kind)
+    if pattern is not None and not pattern.fullmatch(key):
+        errors.append(f"{label}: semantic_key does not use canonical {kind} grammar")
+        return
+    if kind == "control" and parent is not None:
+        identity = row.get("control_identity")
+        if isinstance(identity, dict):
+            suffix = ":".join(
+                _token(identity.get(field, ""))
+                for field in ("name", "control_type", "disambiguator")
+            )
+            expected = f"control:{parent.get('semantic_key')}:{suffix}"
+            if key != expected:
+                errors.append(f"{label}: control semantic_key must derive from parent and control_identity")
+    if kind == "transition" and parent is not None:
+        expected = (
+            f"transition:{_token(row.get('before_state', ''))}:"
+            f"{parent.get('semantic_key')}:{_token(row.get('after_state', ''))}"
+        )
+        if key != expected:
+            errors.append(f"{label}: transition semantic_key must derive from parent and states")
 
 
 def _derive_closure(frontier: dict[str, Any], families: set[str]) -> str:
@@ -152,6 +194,8 @@ def validate_frontier(frontier: dict[str, Any], evidence_root: Path) -> dict[str
                 errors.append(f"{label}: {kind} parent must be {PARENT_KIND[kind]}")
             elif isinstance(parent_id, str):
                 children[parent_id] += 1
+
+        _check_semantic_key(row, None if kind == "intent" else by_id.get(row.get("parent_id")), label, errors)
 
         if kind == "control":
             identity = row.get("control_identity")

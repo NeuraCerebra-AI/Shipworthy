@@ -105,6 +105,17 @@ class FrontierContractTests(unittest.TestCase):
         with self.assertRaises(FrontierValidationError):
             validate_frontier(candidate, self.evidence_root)
 
+    def test_rejects_ad_hoc_or_non_derived_semantic_keys(self) -> None:
+        candidate = valid_frontier()
+        candidate["rows"][1]["semantic_key"] = "feature.project-management"
+        with self.assertRaises(FrontierValidationError):
+            validate_frontier(candidate, self.evidence_root)
+
+        candidate = valid_frontier()
+        candidate["rows"][3]["semantic_key"] = "control:surface:/projects:normal:member:desktop:save:button:visual-only"
+        with self.assertRaises(FrontierValidationError):
+            validate_frontier(candidate, self.evidence_root)
+
         candidate = valid_frontier()
         candidate["rows"][0]["observations"][0]["discovery_pass_id"] = "PASS-MISSING"
         with self.assertRaises(FrontierValidationError):

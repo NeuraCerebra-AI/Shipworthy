@@ -35,6 +35,28 @@ When a living audit ledger exists, the first coverage map is provisional. Append
 
 When this lane is running under `ship-readiness-orchestrator` for a full Shipworthy invocation, return additions to one canonical `path_frontier`, not just findings. Use stable rows with semantic lineage `intent → feature → surface → control → transition`. Use `shipworthy-semantic-v1` keys, and include role, state, viewport in each surface identity. A control identity contains its label or accessible name, control type, and behavior disambiguator; a transition contains `before_state` and `after_state`. Observations point to evidence and to the discovery pass that produced them.
 
+Construct every semantic key mechanically after NFKC normalization: case-fold
+each component, replace every non-alphanumeric run with one hyphen, trim outer
+hyphens, and normalize routes to a lowercase leading-slash path without query,
+fragment, duplicate slash, or trailing slash (except `/`). Use exactly:
+
+- `intent:<role>:<goal>`;
+- `feature:<feature>`;
+- `surface:<route>:<state>:<role>:<viewport>`;
+- `control:<parent-surface-key>:<name>:<control-type>:<behavior-disambiguator>`;
+- `transition:<before-state>:<parent-control-key>:<after-state>`.
+
+Dotted ad hoc IDs, prose slugs detached from their parent, and renamed aliases
+are not semantic keys. A control key must be derived from its parent surface and
+`control_identity`; a transition key must be derived from its parent control and
+recorded states. Put display-friendly shorthand in prose, never in
+`semantic_key` or `affected_semantic_keys`.
+
+Do not collapse material variants into values such as `member/admin`,
+`desktop/mobile`, or `normal/stale`. Create one surface row for each materially different role/state/viewport tuple,
+then parent each control and transition to the exact surface variant where it exists. Reuse a feature parent where useful;
+do not invent a second frontier merely to summarize variants.
+
 Use only the `shipworthy-methods-v1` canonical method families:
 
 - `runtime_human_interaction`: adaptive interaction through the visible product;
@@ -47,6 +69,15 @@ A renamed method_detail does not create an independent method family. Reconcile 
 Closed multi-source exhaustion requires two qualifying zero-yield discovery passes from distinct canonical method families. Each pass records its family, role, fixture, viewport, starting and ending frontier digests, and new semantic keys. A pass qualifies only when it began from the current frontier, produced no new semantic keys, and did not merely relabel the same method.
 
 Do not call the lane exhausted while material paths remain `unattempted`, `unknown`, or `maybe`, or while the last discovery/testing pass found new material routes, controls, roles, states, device variants, or user intents.
+
+When the supplied target is a resettable synthetic fixture and its controller
+provides a working reset contract, use the supplied reset mechanism and treat
+reversible local create, edit, validation-retry, publish, export, and download
+behavior as safe to exercise. A download may be proven from the initiated
+runtime response when reading the browser's default download directory would
+cross the declared filesystem boundary. Continue to avoid any explicitly destructive, external-message, payment, credential, or production action. If
+the reset contract is incomplete or fails, record the exact operational gap;
+do not guess token placement and do not silently broaden access.
 
 ## Discovery Inventory
 

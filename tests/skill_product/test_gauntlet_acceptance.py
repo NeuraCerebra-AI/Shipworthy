@@ -115,6 +115,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertEqual([], list(Path(manifest["workspace"]).iterdir()))
         self.assertNotIn("product_source", manifest)
         self.assertTrue(manifest["base_url"].startswith("http://127.0.0.1:"))
+        self.assertEqual("X-Gauntlet-Reset", manifest["reset_header"])
         self.assertEqual(manifest["server_pid"], os.getpgid(manifest["server_pid"]))
 
     def test_prepare_accepts_reset_token_that_begins_with_dash(self) -> None:
