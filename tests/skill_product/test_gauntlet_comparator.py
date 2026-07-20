@@ -231,6 +231,60 @@ class GauntletComparatorTests(unittest.TestCase):
         result["summary"]["feature"] += 1
         self.assertEqual("PASS", self.compare(result)["status"])
 
+    def test_observed_supporting_feature_names_are_classified(self) -> None:
+        result = self.complete_result()
+        for key in ("feature:project-import-export", "feature:profile", "feature:upgrade"):
+            result["rows"].append(
+                {
+                    "semantic_key": key,
+                    "kind": "feature",
+                    "status": "covered",
+                    "material": True,
+                    "evidence_refs": ["evidence/support.json"],
+                }
+            )
+        result["summary"]["feature"] += 3
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_matching_prefers_an_allowed_direct_row_over_a_sampled_alias(self) -> None:
+        result = self.complete_result()
+        key = "control:surface:/projects:editing:member:desktop:save:button:persist"
+        sampled = next(row for row in result["rows"] if row["semantic_key"] == key)
+        sampled["status"] = "sampled_with_justification"
+        direct = copy.deepcopy(sampled)
+        direct["semantic_key"] = "control:surface:/projects:normal:admin:desktop:save:button:persist"
+        direct["status"] = "covered"
+        result["rows"].append(direct)
+        result["summary"]["control"] += 1
+
+        oracle = copy.deepcopy(self.oracle)
+        item = next(item for item in oracle["items"] if item["semantic_key"] == key)
+        item.setdefault("accepted_semantic_keys", []).append(direct["semantic_key"])
+        packet = compare_frontier(result, oracle, self.defects, result["mode"])
+        self.assertEqual("PASS", packet["status"], packet)
+
+    def test_explicit_role_alternatives_and_observed_effect_aliases_match(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "control:surface:/projects:editing:member:desktop:save:button:persist":
+                "control:surface:/projects:normal:admin:desktop:save:button:persist",
+            "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted":
+                "transition:editing:control:surface:/projects:normal:admin:desktop:save:button:persist:not-persisted",
+            "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost":
+                "transition:apparently-saved:control:surface:/projects:normal:admin:desktop:reload:browser:verify:lost",
+        }
+        for row in result["rows"]:
+            if row["semantic_key"] in replacements:
+                row["semantic_key"] = replacements[row["semantic_key"]]
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+            if finding["observed_effect_code"] == "false-affordance-noninteractive":
+                finding["observed_effect_code"] = "actionable-looking-noninteractive"
+            elif finding["observed_effect_code"] == "duplicate-save-behavior-ambiguity":
+                finding["observed_effect_code"] = "duplicate-name-divergent-behavior"
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_observed_false_affordance_may_be_missing_or_blocked(self) -> None:
         for status in ("missing", "blocked"):
             result = self.complete_result()

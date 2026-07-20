@@ -3,7 +3,7 @@
   "normalization_version": "shipworthy-semantic-v1",
   "method_taxonomy_version": "shipworthy-methods-v1",
   "supporting_routes": ["/", "/dashboard", "/projects", "/team", "/admin/data", "/projects/import", "/settings/profile", "/not-a-route"],
-  "supporting_features": ["feature:workspace-navigation", "feature:dashboard", "feature:dashboard-navigation", "feature:projects", "feature:team", "feature:team-invites", "feature:team-invitations", "feature:data-administration", "feature:project-import", "feature:profile-settings", "feature:route-recovery", "feature:error-recovery", "feature:session-recovery"],
+  "supporting_features": ["feature:workspace-navigation", "feature:dashboard", "feature:dashboard-navigation", "feature:projects", "feature:team", "feature:team-invites", "feature:team-invitations", "feature:data-administration", "feature:project-import", "feature:project-import-export", "feature:profile", "feature:profile-settings", "feature:route-recovery", "feature:error-recovery", "feature:session-recovery", "feature:upgrade"],
   "items": [
     {
       "id": "CASE-AVATAR-SETTINGS", "case_id": "avatar-settings", "kind": "surface",
@@ -46,7 +46,7 @@
     {
       "id": "CASE-PREREQUISITE-PUBLISH", "case_id": "prerequisite-publish", "kind": "transition",
       "semantic_key": "transition:draft:control:surface:/projects:draft:member:desktop:publish:button:publish:published", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist-state:published", "transition:editing:control:surface:/projects:editing:member:desktop:publish:button:publish-current-input:published"],
+      "accepted_semantic_keys": ["transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist-state:published", "transition:editing:control:surface:/projects:editing:member:desktop:publish:button:publish-current-input:published", "transition:draft:control:surface:/projects:normal:admin:desktop:publish:button:persist:published"],
       "accepted_surface_states": ["draft", "normal"],
       "identity": "Publish", "disambiguator": "prerequisite-enable", "before_state": "draft", "after_state": "published", "materiality": "material", "availability_condition": "name prerequisite satisfied", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "published", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]
@@ -54,7 +54,7 @@
     {
       "id": "CASE-EMPTY-STATE", "case_id": "empty-state-action", "kind": "control",
       "semantic_key": "control:surface:/projects:empty:member:desktop:create-project:button:create", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["control:surface:/projects:editing:member:desktop:create-project:button:open-form", "control:surface:/projects:normal:member:desktop:create-project:button:open-create-form"],
+      "accepted_semantic_keys": ["control:surface:/projects:editing:member:desktop:create-project:button:open-form", "control:surface:/projects:normal:member:desktop:create-project:button:open-create-form", "control:surface:/projects:normal:member:desktop:create-project:button:open-form"],
       "identity": "Create project", "control_type": "button", "disambiguator": "empty-state", "materiality": "material", "availability_condition": "empty fixture", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "runtime_trace", "expected_result": "project-form-open", "accepted_aliases": ["new project"], "required_modes": ["runtime-only", "full-evidence"]
     },
@@ -74,6 +74,7 @@
     {
       "id": "CASE-DUPLICATE-SAVE", "case_id": "duplicate-save-behavior", "kind": "control",
       "semantic_key": "control:surface:/projects:editing:member:desktop:save:button:persist", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["control:surface:/projects:normal:admin:desktop:save:button:persist"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Save", "control_type": "button", "disambiguator": "persist", "materiality": "material", "availability_condition": "editing project", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "runtime_trace", "expected_result": "persisted", "accepted_aliases": ["save changes"], "required_modes": ["runtime-only", "full-evidence"]
@@ -81,7 +82,7 @@
     {
       "id": "CASE-MISLEADING-SUCCESS", "case_id": "misleading-success", "kind": "transition",
       "semantic_key": "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["transition:alpha-edited:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"],
+      "accepted_semantic_keys": ["transition:alpha-edited:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted", "transition:editing:control:surface:/projects:normal:admin:desktop:save:button:persist:not-persisted"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Save success toast", "disambiguator": "misleading-success", "before_state": "editing", "after_state": "not-persisted", "materiality": "material", "availability_condition": "failure fixture", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "success-without-persistence", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]
@@ -89,7 +90,7 @@
     {
       "id": "CASE-RELOAD-LOSS", "case_id": "reload-loss", "kind": "transition",
       "semantic_key": "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["transition:saved-success-toast:control:surface:/projects:editing:member:desktop:save:button:persist:lost-after-reload", "transition:false-success:control:surface:/projects:editing:member:desktop:save:button:persist-api:not-persisted"],
+      "accepted_semantic_keys": ["transition:saved-success-toast:control:surface:/projects:editing:member:desktop:save:button:persist:lost-after-reload", "transition:false-success:control:surface:/projects:editing:member:desktop:save:button:persist-api:not-persisted", "transition:apparently-saved:control:surface:/projects:normal:admin:desktop:reload:browser:verify:lost"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Reload verification", "disambiguator": "persistence-check", "before_state": "apparently-saved", "after_state": "lost", "materiality": "material", "availability_condition": "after misleading save", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "reload-data-loss", "accepted_aliases": ["changes disappear"], "required_modes": ["runtime-only", "full-evidence"]

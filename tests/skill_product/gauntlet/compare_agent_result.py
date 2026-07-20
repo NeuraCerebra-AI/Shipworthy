@@ -199,9 +199,12 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
             missing.append(key)
             continue
         matched_keys[key] = {candidate["semantic_key"] for _, candidate in grouped}
-        index, row = grouped[0]
-        matched_rows.add(index)
         allowed = item["allowed_dispositions_by_mode"][mode]
+        index, row = next(
+            ((candidate_index, candidate) for candidate_index, candidate in grouped if candidate.get("status") in allowed),
+            grouped[0],
+        )
+        matched_rows.update(candidate_index for candidate_index, _ in grouped)
         if row.get("status") not in allowed:
             reasons.append(f"invalid terminal disposition for {key}")
         if row.get("status") == "covered" and not row.get("evidence_refs"):

@@ -113,6 +113,16 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.product)
 
+    def test_closure_reconciles_raw_interactions_findings_and_frontier_rows(self) -> None:
+        for phrase in (
+            "reconcile every raw runtime observation to frontier rows",
+            "one control row per distinct observed input mechanism",
+            "one transition row per observed state boundary",
+            "includes the affected transition row",
+            "disabled without an observed explanation or recovery route is a finding",
+        ):
+            self.assertIn(phrase, self.product)
+
         for phrase in (
             "re-census newly revealed controls",
             "distinct input mode or keyboard shortcut gets its own control row",
