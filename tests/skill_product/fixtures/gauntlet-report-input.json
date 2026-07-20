@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-07-19T12:00:00Z",
+  "producer": {"name": "shipworthy-gauntlet", "version": "1.0.0"},
+  "report_input_id": "RPT-GAUNTLET-001",
+  "schema_name": "shipworthy/readiness-report-input",
+  "schema_version": "1.0",
+  "source_ledger": {
+    "artifacts": [],
+    "completion_status": "complete",
+    "evidence_debt": [],
+    "findings": [
+      {
+        "action": "Fix",
+        "affected_semantic_keys": ["control:surface:/projects:normal:member:desktop:save:button:persist"],
+        "artifact_ids": [],
+        "confidence": "Strong",
+        "evidence_refs": ["evidence/save.json"],
+        "finding_id": "FND-SAVE-001",
+        "observed_effect_code": "save-not-persisted",
+        "proof": "Partial",
+        "revision": 1,
+        "section": "fix_next",
+        "severity": "P1 Major",
+        "subject": {"kind": "workflow", "location": null, "ref": "project.save", "title": "Save does not persist"},
+        "summary": "The visible success state is lost after reload.",
+        "verifier_status": "approved"
+      }
+    ],
+    "gate": {"policy": "confirmed_only"},
+    "generated_at": "2026-07-19T12:00:00Z",
+    "ledger_id": "LED-GAUNTLET-001",
+    "path_frontier": {
+      "closure_reason": "All material rows reconciled; two independent discovery passes reached zero yield.",
+      "closure_state": "closed_multi_source",
+      "discovery_passes": [
+        {"ending_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "fixture": "seed", "id": "PASS-1", "method_family": "runtime_human_interaction", "method_taxonomy_version": "shipworthy-methods-v1", "new_semantic_keys": [], "role": "member", "starting_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "viewport": "desktop"},
+        {"ending_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "fixture": "seed", "id": "PASS-2", "method_family": "runtime_structural_inventory", "method_taxonomy_version": "shipworthy-methods-v1", "new_semantic_keys": [], "role": "admin", "starting_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "viewport": "mobile"}
+      ],
+      "manifest_artifact": "evidence/path-frontier.json",
+      "method_taxonomy_version": "shipworthy-methods-v1",
+      "normalization_version": "shipworthy-semantic-v1",
+      "reconciliation_differences": [],
+      "rows": [
+        {"attempt_count": 1, "evidence_refs": ["evidence/intent.json"], "id": "PF-I", "kind": "intent", "material": true, "method_taxonomy_version": "shipworthy-methods-v1", "normalization_version": "shipworthy-semantic-v1", "observations": [], "semantic_key": "intent:member:manage-project", "status": "covered"},
+        {"attempt_count": 1, "evidence_refs": ["evidence/feature.json"], "id": "PF-F", "kind": "feature", "material": true, "method_taxonomy_version": "shipworthy-methods-v1", "normalization_version": "shipworthy-semantic-v1", "observations": [], "parent_id": "PF-I", "semantic_key": "feature:project-management", "status": "covered"},
+        {"attempt_count": 1, "evidence_refs": ["evidence/surface.json"], "id": "PF-S", "kind": "surface", "material": true, "method_taxonomy_version": "shipworthy-methods-v1", "normalization_version": "shipworthy-semantic-v1", "observations": [{"discovery_pass_id": "PASS-1", "evidence_refs": ["evidence/surface.json"], "method_detail": "visible-walk", "method_family": "runtime_human_interaction", "method_taxonomy_version": "shipworthy-methods-v1", "provenance": "native-codex", "role": "member", "state": "normal", "viewport": "desktop"}], "parent_id": "PF-F", "semantic_key": "surface:/projects:normal:member:desktop", "status": "covered"},
+        {"attempt_count": 1, "control_identity": {"control_type": "button", "disambiguator": "persist", "name": "Save"}, "evidence_refs": ["evidence/save.json"], "id": "PF-C1", "kind": "control", "material": true, "method_taxonomy_version": "shipworthy-methods-v1", "normalization_version": "shipworthy-semantic-v1", "observations": [{"discovery_pass_id": "PASS-1", "evidence_refs": ["evidence/save.json"], "method_detail": "click-and-reload", "method_family": "runtime_human_interaction", "method_taxonomy_version": "shipworthy-methods-v1", "provenance": "native-codex", "role": "member", "state": "editing", "viewport": "desktop"}], "parent_id": "PF-S", "semantic_key": "control:surface:/projects:normal:member:desktop:save:button:persist", "status": "covered"},
+        {"attempt_count": 0, "control_identity": {"control_type": "button", "disambiguator": "destructive", "name": "Delete"}, "evidence_refs": ["evidence/delete-boundary.json"], "id": "PF-C2", "kind": "control", "material": true, "method_taxonomy_version": "shipworthy-methods-v1", "normalization_version": "shipworthy-semantic-v1", "observations": [{"discovery_pass_id": "PASS-2", "evidence_refs": ["evidence/delete-boundary.json"], "method_detail": "structural-inventory", "method_family": "runtime_structural_inventory", "method_taxonomy_version": "shipworthy-methods-v1", "provenance": "native-codex", "role": "admin", "state": "normal", "viewport": "mobile"}], "parent_id": "PF-S", "semantic_key": "control:surface:/projects:normal:member:desktop:delete:button:destructive", "status": "avoided", "terminal_reason": "Destructive mutation was outside the safe boundary."},
+        {"after_state": "saved", "attempt_count": 1, "before_state": "editing", "evidence_refs": ["evidence/save.json"], "id": "PF-T", "kind": "transition", "material": true, "method_taxonomy_version": "shipworthy-methods-v1", "normalization_version": "shipworthy-semantic-v1", "observations": [], "parent_id": "PF-C1", "semantic_key": "transition:editing:control:surface:/projects:normal:member:desktop:save:button:persist:saved", "status": "covered"}
+      ],
+      "summary": {"control": 2, "feature": 1, "intent": 1, "surface": 1, "transition": 1}
+    },
+    "producer": {"name": "shipworthy-gauntlet", "version": "1.0.0"},
+    "readiness_disposition": "conditionally_ready",
+    "revision": 1,
+    "schema_name": "shipworthy/readiness-ledger",
+    "schema_version": "1.0"
+  }
+}

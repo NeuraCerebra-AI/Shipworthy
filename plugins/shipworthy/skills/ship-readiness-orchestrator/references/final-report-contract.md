@@ -30,7 +30,7 @@ Before writing the final report, assemble:
 - report generation status, readiness-report HTML path, readiness-report JSON or ledger path, and evidence locations;
 - final claim ledger;
 - final coverage matrix;
-- path_frontier burn-down: frontier_total, frontier_covered, frontier_sampled, frontier_blocked, frontier_missing, frontier_evidence_debt, frontier_unattempted, new_paths_last_wave, new_paths_previous_wave, exhaustion status, and next frontier batch when incomplete;
+- canonical path_frontier: derived closure state/reason, exact feature/surface/control/transition counts, role and discovery-family summaries, reconciliation differences, and manifest artifact; caller totals must reconcile exactly with canonical rows;
 - evidence debt register with each item closed, blocked, scoped out, or carried as an explicit gap;
 - verified wave summaries and certificates, or for rapid/narrow/static runs, one verified checkpoint plus a list of omitted full-run gates;
 - raw lane outputs or artifact references;
@@ -102,49 +102,57 @@ Shipworthy final answer with this concise next-step ask:
    - Paths, controls, release gates, or design choices that worked under the tested conditions and should not be disturbed casually.
    - Include the proof condition and any regression guard worth keeping.
 
-8. **Workflow Detail Appendix**
+8. **Product Coverage**
+   - Place this after the action-first finding sections, before technical appendices.
+   - Show only `closed_multi_source`, `incomplete`, `single_source`, `blocked`, or `static_only`, with the closure reason.
+   - Show exact feature, surface, control, and transition counts plus each percentage's exact denominator.
+   - Summarize roles and canonical discovery families and show one compact row per feature.
+   - Keep Control evidence, Role / state / device coverage, Blocked / avoided actions, Discovery reconciliation, and Frontier manifest in collapsed native details.
+   - Link a safe local frontier JSON manifest instead of dumping large row arrays into HTML.
+
+9. **Workflow Detail Appendix**
    - Broken or risky workflows: user-visible failures, state drift, persistence loss, blocked paths, permissions, forms, navigation, exports/imports, AI/action handoffs, recovery failures.
    - Missing or overcomplicated paths: reasonable user goals with no discoverable UX path, hidden entry points, excessive steps, repeated decisions, context switches, fragile prerequisites, dead ends, or needless recovery burden.
    - Include expected intent, evidence, path effort, user consequence, smallest useful fix, and verification step.
 
-9. **UX, Clarity, And Design**
+10. **UX, Clarity, And Design**
    - Ugly, cluttered, generic, confusing, attention-hostile, untrustworthy, or low-momentum surfaces.
    - Tie every point to user consequence, not taste alone.
 
-10. **Product Love And Activation**
+11. **Product Love And Activation**
    - Time to value, first-run momentum, emotional payoff, repeat-use loop, share/referral moment, trust, perceived quality, onboarding drag, support burden.
    - Label strategy claims as hypotheses unless supported by evidence.
 
-11. **Accessibility And Responsive Survival**
+12. **Accessibility And Responsive Survival**
    - Keyboard/focus, accessible names, status/error exposure, zoom/reflow, mobile/touch, no-hover paths.
 
-12. **Backend/API/State Symptoms**
+13. **Backend/API/State Symptoms**
    - Only symptoms that affect user-visible workflows or trust.
 
-13. **Build/Test/Deploy/Docs Gate**
+14. **Build/Test/Deploy/Docs Gate**
    - Commands run, commands missing, failures, skipped checks, stale docs, env/config risks.
 
-14. **False Positives And Rejected Claims**
+15. **False Positives And Rejected Claims**
    - What was investigated and rejected or downgraded.
 
-15. **Coverage And Evidence**
+16. **Coverage And Evidence**
    - Coverage map summary, tools/agents used or skipped, artifact inventory, screenshots/traces/logs/commands, target fingerprint.
    - For full runs, list every discovered material path and expected intent with its coverage label and evidence debt status.
    - For full runs, also list or link the path_frontier table; no full verdict is allowed while material rows remain `unattempted`, `unknown`, or `maybe`.
    - Note redaction boundaries and sensitive evidence omitted from the report.
 
-16. **Evidence Debt**
+17. **Evidence Debt**
    - Needs-proof, blocked, avoided, untested, inferred, missing, and out-of-scope items.
 
-17. **Fix Cascade And Counterfactuals**
+18. **Fix Cascade And Counterfactuals**
    - For major recommendations, state the no-change consequence, smallest useful fix, what the fix could break, and whether the fix is reversible.
    - Downgrade broad redesigns that lack a bounded verification path.
 
-18. **Ranked Roadmap**
+19. **Ranked Roadmap**
    - Fix Now, Harden, Clarify, Preserve, Add Friction, Investigate, Do Not Change.
    - Include smallest useful fix, regression risk, and exact verification step for each item.
 
-19. **Final Drift Check**
+20. **Final Drift Check**
    - State whether every material final claim maps to ledger evidence or an explicit gap.
    - Name any conclusions removed or downgraded because they lacked a ledger row.
 

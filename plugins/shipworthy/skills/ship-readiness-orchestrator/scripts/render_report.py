@@ -132,6 +132,40 @@ V1_VERDICT = {
     "ready": "READY", "conditionally_ready": "CONDITIONAL",
     "not_ready": "NOT READY", "cannot_determine": "NOT READY",
 }
+CLOSURE_STATES = {"closed_multi_source", "incomplete", "single_source", "blocked", "static_only"}
+
+def summarize_frontier(frontier):
+    """Derive a compact Product Coverage projection and reject caller count drift."""
+    if not isinstance(frontier, dict):
+        return None
+    closure = frontier.get("closure_state")
+    if closure not in CLOSURE_STATES:
+        raise ValueError("path_frontier closure_state is not canonical")
+    rows = frontier.get("rows")
+    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+        raise ValueError("path_frontier rows must be objects")
+    kinds = ("intent", "feature", "surface", "control", "transition")
+    counts = {kind: sum(row.get("kind") == kind for row in rows) for kind in kinds}
+    if frontier.get("summary") != counts:
+        raise ValueError("path_frontier summary does not reconcile with rows")
+    observations = [item for row in rows for item in row.get("observations", []) if isinstance(item, dict)]
+    passes = [item for item in frontier.get("discovery_passes", []) if isinstance(item, dict)]
+    roles = sorted({str(item.get("role")) for item in observations + passes if item.get("role")})
+    families = sorted({str(item.get("method_family")) for item in observations + passes if item.get("method_family")})
+    variants = sorted({" / ".join(str(item.get(key) or "—") for key in ("role", "state", "viewport")) for item in observations})
+    controls = [row for row in rows if row.get("kind") == "control" and row.get("material", True)]
+    attempted = sum(isinstance(row.get("attempt_count"), int) and row.get("attempt_count", 0) > 0 for row in controls)
+    pct = round(100 * attempted / len(controls)) if controls else 0
+    return {
+        "closure_state": closure, "closure_reason": frontier.get("closure_reason") or "No closure reason recorded.",
+        "counts": counts, "rows": rows, "roles": roles, "variants": variants,
+        "method_families": families, "control_attempts": (attempted, len(controls), pct),
+        "features": [row for row in rows if row.get("kind") == "feature"],
+        "controls": controls,
+        "dispositions": [row for row in rows if row.get("status") in {"blocked", "avoided"}],
+        "differences": [row for row in frontier.get("reconciliation_differences", []) if isinstance(row, dict)],
+        "manifest": frontier.get("manifest_artifact"),
+    }
 
 def project_input(data):
     """Project validated v1 ledger/report-input data into the stable report shape."""
@@ -195,6 +229,7 @@ def project_input(data):
         "generated_at": ledger.get("generated_at"),
         "verdict": V1_VERDICT.get(ledger.get("readiness_disposition"), "NOT READY"),
         "findings": findings,
+        "path_frontier": ledger.get("path_frontier"),
         "checkpoint": {
             "producer": f"{producer.get('name')} {producer.get('version')}",
             "completion_status": ledger.get("completion_status"),
@@ -210,6 +245,85 @@ def row_text(x):
     if isinstance(x, list):
         return " · ".join(str(v) for v in x)
     return x
+
+def semantic_label(key):
+    token = str(key or "(unnamed)").split(":", 1)[-1]
+    return title_case(re.sub(r"[-_/]+", " ", token))
+
+def detail_section(label, body):
+    return f'<details class="coverage-detail"><summary>{esc(label)}</summary><div class="ev-block">{body}</div></details>'
+
+def product_coverage_html(frontier):
+    summary = summarize_frontier(frontier)
+    if summary is None:
+        return ('<section class="section product-coverage"><div class="section-head"><h2>Product Coverage</h2></div>'
+                '<div class="muted-note">Product coverage not recorded for this run.</div></section>')
+    counts = summary["counts"]
+    attempted, total_controls, pct = summary["control_attempts"]
+    closure_label = title_case(norm_token(summary["closure_state"]))
+    metrics = "".join(
+        f'<span class="coverage-metric"><b>{counts[kind]}</b> {esc(kind if counts[kind] == 1 else kind + "s")}</span>'
+        for kind in ("feature", "surface", "control", "transition")
+    )
+    feature_rows = []
+    by_parent = {}
+    for row in summary["rows"]:
+        by_parent.setdefault(row.get("parent_id"), []).append(row)
+    for feature in summary["features"][:20]:
+        surface_ids = {row.get("id") for row in by_parent.get(feature.get("id"), []) if row.get("kind") == "surface"}
+        control_count = sum(row.get("kind") == "control" and row.get("parent_id") in surface_ids for row in summary["rows"])
+        feature_rows.append(
+            f'<div class="coverage-feature"><b>{esc(semantic_label(feature.get("semantic_key")))}</b>'
+            f'<span>{len(surface_ids)} surfaces · {control_count} controls · {esc(feature.get("status"))}</span></div>'
+        )
+    if len(summary["features"]) > 20:
+        feature_rows.append(f'<p class="muted-note">{len(summary["features"]) - 20} more features are in the frontier manifest.</p>')
+
+    control_rows = []
+    for row in summary["controls"][:12]:
+        identity = row.get("control_identity") if isinstance(row.get("control_identity"), dict) else {}
+        control_rows.append(
+            f'<div class="coverage-proof"><b>{esc(identity.get("name") or semantic_label(row.get("semantic_key")))}</b>'
+            f'<span>{esc(row.get("status"))} · {esc(row.get("attempt_count", 0))} attempts · '
+            f'{len(row.get("evidence_refs", []))} evidence refs</span></div>'
+        )
+    if len(summary["controls"]) > 12:
+        control_rows.append(f'<p class="muted-note">{len(summary["controls"]) - 12} more controls are in the frontier manifest.</p>')
+
+    variants = "".join(f'<span class="coverage-tag">{esc(value)}</span>' for value in summary["variants"][:20])
+    dispositions = "".join(
+        f'<div class="coverage-proof"><b>{esc(semantic_label(row.get("semantic_key")))}</b>'
+        f'<span>{esc(row.get("status"))} · {esc(row.get("terminal_reason") or "No reason recorded")}</span></div>'
+        for row in summary["dispositions"][:20]
+    ) or '<p class="muted-note">No blocked or avoided material actions.</p>'
+    differences = "".join(
+        f'<div class="coverage-proof"><b>{esc(row.get("semantic_key"))}</b><span>{esc(row.get("reason"))}</span></div>'
+        for row in summary["differences"][:20]
+    ) or '<p class="muted-note">No unresolved discovery differences.</p>'
+    manifest = summary["manifest"]
+    manifest_text = '<p class="muted-note">No separate frontier manifest was recorded.</p>'
+    if isinstance(manifest, str) and manifest and ":" not in manifest and not manifest.startswith("/") and ".." not in manifest.split("/"):
+        manifest_text = f'<p><a href="{esc(manifest)}">Open the complete frontier JSON</a></p>'
+    elif manifest:
+        manifest_text = f'<p class="mono">{esc(manifest)}</p>'
+
+    family_text = ", ".join(semantic_label(value) for value in summary["method_families"]) or "not recorded"
+    role_text = ", ".join(summary["roles"]) or "not recorded"
+    feature_html = "".join(feature_rows) or '<p class="muted-note">No feature rows recorded.</p>'
+    return (
+        '<section class="section product-coverage"><div class="section-head"><h2>Product Coverage</h2></div>'
+        f'<div class="coverage-status"><span class="closure-chip">{esc(closure_label)}</span><p>{esc(summary["closure_reason"])}</p></div>'
+        f'<div class="coverage-metrics">{metrics}</div>'
+        f'<p class="cov-line"><strong>{attempted} of {total_controls}</strong>&nbsp; material controls attempted ({pct}%)</p>'
+        f'<p class="coverage-meta"><b>Roles:</b> {esc(role_text)}<br><b>Discovery:</b> {esc(family_text)}</p>'
+        f'<div class="coverage-features">{feature_html}</div>'
+        + detail_section("Control evidence", "".join(control_rows) or '<p class="muted-note">No material controls recorded.</p>')
+        + detail_section("Role / state / device coverage", variants or '<p class="muted-note">No observation variants recorded.</p>')
+        + detail_section("Blocked / avoided actions", dispositions)
+        + detail_section("Discovery reconciliation", differences)
+        + detail_section("Frontier manifest", manifest_text)
+        + '</section>'
+    )
 
 def title_case(x):
     return " ".join(w[:1].upper() + w[1:].lower() for w in str(x).split())
@@ -357,6 +471,9 @@ def render(data, interactive=False):
     if not isinstance(data, dict): data = {}
     target = esc(data.get("target", "target"))
     gen = esc(data.get("generated_at") or datetime.date.today().isoformat())
+    frontier = data.get("path_frontier") if isinstance(data.get("path_frontier"), dict) else None
+    product_cov_block = product_coverage_html(frontier)
+    closure_attr = f' data-closure-state="{esc(frontier.get("closure_state"))}"' if frontier else ""
 
     verdict = str(data.get("verdict", "NOT READY")).upper()
     verdict_label = title_case(verdict)
@@ -400,6 +517,8 @@ def render(data, interactive=False):
         cov_block = (f'<section class="section"><div class="section-head"><h2>Coverage</h2></div>{cov_sum}'
                      f'<div class="cov-bar" role="img" aria-label="{esc(aria)}">{seg_html(segs)}</div>'
                      f'<div class="cov-legend">{legend_html(segs)}</div></section>')
+    elif frontier:
+        cov_block = ""
     else:
         cov_block = ('<section class="section"><div class="section-head"><h2>Coverage</h2></div>'
                      '<div class="muted-note">Coverage not recorded for this run.</div></section>')
@@ -527,7 +646,7 @@ def render(data, interactive=False):
                   "s.classList.toggle('is-hidden',!vis);});}"
                   "})();</script>")
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en"{closure_attr}><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shipworthy Readiness Report — {target}</title>
 <style>
@@ -568,6 +687,9 @@ def render(data, interactive=False):
   .cov-bar{{display:flex;width:100%;height:14px;border-radius:7px;overflow:hidden;background:var(--panel-raised);border:1px solid var(--hairline);margin-bottom:18px}}
   .cov-bar span{{height:100%;display:block}}
   .cov-legend{{display:flex;flex-wrap:wrap;gap:9px 20px}}.cov-key{{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}}.cov-key .sw{{width:9px;height:9px;border-radius:2px;flex:none}}.cov-key b{{color:var(--paper);font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+  .coverage-status{{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}}.coverage-status p{{margin:1px 0;color:var(--prose);font-size:13.5px}}.closure-chip{{flex:none;border:1px solid #34D39966;color:#34D399;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}}
+  .coverage-metrics{{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}}.coverage-metric{{border:1px solid var(--hairline);background:var(--panel);border-radius:8px;padding:7px 10px;color:var(--muted);font-size:12px}}.coverage-metric b{{color:var(--paper);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+  .coverage-meta{{color:var(--muted);font-size:12.5px;line-height:1.7}}.coverage-meta b{{color:var(--prose)}}.coverage-features{{border:1px solid var(--hairline);border-radius:10px;overflow:hidden;margin-top:16px}}.coverage-feature,.coverage-proof{{display:flex;justify-content:space-between;gap:14px;padding:10px 12px;border-bottom:1px solid var(--hairline-soft);font-size:12.5px}}.coverage-feature:last-child,.coverage-proof:last-child{{border-bottom:0}}.coverage-feature span,.coverage-proof span{{color:var(--muted);text-align:right}}.coverage-tag{{display:inline-block;margin:3px 5px 3px 0;border:1px solid var(--hairline);border-radius:999px;padding:3px 8px;color:var(--muted);font-size:11px}}
   .muted-note{{color:var(--muted);font-size:13px;font-style:italic;margin-bottom:6px}}
   .finding{{background:var(--panel);border:1px solid var(--hairline);border-left:4px solid var(--hairline);border-radius:var(--radius);padding:19px 21px;margin-bottom:14px;overflow-wrap:anywhere}}
   .finding-top{{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap}}.finding-num{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted-dim)}}
@@ -613,9 +735,10 @@ def render(data, interactive=False):
     </div>
     <p class="read-key"><b>Read this by action:</b> Clear Before Ship items block readiness. Fix Next items are real but non-blocking. Not Proven / Not Tested items are not passes. Passed / Keep items worked under the tested conditions. Each card says what to do and how strong the proof is.<span class="key-actions"><span class="key-chip">Fix</span><span class="key-chip">Prove</span><span class="key-chip">Decide</span><span class="key-chip">Skip</span><span class="key-chip">Keep</span></span></p>
   </section>
-  {cov_block}
   {controls}
   {find_block}
+  {product_cov_block}
+  {cov_block}
   <section class="section"><div class="section-head"><h2>Orchestration Checkpoint</h2></div><div class="orch">{ck_html}</div></section>
   <footer>
     <b style="color:#7E8CAD">Proof labels:</b> Confirmed (directly observed) &gt; Partial (some proof, incomplete coverage) &gt; Inferred (not directly observed) &gt; Not tested.
