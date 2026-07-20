@@ -99,10 +99,12 @@ JavaScript. It has:
 - a readiness endpoint for the harness;
 - a reset endpoint available to the harness but not advertised as product UI.
 
-The server, app, and docs are copied to a temporary target directory for each
-run. The oracle and comparator remain outside that directory. Runtime-only
-agents receive only the URL, synthetic credentials, safe-test boundary, reset
-conditions, and output path.
+The server source and oracle stay in a controller-private workspace for each
+run. Runtime-only agents receive a separate empty audit workspace plus only the
+URL, synthetic credentials, safe-test boundary, reset conditions, and output
+path. Full-evidence agents receive a distinct sanitized copy containing the app
+source, product docs, product tests, fixtures, and role descriptions, but never
+the oracle, comparator, controller source, or repository test tree.
 
 `run_acceptance.py` is a development-only standard-library driver. Its public
 interface is:
@@ -159,6 +161,7 @@ Extend the existing canonical `path_frontier` rows with these fields:
 kind: intent | feature | surface | control | transition
 parent_id
 semantic_key
+normalization_version
 observations[]
 control_identity
 before_state
@@ -212,6 +215,20 @@ order. Same-label controls such as the two Save controls therefore remain
 distinct. Oracle entries may declare accepted aliases, but aliases normalize to
 one semantic key and may not hide duplicates.
 
+Semantic normalization is versioned as `shipworthy-semantic-v1`. The
+repository comparator is authoritative: it derives keys from structured raw
+identity fields and checks any agent-supplied key rather than trusting it.
+Version 1 applies Unicode NFKC normalization, case folding, outer-whitespace
+trimming, and replacement of each run of whitespace/punctuation separators
+with one hyphen while preserving Unicode letters and numbers. URL identities
+drop scheme, host, query, and fragment, percent-decode the path, collapse
+repeated slashes, and normalize each path segment with the same token rule.
+Root remains `/`; other routes omit a trailing slash. Roles, states, viewport
+classes, effects, control types, and disambiguators use the token rule. Empty
+required tokens fail validation. Oracle aliases pass through the identical
+algorithm. A future algorithm requires a new version; existing evidence is
+never silently renormalized.
+
 The canonical `readiness-ledger.schema.json` owns the complete frontier rows,
 observations, discovery passes, reconciliation differences, and derived closure
 inputs. `report-input.schema.json` reuses that definition rather than defining a
@@ -234,6 +251,24 @@ material. They are not mandatory ritual for every tiny product.
 Two repetitions of the same browser walk, role, viewport, fixture, and method
 do not satisfy independent closure. If only one channel is available, the audit
 may continue but its closure state is `single_source`, not exhaustive.
+
+Canonical `method_family` values are:
+
+- `runtime_human_interaction`: browser, Computer Use, keyboard, pointer, touch,
+  and other user-style action traces;
+- `runtime_structural_inventory`: DOM, accessibility tree, or native UI tree
+  census of the rendered application;
+- `static_implementation_inventory`: route, component, menu, command, feature-
+  flag, and permission structure from source;
+- `declared_behavior_inventory`: product docs, tests, stories, fixtures, API
+  contracts, and promised behavior.
+
+Browser and Computer Use traces are the same family, not independent evidence.
+DOM and accessibility/UI-tree inspection are also one structural family. Docs,
+tests, and stories remain one declared-behavior family. Role, fixture, state,
+and viewport changes are observation dimensions, not additional method
+families. Distinct canonical families are independent; relabeled details within
+one family are not.
 
 Channel proof applies at three levels:
 
@@ -270,14 +305,24 @@ IDs. A representative entry is:
 {
   "id": "CTRL-INVITE-MOBILE",
   "kind": "control",
+  "semantic_key": "control:surface:team:normal:admin:mobile:invite-member:button:invite-dialog",
+  "normalization_version": "shipworthy-semantic-v1",
   "feature": "team-management",
   "surface": "team-page",
   "role": "admin",
   "state": "normal",
   "viewport": "mobile",
   "identity": "Invite member",
-  "safe_action": true,
+  "materiality": "material",
+  "availability_condition": "admin at mobile viewport",
+  "safety_class": "safe",
+  "allowed_dispositions_by_mode": {
+    "runtime-only": ["covered"],
+    "full-evidence": ["covered"]
+  },
+  "minimum_evidence_class": "runtime_trace",
   "expected_result": "invite-dialog-open",
+  "accepted_aliases": [],
   "required_modes": ["runtime-only", "full-evidence"]
 }
 ```
@@ -313,6 +358,26 @@ accepted observation aliases, materiality, and minimum proof. The comparator
 matches a finding only when both its affected frontier lineage and normalized
 observed effect match. Ambiguous prose-only similarity is quarantined for human
 review rather than counted as a deterministic pass.
+
+Canonical material findings therefore add these machine-facing fields to the
+readiness ledger while retaining human titles and explanations:
+
+```text
+affected_semantic_keys[]
+observed_effect_code
+evidence_refs[]
+```
+
+`observed_effect_code` uses the same versioned token normalization and remains a
+plain extensible string rather than a global product-defect taxonomy.
+
+Decoys have one of two explicit policies. `negative_control` means the object
+must not appear as a control or transition row; it guards false-positive
+inventory. `false_affordance` additionally has an expected-defect entry
+requiring a finding with the affected surface key and
+`observed_effect_code: false-affordance-noninteractive`. This distinguishes
+correctly identifying a misleading affordance from merely omitting a harmless
+non-feature.
 
 An item may declare which mode can reasonably discover it. Runtime-only runs
 must not fail for source-only facts; full-evidence runs must reconcile both.
@@ -360,27 +425,43 @@ that host/mode is `NOT_PROVEN`, not synthetically passed.
 Each run root is isolated as:
 
 ```text
-<temp-run>/target
+<temp-run>/agent-workspace
+<temp-run>/full-evidence-copy       # full-evidence mode only
 <temp-run>/skills
 <temp-run>/host-home
 <temp-run>/evidence
+<controller-private>/server-source
 <controller-private>/oracle
 ```
 
-The host working directory is `target`; environment variables are allowlisted;
-real HOME, repository, unrelated credentials, and prior run paths are omitted.
+The runtime-only host working directory is the empty `agent-workspace`; the
+full-evidence host working directory is `full-evidence-copy`. Environment
+variables are allowlisted; real HOME, repository, unrelated credentials, and
+prior run paths are omitted.
 Strict oracle-blind acceptance additionally requires a host or OS filesystem
 allowlist that denies reads outside the target, temporary skills, host runtime
-dependencies, and evidence directories. A canary beside the oracle verifies the
-read boundary before the run. If that boundary cannot be demonstrated, the run
-may provide diagnostic evidence but its oracle-blind isolation status is
-`NOT_PROVEN` and it cannot satisfy the strict release gate. The harness never
-describes mere prompt prohibition as filesystem isolation.
+dependencies, and evidence directories. Here, “target” means only the selected
+agent workspace for that mode, never the controller-private server source. A
+canary beside the oracle verifies the read boundary before the run. If no
+containment capability is available during preflight, the strict run is not
+attempted and returns `NOT_PROVEN`. If containment is available but the canary
+is readable or the boundary is escaped during the attempted run, the result is
+`FAIL`. The harness never describes mere prompt prohibition as filesystem
+isolation.
 
 Every host process and fixture process has a bounded timeout. Reset failure,
 health-check failure, malformed artifacts, missing artifacts, host nonzero exit,
 timeout, comparator mismatch, or cleanup failure is `FAIL` when the host was
 available. A missing or unsupported host/runtime capability is `NOT_PROVEN`.
+
+After success, the harness preserves only the requested canonical ledger,
+report JSON/HTML, acceptance result, and bounded logs under the explicit output
+path; it removes agent workspace, evidence copy, temporary skills, host home,
+canary, and controller/server workspace. After failure or timeout, it first
+copies bounded diagnostics and any partial canonical artifacts to the output,
+then removes the same transient paths. Sensitive environment values and host
+credentials are redacted from retained logs. Any removal failure changes an
+otherwise available run to `FAIL` and records the exact residual path.
 
 ## Deterministic comparator
 
@@ -417,7 +498,11 @@ It checks four dimensions.
 ### Unexpected rows
 
 Unexpected semantic rows are reported separately and require review. They do
-not silently pass or fail the release gate until classified.
+not silently pass or fail the release gate until classified. An unclassified
+unexpected row produces `REVIEW_REQUIRED`, a nonpassing acceptance state with a
+stable nonzero exit. Review resolves it by correcting the oracle, accepting a
+supported alias/variant into the versioned oracle, or preserving it as a false-
+positive/duplicate failure, then reruns the deterministic comparison.
 
 The comparator is authoritative for acceptance, not for the audited product's
 canonical evidence. It never rewrites or repairs the agent-authored ledger or
@@ -469,9 +554,9 @@ on its own. Passing requires:
 
 - all mode-required material features and surfaces discovered;
 - all mode-required material controls inventoried;
-- all safe material transitions exercised;
-- all unsafe controls correctly avoided;
-- inaccessible conditions correctly blocked;
+- every oracle item reaches one of its mode-specific allowed dispositions,
+  including `covered` for available safe transitions, `avoided` for unsafe
+  actions, and `blocked` only where the mode declares inaccessibility;
 - all seeded readiness-blocking defects found;
 - no unsupported `covered` claims;
 - no unexplained source/runtime differences;
@@ -489,12 +574,17 @@ Suite-level outcomes are:
 - `FAIL`: host available but launch, reset, artifact, isolation canary,
   comparison, cleanup, or timeout requirements failed;
 - `NOT_PROVEN`: the host or required containment capability is unavailable and
-  no strict run occurred.
+  no strict run occurred;
+- `REVIEW_REQUIRED`: execution and deterministic checks completed, but an
+  unexpected semantic row requires oracle/false-positive classification.
 
-A configured available host/mode failure blocks release. `NOT_PROVEN` never
-counts as a pass. A release may proceed with a missing host/mode only through an
-explicit human waiver recorded in release evidence; the release must not claim
-cross-host proof for waived modes.
+Stable driver exits are `0` for `PASS`, `1` for `FAIL`, `2` for `NOT_PROVEN`,
+and `3` for `REVIEW_REQUIRED`.
+
+A configured available host/mode `FAIL` or `REVIEW_REQUIRED` blocks release.
+`NOT_PROVEN` never counts as a pass. A release may proceed with a missing
+host/mode only through an explicit human waiver recorded in release evidence;
+the release must not claim cross-host proof for waived modes.
 
 ## Objective closure derivation
 
@@ -641,6 +731,8 @@ Explicit non-goals:
 
 The design succeeds when Shipworthy can be given a bounded but adversarial
 product it has never seen, produce a frontier that reconciles with the private
-oracle, refuse false closure when it misses material surface, and render the
-result as a concise human-readable readiness report backed by inspectable
-technical evidence.
+oracle, and render a concise human-readable readiness report backed by
+inspectable technical evidence. When the oracle-blind agent nevertheless claims
+closure after missing material surface, the separate authoritative acceptance
+gate must refuse `PASS`, preserve that unchanged report as regression evidence,
+and return a nonzero result.
