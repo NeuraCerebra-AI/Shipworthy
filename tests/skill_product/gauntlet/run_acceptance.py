@@ -119,7 +119,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         shutil.rmtree(controller, ignore_errors=True)
         raise
     log.close()
-    allowed = [*skill_paths, str(brief), str(workspace), str(output)]
+    allowed = [*(str(Path(path).parent) for path in skill_paths), str(brief), str(workspace), str(output)]
     manifest: dict[str, Any] = {
         "schema_version": "shipworthy-gauntlet-run-v1",
         "mode": args.mode,

@@ -89,6 +89,11 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertNotEqual(str(output), manifest["controller_root"])
         self.assertEqual(4, len(manifest["skill_paths"]))
         self.assertTrue(all(Path(path).name == "SKILL.md" for path in manifest["skill_paths"]))
+        allowed = set(manifest["allowed_paths"])
+        self.assertTrue(all(str(Path(path).parent) in allowed for path in manifest["skill_paths"]))
+        self.assertTrue(
+            all((Path(path).parent / "references").is_dir() for path in manifest["skill_paths"])
+        )
         self.assertTrue(Path(manifest["workspace"]).is_dir())
         self.assertEqual([], list(Path(manifest["workspace"]).iterdir()))
         self.assertNotIn("product_source", manifest)
