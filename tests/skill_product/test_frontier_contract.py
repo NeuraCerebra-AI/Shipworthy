@@ -180,6 +180,11 @@ class FrontierContractTests(unittest.TestCase):
         self.assertIn("path_frontier", ledger["$defs"])
         self.assertEqual({"$ref": "#/$defs/path_frontier"}, ledger["properties"]["path_frontier"])
         self.assertEqual({"$ref": "readiness-ledger.schema.json"}, report["$defs"]["ReadinessLedger"])
+        pattern = ledger["$defs"]["FrontierRow"]["properties"]["semantic_key"]["pattern"]
+        import re
+        self.assertIsNone(re.fullmatch(pattern, "surface:dashboard"))
+        self.assertIsNone(re.fullmatch(pattern, "control:projects/save"))
+        self.assertIsNotNone(re.fullmatch(pattern, "surface:/dashboard:normal:member:desktop"))
 
     def test_schema_subset_resolves_only_bounded_same_directory_refs(self) -> None:
         from tests.skill_product.support.schema_subset import SchemaReferenceError, validate

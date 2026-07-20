@@ -107,11 +107,15 @@ $("#export")?.addEventListener("click", () => {
   link.click();
   URL.revokeObjectURL(link.href);
 });
-$("#start-import")?.addEventListener("click", () => {
-  $("#import-status").textContent = $("#import-file").files.length ? "Import completed" : "Choose a JSON export";
-});
-$("#save-profile")?.addEventListener("click", () => {
-  $("#profile-status").textContent = "Profile saved";
+$("#start-import")?.addEventListener("click", async () => {
+  const file = $("#import-file").files[0];
+  if (!file) { $("#import-status").textContent = "Choose a JSON export"; return; }
+  try {
+    const value = JSON.parse(await file.text());
+    $("#import-status").textContent = typeof value.project === "string" ? "Import completed" : "Invalid JSON export";
+  } catch (_) {
+    $("#import-status").textContent = "Invalid JSON export";
+  }
 });
 route();
 applyRole(localStorage.getItem("gauntlet-role") || "member");

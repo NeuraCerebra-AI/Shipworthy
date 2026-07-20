@@ -70,6 +70,16 @@ For `audit_all` and full Shipworthy runs, build a **material-state control censu
 
 Exercise every safe control at least once per materially different behavior and record the observed transition, including `before_state`, `after_state`, and evidence. Re-test persistence-affecting behavior after refresh or re-entry when persistence is material. Do not click unsafe controls: give blocked or avoided controls an explicit terminal disposition and reason. A surface is not covered merely because it was opened, screenshotted, or its primary happy path worked.
 
+### Canonical frontier identity gate
+
+For a full Shipworthy run, read
+`references/path-discovery-and-coverage.md` before creating frontier rows. Use
+the actual route and exactly
+`surface:<actual-route>:<state>:<role>:<viewport>`, then derive control and
+transition keys from that parent as documented. Shorthand keys such as `surface:dashboard`, `control:projects/save`, dotted IDs, invented logical
+routes, and prose aliases are invalid. Validate the final ledger against the
+supplied readiness schema; if any key fails its type-specific grammar, the run must not claim schema validation or frontier closure.
+
 ## Audit Workflow
 
 1. Capture the ask, artifact, environment, credentials, fixture data, device targets, safe-test permission, and mutation boundaries.

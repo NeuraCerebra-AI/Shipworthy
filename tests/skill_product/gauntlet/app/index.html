@@ -74,8 +74,8 @@
 
     <section id="profile">
       <h2>Profile settings</h2>
-      <label>Display name <input id="profile-name" value="Warren"></label>
-      <button id="save-profile" data-supporting-control="save-profile" data-expected-effect="profile-saved">Save profile</button><p id="profile-status" aria-live="polite"></p>
+      <label>Display name <input id="profile-name" value="Warren" readonly aria-describedby="profile-policy"></label>
+      <p id="profile-policy">Display name is managed by the workspace identity provider.</p>
       <p>Avatar and profile preferences are managed here.</p>
     </section>
 

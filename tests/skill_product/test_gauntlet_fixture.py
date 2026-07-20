@@ -106,6 +106,14 @@ class GauntletFixtureTests(unittest.TestCase):
     def test_static_paths_cannot_escape_fixture_root(self) -> None:
         self.assertIn(self.fixture.request("/../../../../etc/passwd")[0], (400, 404))
 
+    def test_unknown_browser_route_is_human_readable_html(self) -> None:
+        request = urllib.request.Request(self.fixture.base + "/not-a-real-route")
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(request, timeout=3)
+        self.assertEqual(404, raised.exception.code)
+        self.assertIn("text/html", raised.exception.headers.get("Content-Type", ""))
+        self.assertIn("Page not found", raised.exception.read().decode())
+
     def test_every_oracle_case_has_a_fixture_hook_and_decoys_are_noninteractive(self) -> None:
         oracle = json.loads(ORACLE.read_text(encoding="utf-8"))
         source = "\n".join(
@@ -137,14 +145,16 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('data-supporting-control="role-admin"', html)
         self.assertIn('aria-label="Synthetic audit role"', html)
         self.assertIn('id="invite-permission"', html)
-        self.assertIn('data-supporting-control="save-profile"', html)
+        self.assertIn('id="profile-name" value="Warren" readonly', html)
         self.assertIn('id="admin-permission"', html)
         self.assertIn('id="import-file"', html)
         script = (APP / "app.js").read_text(encoding="utf-8")
         self.assertIn('event.key === "Enter" || (event.shiftKey && event.key === "F10")', script)
         self.assertIn('/api/duplicate', script)
         self.assertIn('/api/invite', script)
+        self.assertIn("Invalid JSON export", script)
         self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn("#avatar { margin-left: 0; }", (APP / "styles.css").read_text(encoding="utf-8"))
         for path in (SERVER, APP / "app.js"):
             logical = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")]
             self.assertLessEqual(len(logical), 300, path)

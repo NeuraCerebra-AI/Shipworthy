@@ -93,6 +93,15 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         self.assertIn("could not independently change the readiness verdict", self.discovery)
         self.assertIn("Do not use ordinal names such as `save-primary`", self.discovery)
 
+    def test_top_level_skill_repeats_non_optional_frontier_identity_gate(self) -> None:
+        for phrase in (
+            "Canonical frontier identity gate",
+            "surface:<actual-route>:<state>:<role>:<viewport>",
+            "Shorthand keys such as `surface:dashboard`",
+            "must not claim schema validation",
+        ):
+            self.assertIn(phrase, self.product)
+
     def test_closed_frontier_requires_two_independent_zero_yield_passes(self) -> None:
         for document in (self.orchestrator, self.evidence, self.discovery):
             self.assertIn("two qualifying zero-yield discovery passes", document)

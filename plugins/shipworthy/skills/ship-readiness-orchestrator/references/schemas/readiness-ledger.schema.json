@@ -610,7 +610,7 @@
         "id": {"type": "string", "pattern": "^PF-[A-Z0-9][A-Z0-9._-]{0,62}$"},
         "kind": {"enum": ["intent", "feature", "surface", "control", "transition"]},
         "parent_id": {"anyOf": [{"type": "string", "pattern": "^PF-[A-Z0-9][A-Z0-9._-]{0,62}$"}, {"type": "null"}]},
-        "semantic_key": {"type": "string", "minLength": 3, "maxLength": 512, "pattern": "^(intent|feature|surface|control|transition):[a-z0-9/_:-]+$"},
+        "semantic_key": {"type": "string", "minLength": 3, "maxLength": 512, "pattern": "^(intent:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*|feature:[a-z0-9][a-z0-9-]*|surface:/[a-z0-9/_-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*|control:surface:/[a-z0-9/_-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*|transition:[a-z0-9][a-z0-9-]*:control:surface:/[a-z0-9/_-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*)$"},
         "normalization_version": {"const": "shipworthy-semantic-v1"},
         "method_taxonomy_version": {"const": "shipworthy-methods-v1"},
         "status": {"enum": ["covered", "sampled_with_justification", "blocked", "avoided", "missing", "out_of_scope", "evidence_debt", "unattempted", "unknown", "maybe"]},
