@@ -234,6 +234,17 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, combined)
 
+    def test_current_full_run_rejects_legacy_frontier_shape_and_alias_lineage(self) -> None:
+        combined = self.orchestrator + self.prompts
+        for phrase in (
+            "`path_frontier` must be an object, never a list",
+            "`rows`, `discovery_passes`, `reconciliation_differences`, and derived `summary`",
+            "exact `shipworthy-semantic-v1` keys present in `path_frontier.rows`",
+            "unversioned aliases or finding-only shorthand",
+            "fail the run before rendering",
+        ):
+            self.assertIn(phrase, combined)
+
     def test_pressure_suite_includes_confusing_surface_gauntlet(self) -> None:
         self.assertIn("Scenario 12: Exhaustive Surface Gauntlet", self.pressure)
         for phrase in (

@@ -227,6 +227,8 @@ For each finding include evidence, user consequence, likely cause, smallest usef
 
 Before the verifier approves or HTML is rendered, the final readiness-ledger.json and report-input.json must each contain the same top-level `path_frontier` object with every canonical row, discovery pass, reconciliation difference, derived count, and closure field. Do not leave the frontier only in a raw observation file, sidecar, checkpoint, or narrative. Schema-valid legacy compatibility is not sufficient for a current full run. Every `Fix` finding must contain non-empty `affected_semantic_keys`, a semantic `observed_effect_code`, and `evidence_refs`. Re-open both final JSON files from disk after writing them, compare their frontier identities/counts/closure and finding lineage, then render HTML from that exact report input. Missing or divergent canonical data fails completion even when a legacy-compatible schema accepts the shell.
 
+For a current full run, `path_frontier` must be an object, never a list. It must contain `rows`, `discovery_passes`, `reconciliation_differences`, and derived `summary` alongside its version and closure fields. Every finding's `affected_semantic_keys` must use exact `shipworthy-semantic-v1` keys present in `path_frontier.rows`, never unversioned aliases or finding-only shorthand. If either artifact uses the legacy list shape, any required object member is absent, or finding lineage does not resolve to exact rows, fail the run before rendering; do not translate, infer, or declare closure from that artifact.
+
 Do not implement fixes unless the user explicitly asks for implementation after the review.
 
 End every operational Shipworthy final answer with this concise fix handoff unless the user explicitly forbids follow-up work:
