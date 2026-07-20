@@ -68,7 +68,8 @@
     <section id="import">
       <h2>Import project</h2>
       <p>Upload a JSON export to start an import.</p>
-      <label>Export file <input id="import-file" type="file" accept="application/json" aria-describedby="import-status"></label>
+      <p id="import-guidance">Use a complete Northstar JSON export from Workspace data.</p>
+      <label>Import file <input id="import-file" type="file" accept="application/json" aria-describedby="import-guidance import-status"></label>
       <button id="start-import" data-supporting-control="start-import" data-expected-effect="import-completed">Start import</button>
       <p id="import-status" role="alert" aria-live="polite"></p>
       <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>

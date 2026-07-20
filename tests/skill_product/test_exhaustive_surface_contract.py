@@ -195,6 +195,13 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
             "Every conventional shortcut that produced behavior",
         ):
             self.assertIn(phrase, self.prompts)
+        for phrase in (
+            "context-menu or keyboard trigger",
+            "invalid → corrected → success",
+            "separate reload/re-entry control",
+            "separate finding lineage and effect code",
+        ):
+            self.assertIn(phrase, self.product)
 
     def test_orchestrator_routes_to_canonical_contract_before_collection(self) -> None:
         for path in (

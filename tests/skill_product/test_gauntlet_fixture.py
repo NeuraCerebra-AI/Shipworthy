@@ -172,6 +172,15 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('function closeProjectForm()', script)
         self.assertIn('state.invites.join(", ")', script)
         self.assertIn('api("/api/import", value)', script)
+        self.assertIn('show($("#project-form"), false)', script)
+        self.assertIn('$("#new-name").value = ""', script)
+        self.assertIn('id="import-file" type="file" accept="application/json" aria-describedby="import-guidance import-status"', html)
+        self.assertIn('id="import-guidance"', html)
+        self.assertNotIn("Export file <input", html)
+        self.assertIn('function openInviteDialog()', script)
+        self.assertIn('function closeInviteDialog()', script)
+        self.assertIn('$("#avatar-menu")?.querySelector("a")?.focus()', script)
+        self.assertIn('show($("#invite-permission"), role !== "admin")', script)
         self.assertIn('$("#project-state").textContent', script)
         self.assertIn('$("#project-actions")?.addEventListener', script)
         self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
@@ -188,9 +197,9 @@ class GauntletFixtureTests(unittest.TestCase):
         for input_id, status_id in (
             ("new-name", "form-error"),
             ("invite-email", "invite-status"),
-            ("import-file", "import-status"),
         ):
             self.assertRegex(html, rf'id="{input_id}"[^>]*aria-describedby="{status_id}"')
+        self.assertRegex(html, r'id="import-file"[^>]*aria-describedby="import-guidance import-status"')
         self.assertIn('setAttribute("aria-invalid"', script)
 
     def test_incidental_accessibility_and_touch_noise_is_not_part_of_the_gauntlet(self) -> None:
@@ -208,6 +217,7 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('$("#duplicate")?.focus()', script)
         self.assertIn('event.key === "Tab"', script)
         self.assertIn('api("/api/import", value)', script)
+        self.assertIn("#project-row { gap:", (APP / "styles.css").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

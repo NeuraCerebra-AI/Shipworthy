@@ -204,6 +204,8 @@ class AcceptanceHarnessTests(unittest.TestCase):
         }
         for name in ("runtime-only.md", "full-evidence.md"):
             text = (GAUNTLET / "prompts" / name).read_text(encoding="utf-8")
+            self.assertIn("bounded acceptance scope", text)
+            self.assertIn("do not block bounded frontier closure", text)
             self.assertTrue(expected.issubset(set(text.splitlines())))
             self.assertIn("Do not inspect", text)
             self.assertNotIn("surface-oracle.json", text)

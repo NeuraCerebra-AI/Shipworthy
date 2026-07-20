@@ -358,6 +358,25 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_latest_observed_save_reload_and_false_affordance_vocabulary_matches(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "control:surface:/projects:editing:member:desktop:save:button:persist":
+                "control:surface:/projects:normal:member:desktop:save:button:persist-attempt",
+            "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted":
+                "transition:editing:control:surface:/projects:normal:member:desktop:save:button:persist-attempt:not-persisted",
+            "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost":
+                "transition:success-without-persistence:control:surface:/projects:normal:member:desktop:reload-edit:browser-command:verify-edit-persistence:not-persisted",
+        }
+        for row in result["rows"]:
+            row["semantic_key"] = replacements.get(row["semantic_key"], row["semantic_key"])
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+            if finding["observed_effect_code"] == "false-affordance-noninteractive":
+                finding["observed_effect_code"] = "false-affordance"
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_false_affordance_finding_may_use_observed_mobile_variant(self) -> None:
         result = self.complete_result()
         finding = next(item for item in result["findings"] if item["observed_effect_code"] == "false-affordance-noninteractive")

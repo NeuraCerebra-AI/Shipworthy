@@ -25,7 +25,7 @@
       "affected_semantic_keys": ["surface:/dashboard:upgrade-card:member:desktop"],
       "accepted_affected_semantic_keys": ["surface:/dashboard:upgrade-card:member:mobile"],
       "observed_effect_code": "false-affordance-noninteractive",
-      "accepted_observation_aliases": ["looks-clickable-but-is-not", "upgrade_false_affordance", "actionable-looking-noninteractive", "upgrade-apparent-action-no-navigation", "affordance_without_activation"],
+      "accepted_observation_aliases": ["looks-clickable-but-is-not", "upgrade_false_affordance", "actionable-looking-noninteractive", "upgrade-apparent-action-no-navigation", "affordance_without_activation", "false-affordance"],
       "materiality": "material",
       "minimum_proof": "runtime_visual",
       "required_modes": ["runtime-only", "full-evidence"]

@@ -16,6 +16,10 @@ Do not inspect any path outside the explicit allowlist. Do not inspect the
 repository test tree, prior runs, comparison logic, or private expected data.
 Do not use network hosts other than the supplied localhost URL.
 
+Derive closure only within the bounded acceptance scope. Unavailable external
+engines, providers, source/build evidence, or assistive tools remain disclosed proof boundaries but do not block bounded frontier closure when every supplied
+in-scope material row is terminal and verified.
+
 Write a canonical readiness ledger (`readiness-ledger.json`), report input with
 the canonical path frontier (`report-input.json`), and mandatory self-contained HTML
 (`report.html`) to the supplied evidence output. State that filesystem
