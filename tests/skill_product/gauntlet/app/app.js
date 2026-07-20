@@ -20,7 +20,9 @@ async function loadState() {
 function applyRole(role) {
   localStorage.setItem("gauntlet-role", role);
   document.body.dataset.role = role;
-  show($("#admin"), role === "admin" && location.pathname === "/admin/data");
+  if (location.pathname === "/admin/data") show($("#admin"), true);
+  show($("#admin-controls"), role === "admin");
+  show($("#admin-permission"), role !== "admin");
   $("#invite").disabled = role !== "admin";
 }
 
@@ -47,8 +49,16 @@ $("#project-row")?.addEventListener("contextmenu", (event) => {
   event.preventDefault();
   show($("#context-menu"), true);
 });
-$("#duplicate")?.addEventListener("click", () => {
-  $("#duplicate-status").textContent = "Alpha copy added";
+$("#project-row")?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || (event.shiftKey && event.key === "F10")) {
+    event.preventDefault();
+    show($("#context-menu"), true);
+  }
+});
+$("#duplicate")?.addEventListener("click", async () => {
+  const result = await api("/api/duplicate");
+  $("#duplicate-status").textContent = result.status === 201 ? "Alpha copy added" : "Duplicate failed";
+  await loadState();
   show($("#context-menu"), false);
 });
 $("#create-first")?.addEventListener("click", () => show($("#project-form"), true));
@@ -64,7 +74,7 @@ $("#save-real")?.addEventListener("click", async () => {
 });
 $("#save-visual")?.addEventListener("click", () => { $("#toast").textContent = "Looks saved"; });
 $("#publish")?.addEventListener("click", async () => {
-  const result = await api("/api/publish");
+  const result = await api("/api/publish", {name: $("#project-name").value});
   $("#toast").textContent = result.status === 200 ? "Published" : "Name is required before publishing";
 });
 $("#stale")?.addEventListener("click", async () => {
@@ -80,8 +90,9 @@ $("#stale")?.addEventListener("click", async () => {
   $("#toast").after(retry);
 });
 $("#invite")?.addEventListener("click", () => $("#invite-dialog").showModal());
-$("#send-invite")?.addEventListener("click", () => {
-  $("#invite-status").textContent = $("#invite-email").value ? "Invitation queued" : "Email is required";
+$("#send-invite")?.addEventListener("click", async () => {
+  const result = await api("/api/invite", {email: $("#invite-email").value});
+  $("#invite-status").textContent = result.status === 200 ? "Invitation queued" : "Valid email is required";
 });
 $("#close-invite")?.addEventListener("click", () => $("#invite-dialog").close());
 $("#role-member")?.addEventListener("click", () => applyRole("member"));
@@ -93,6 +104,9 @@ $("#export")?.addEventListener("click", () => {
   link.download = "northstar-export.json";
   link.click();
   URL.revokeObjectURL(link.href);
+});
+$("#start-import")?.addEventListener("click", () => {
+  $("#import-status").textContent = $("#import-file").files.length ? "Import completed" : "Choose a JSON export";
 });
 route();
 applyRole(localStorage.getItem("gauntlet-role") || "member");

@@ -30,6 +30,15 @@
       "required_modes": ["runtime-only", "full-evidence"]
     },
     {
+      "id": "DEFECT-DISABLED-CONTROL",
+      "affected_semantic_keys": ["control:surface:/projects/alpha:editing:member:desktop:archive:button:disabled"],
+      "observed_effect_code": "unexplained-disabled-control",
+      "accepted_observation_aliases": ["disabled-without-explanation"],
+      "materiality": "material",
+      "minimum_proof": "runtime_visual",
+      "required_modes": ["runtime-only", "full-evidence"]
+    },
+    {
       "id": "DEFECT-MISSING-CANCEL",
       "affected_semantic_keys": ["feature:import-cancellation"],
       "observed_effect_code": "promised-path-missing",

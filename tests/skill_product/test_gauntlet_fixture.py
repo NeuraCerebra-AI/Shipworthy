@@ -91,6 +91,18 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertEqual(401, self.fixture.request("/api/stale", "POST", {})[0])
         self.assertEqual(200, self.fixture.request("/api/reauthenticate", "POST", {})[0])
 
+    def test_supporting_duplicate_invite_and_publish_behaviors_are_real(self) -> None:
+        self.assertEqual(201, self.fixture.request("/api/duplicate", "POST", {})[0])
+        self.assertIn("Alpha copy", self.fixture.request("/api/state")[1]["projects"])
+        self.assertEqual(422, self.fixture.request("/api/invite", "POST", {"email": ""})[0])
+        self.assertEqual(200, self.fixture.request("/api/invite", "POST", {"email": "person@example.test"})[0])
+        self.assertIn("person@example.test", self.fixture.request("/api/state")[1]["invites"])
+        self.assertEqual(409, self.fixture.request("/api/publish", "POST", {"name": ""})[0])
+        self.assertEqual(200, self.fixture.request("/api/publish", "POST", {"name": "Ready"})[0])
+        state = self.fixture.request("/api/state")[1]
+        self.assertEqual("published", state["project"]["state"])
+        self.assertEqual("Ready", state["project"]["name"])
+
     def test_static_paths_cannot_escape_fixture_root(self) -> None:
         self.assertIn(self.fixture.request("/../../../../etc/passwd")[0], (400, 404))
 
@@ -123,6 +135,12 @@ class GauntletFixtureTests(unittest.TestCase):
                 self.assertIn("data-expected-effect=", button, button)
         self.assertIn('id="profile"', html)
         self.assertIn('data-supporting-control="role-admin"', html)
+        self.assertIn('id="admin-permission"', html)
+        self.assertIn('id="import-file"', html)
+        script = (APP / "app.js").read_text(encoding="utf-8")
+        self.assertIn('event.key === "Enter" || (event.shiftKey && event.key === "F10")', script)
+        self.assertIn('/api/duplicate', script)
+        self.assertIn('/api/invite', script)
         self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
         for path in (SERVER, APP / "app.js"):
             logical = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")]

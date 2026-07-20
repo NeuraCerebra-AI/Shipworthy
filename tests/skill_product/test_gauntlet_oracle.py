@@ -53,6 +53,10 @@ class GauntletOracleTests(unittest.TestCase):
         self.assertTrue(all(item["decoy_policy"] == "negative_control" for item in surface["negative_controls"]))
         self.assertTrue(any(item.get("decoy_policy") == "false_affordance" for item in surface["items"]))
         self.assertTrue(any(item["identity"] == "Save" for item in surface["items"]))
+        self.assertEqual(
+            {"DEFECT-MISLEADING-SUCCESS", "DEFECT-RELOAD-LOSS", "DEFECT-FALSE-AFFORDANCE", "DEFECT-DISABLED-CONTROL", "DEFECT-MISSING-CANCEL"},
+            {item["id"] for item in defects["defects"]},
+        )
         for item in surface["items"]:
             self.assertEqual("shipworthy-semantic-v1", item["normalization_version"])
             self.assertEqual("shipworthy-methods-v1", item["method_taxonomy_version"])

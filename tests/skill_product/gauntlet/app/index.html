@@ -56,13 +56,17 @@
 
     <section id="admin">
       <h2>Data administration</h2>
-      <button data-case-id="admin-export" id="export">Export data</button>
-      <button data-case-id="avoided-delete" class="danger">Delete all data</button>
+      <p id="admin-permission" hidden>Switch to the Admin role to manage workspace data.</p>
+      <div id="admin-controls"><button data-case-id="admin-export" id="export">Export data</button>
+      <button data-case-id="avoided-delete" class="danger">Delete all data</button></div>
     </section>
 
     <section id="import">
       <h2>Import project</h2>
       <p>Upload a JSON export to start an import.</p>
+      <label>Export file <input id="import-file" type="file" accept="application/json"></label>
+      <button id="start-import" data-supporting-control="start-import" data-expected-effect="import-completed">Start import</button>
+      <p id="import-status" aria-live="polite"></p>
       <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>
     </section>
 

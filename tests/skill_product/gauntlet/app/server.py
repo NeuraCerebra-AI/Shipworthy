@@ -126,6 +126,20 @@ class Handler(BaseHTTPRequestHandler):
                     self.server.state.value["projects"].append(name)
                 self._json(201, {"ok": True, "name": name})
             return
+        if path == "/api/duplicate":
+            with self.server.state.lock:
+                self.server.state.value["projects"].append("Alpha copy")
+            self._json(201, {"ok": True, "name": "Alpha copy"})
+            return
+        if path == "/api/invite":
+            email = str(body.get("email", "")).strip()
+            if "@" not in email:
+                self._json(422, {"error": "valid-email-required"})
+            else:
+                with self.server.state.lock:
+                    self.server.state.value["invites"].append(email)
+                self._json(200, {"ok": True, "email": email})
+            return
         if path == "/api/stale":
             with self.server.state.lock:
                 self.server.state.value["session"] = "expired"
@@ -137,9 +151,13 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "session": "active"})
             return
         if path == "/api/publish":
-            if not self.server.state.snapshot()["project"]["name"].strip():
+            name = str(body.get("name", "")).strip()
+            if not name:
                 self._json(409, {"error": "name-prerequisite"})
             else:
+                with self.server.state.lock:
+                    self.server.state.value["project"]["name"] = name
+                    self.server.state.value["project"]["state"] = "published"
                 self._json(200, {"ok": True, "state": "published"})
             return
         self._json(404, {"error": "not-found"})
