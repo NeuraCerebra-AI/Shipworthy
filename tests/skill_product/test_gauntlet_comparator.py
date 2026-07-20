@@ -217,6 +217,27 @@ class GauntletComparatorTests(unittest.TestCase):
         result["summary"]["surface"] += 1
         self.assertEqual("PASS", self.compare(result)["status"])
 
+    def test_known_fixture_feature_inventory_is_classified(self) -> None:
+        result = self.complete_result()
+        result["rows"].append(
+            {
+                "semantic_key": "feature:projects",
+                "kind": "feature",
+                "status": "covered",
+                "material": True,
+                "evidence_refs": ["evidence/projects.json"],
+            }
+        )
+        result["summary"]["feature"] += 1
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_observed_false_affordance_may_be_missing_or_blocked(self) -> None:
+        for status in ("missing", "blocked"):
+            result = self.complete_result()
+            row = next(item for item in result["rows"] if item["semantic_key"] == "surface:/dashboard:upgrade-card:member:desktop")
+            row["status"] = status
+            self.assertEqual("PASS", self.compare(result)["status"])
+
     def test_defect_lineage_accepts_matched_canonical_alternative_and_effect_alias(self) -> None:
         result = self.complete_result()
         expected = "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"

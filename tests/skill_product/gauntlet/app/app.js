@@ -15,6 +15,7 @@ async function loadState() {
   const state = await response.json();
   const row = $("#project-row");
   if (row) row.querySelector("strong").textContent = state.projects.join(", ");
+  $("#project-state").textContent = `Project state: ${state.project.state}`;
   $("#pending-invites").textContent = state.invites.length ? `Pending invites: ${state.invites.join(", ")}` : "No pending invites";
 }
 
@@ -32,6 +33,12 @@ function closeProjectForm() {
   if ($("#project-form")?.hidden) return;
   show($("#project-form"), false);
   $("#create-first")?.focus();
+}
+
+function closeContextMenu() {
+  if ($("#context-menu")?.hidden) return;
+  show($("#context-menu"), false);
+  $("#project-row")?.focus();
 }
 
 function applyRole(role) {
@@ -65,6 +72,7 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "Escape") {
     closePalette();
     closeProjectForm();
+    closeContextMenu();
   }
 });
 document.addEventListener("click", (event) => {
@@ -74,6 +82,7 @@ $("#project-row")?.addEventListener("contextmenu", (event) => {
   event.preventDefault();
   show($("#context-menu"), true);
 });
+$("#project-actions")?.addEventListener("click", () => show($("#context-menu"), true));
 $("#project-row")?.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || (event.shiftKey && event.key === "F10")) {
     event.preventDefault();
@@ -102,6 +111,7 @@ $("#save-visual")?.addEventListener("click", () => { $("#toast").textContent = "
 $("#publish")?.addEventListener("click", async () => {
   const result = await api("/api/publish", {name: $("#project-name").value});
   $("#toast").textContent = result.status === 200 ? "Published" : "Name is required before publishing";
+  if (result.status === 200) await loadState();
 });
 $("#stale")?.addEventListener("click", async () => {
   await api("/api/stale");
@@ -137,7 +147,10 @@ $("#start-import")?.addEventListener("click", async () => {
   if (!file) { $("#import-status").textContent = "Choose a JSON export"; return; }
   try {
     const value = JSON.parse(await file.text());
-    $("#import-status").textContent = typeof value.project === "string" ? "Import completed" : "Invalid JSON export";
+    if (typeof value.project !== "string") { $("#import-status").textContent = "Invalid JSON export"; return; }
+    const result = await api("/api/projects", {name: value.project});
+    $("#import-status").textContent = result.status === 201 ? "Import completed" : "Import failed";
+    if (result.status === 201) await loadState();
   } catch (_) {
     $("#import-status").textContent = "Invalid JSON export";
   }

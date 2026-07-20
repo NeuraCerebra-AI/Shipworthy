@@ -437,6 +437,7 @@
         "observed_effect_code": {
           "maxLength": 128,
           "minLength": 1,
+          "pattern": "^(?!(?:effect|issue)[-_]?[0-9]+$).+$",
           "type": "string"
         },
         "proof": {

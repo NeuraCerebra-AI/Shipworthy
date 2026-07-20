@@ -186,6 +186,11 @@ class FrontierContractTests(unittest.TestCase):
         self.assertIsNone(re.fullmatch(pattern, "control:projects/save"))
         self.assertIsNotNone(re.fullmatch(pattern, "surface:/dashboard:normal:member:desktop"))
 
+        effect_pattern = ledger["$defs"]["Finding"]["properties"]["observed_effect_code"]["pattern"]
+        self.assertIsNone(re.fullmatch(effect_pattern, "effect-001"))
+        self.assertIsNone(re.fullmatch(effect_pattern, "issue_7"))
+        self.assertIsNotNone(re.fullmatch(effect_pattern, "success-without-persistence"))
+
         finding = ledger["$defs"]["Finding"]
         fix_contracts = [
             item["then"].get("required", [])

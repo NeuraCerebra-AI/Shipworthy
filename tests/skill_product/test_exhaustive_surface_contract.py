@@ -118,6 +118,9 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
             "distinct input mode or keyboard shortcut gets its own control row",
             "Never model a noninteractive false affordance as a covered control",
             "triggering surface, not the resulting dialog",
+            "every material surface-spawning control at each supplied role and viewport",
+            "bounded conventional shortcut probe",
+            "never only an intent or evidence-debt row",
         ):
             self.assertIn(phrase, self.product)
 

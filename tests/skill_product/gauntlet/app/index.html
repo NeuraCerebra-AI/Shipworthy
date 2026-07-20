@@ -27,7 +27,7 @@
 
     <section id="projects">
       <h2>Projects</h2>
-      <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Right-click for actions</span></article>
+      <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Right-click for actions</span><button id="project-actions" data-case-id="context-menu">Project actions</button></article>
       <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
       <p id="duplicate-status" aria-live="polite"></p>
       <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
@@ -42,6 +42,7 @@
       <button data-case-id="duplicate-save-behavior" id="save-visual">Save</button>
       <button data-case-id="prerequisite-publish" id="publish">Publish</button>
       <button data-case-id="unexplained-disabled-control" disabled title="Unavailable">Archive</button>
+      <p id="project-state"></p>
       <p id="toast" aria-live="polite"></p>
       <div data-case-id="misleading-success" class="evidence-hook" aria-hidden="true"></div>
       <div data-case-id="reload-loss" class="evidence-hook" aria-hidden="true"></div>
@@ -77,7 +78,7 @@
       <h2>Profile settings</h2>
       <p>Display name: <output id="profile-name" aria-describedby="profile-policy">Warren</output></p>
       <p id="profile-policy">Display name is managed by the workspace identity provider.</p>
-      <p>Avatar and profile preferences are managed here.</p>
+      <p>Profile identity details are shown here; changes are managed by the provider.</p>
     </section>
 
     <section id="analytics" data-case-id="unavailable-feature-flag">

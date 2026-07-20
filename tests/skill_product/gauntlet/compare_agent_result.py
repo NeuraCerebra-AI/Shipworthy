@@ -69,6 +69,9 @@ def load_and_validate_oracle(surface_path: Path, defect_path: Path) -> tuple[dic
         raise ValueError("surface oracle must declare supporting routes")
     if len(set(supporting_routes)) != len(supporting_routes) or any(normalize_route(route) != route for route in supporting_routes):
         raise ValueError("supporting routes must be unique normalized paths")
+    supporting_features = surface.get("supporting_features")
+    if not isinstance(supporting_features, list) or not supporting_features or len(set(supporting_features)) != len(supporting_features):
+        raise ValueError("surface oracle must declare unique supporting features")
     if not isinstance(items, list) or len(items) != 18:
         raise ValueError("surface oracle must contain exactly eighteen cases")
     keys: set[str] = set()
@@ -244,12 +247,14 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
     ]
 
     known_routes = set(oracle.get("supporting_routes", []))
+    known_features = set(oracle.get("supporting_features", []))
     unexpected = [
         row for index, row in enumerate(rows)
         if index not in matched_rows
         and row.get("kind") != "intent"
         and row.get("material", True)
         and _row_route(row) not in known_routes
+        and row.get("semantic_key") not in known_features
         and ":not-found:" not in str(row.get("semantic_key", ""))
     ]
     if reasons:

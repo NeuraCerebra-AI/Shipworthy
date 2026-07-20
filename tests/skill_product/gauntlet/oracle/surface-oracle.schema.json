@@ -3,12 +3,13 @@
   "$id": "shipworthy://gauntlet/surface-oracle-v1",
   "title": "Shipworthy Gauntlet surface oracle",
   "type": "object",
-  "required": ["schema_version", "normalization_version", "method_taxonomy_version", "supporting_routes", "items", "negative_controls"],
+  "required": ["schema_version", "normalization_version", "method_taxonomy_version", "supporting_routes", "supporting_features", "items", "negative_controls"],
   "properties": {
     "schema_version": {"const": "shipworthy-gauntlet-surface-v1"},
     "normalization_version": {"const": "shipworthy-semantic-v1"},
     "method_taxonomy_version": {"const": "shipworthy-methods-v1"},
     "supporting_routes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^/"}},
+    "supporting_features": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^feature:"}},
     "items": {"type": "array", "minItems": 18, "maxItems": 18},
     "negative_controls": {"type": "array", "minItems": 1}
   }
