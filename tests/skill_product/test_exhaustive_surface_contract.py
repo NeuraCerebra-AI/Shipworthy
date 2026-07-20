@@ -200,8 +200,17 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
             "invalid → corrected → success",
             "separate reload/re-entry control",
             "separate finding lineage and effect code",
+            "Non-negotiable closure checklist",
+            "Do not accept prose, screenshots, or a combined finding as a substitute",
+            "unavailable capability has a feature row",
+            "false affordance has an observed surface row",
         ):
             self.assertIn(phrase, self.product)
+
+        for prompt in (self.prompts, self.product):
+            self.assertIn("each observed input mechanism", prompt)
+            self.assertIn("each reload/re-entry control and transition", prompt)
+            self.assertIn("one finding and semantic effect code per defect class", prompt)
 
     def test_orchestrator_routes_to_canonical_contract_before_collection(self) -> None:
         for path in (

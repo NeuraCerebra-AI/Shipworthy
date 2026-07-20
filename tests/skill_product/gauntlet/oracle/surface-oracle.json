@@ -3,7 +3,7 @@
   "normalization_version": "shipworthy-semantic-v1",
   "method_taxonomy_version": "shipworthy-methods-v1",
   "supporting_routes": ["/", "/dashboard", "/projects", "/team", "/admin/data", "/projects/import", "/settings/profile", "/not-a-route", "/definitely-not-a-real-route"],
-  "supporting_features": ["feature:workspace-navigation", "feature:navigation", "feature:dashboard", "feature:dashboard-navigation", "feature:projects", "feature:project-management", "feature:project-lifecycle", "feature:workspace-data", "feature:team", "feature:team-management", "feature:team-invites", "feature:team-invitations", "feature:data-administration", "feature:data-portability", "feature:project-import", "feature:project-import-export", "feature:profile", "feature:profile-settings", "feature:route-recovery", "feature:error-recovery", "feature:session-recovery", "feature:upgrade"],
+  "supporting_features": ["feature:workspace-navigation", "feature:global-navigation", "feature:navigation", "feature:dashboard", "feature:dashboard-actions", "feature:dashboard-navigation", "feature:projects", "feature:project-management", "feature:project-lifecycle", "feature:workspace-data", "feature:team", "feature:team-administration", "feature:team-management", "feature:team-permission-guidance", "feature:team-invites", "feature:team-invitations", "feature:data-administration", "feature:data-portability", "feature:project-import", "feature:project-import-export", "feature:profile", "feature:profile-settings", "feature:route-recovery", "feature:error-recovery", "feature:session-recovery", "feature:responsive-survival", "feature:keyboard-access", "feature:upgrade"],
   "items": [
     {
       "id": "CASE-AVATAR-SETTINGS", "case_id": "avatar-settings", "kind": "surface",
@@ -61,20 +61,21 @@
     {
       "id": "CASE-INVALID-RECOVERY", "case_id": "invalid-input-recovery", "kind": "transition",
       "semantic_key": "transition:invalid-name:control:surface:/projects:invalid:member:desktop:create:button:retry:created", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["transition:valid-input:control:surface:/projects:create:member:desktop:create:button:persist:created", "transition:create-form-opened:control:surface:/projects:create-form:member:desktop:create:button:persist-new-project:created"],
+      "accepted_semantic_keys": ["transition:valid-input:control:surface:/projects:create:member:desktop:create:button:persist:created", "transition:create-form-opened:control:surface:/projects:create-form:member:desktop:create:button:persist-new-project:created", "transition:create-valid:control:surface:/projects:create-open:member:desktop:create:button:submit-create:project-created"],
       "identity": "Retry valid project", "control_identity": "Create", "disambiguator": "validation-recovery", "before_state": "invalid-name", "after_state": "created", "materiality": "material", "availability_condition": "invalid then corrected name", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "created", "accepted_aliases": ["correct and retry"], "required_modes": ["runtime-only", "full-evidence"]
     },
     {
       "id": "CASE-STALE-SESSION", "case_id": "stale-session-recovery", "kind": "transition",
       "semantic_key": "transition:session-expired:control:surface:/projects:stale:member:desktop:reauthenticate:button:retry:restored", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["transition:session-expired:control:surface:/projects:stale-session:member:desktop:reauthenticate:button:restore-session:session-restored"],
       "identity": "Reauthenticate", "disambiguator": "stale-recovery", "before_state": "session-expired", "after_state": "restored", "materiality": "material", "availability_condition": "stale session fixture", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "restored", "accepted_aliases": ["sign in again"], "required_modes": ["runtime-only", "full-evidence"]
     },
     {
       "id": "CASE-DUPLICATE-SAVE", "case_id": "duplicate-save-behavior", "kind": "control",
       "semantic_key": "control:surface:/projects:editing:member:desktop:save:button:persist", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["control:surface:/projects:normal:admin:desktop:save:button:persist", "control:surface:/projects:normal:member:desktop:save:button:persist-attempt", "control:surface:/projects:normal:member:desktop:save:button:visual-only-success", "control:surface:/projects:normal:member:desktop:save:button:show-saved-success-without-persistence", "control:surface:/projects:normal:member:desktop:save:button:show-looks-saved-without-persistence"],
+      "accepted_semantic_keys": ["control:surface:/projects:normal:admin:desktop:save:button:persist", "control:surface:/projects:normal:member:desktop:save-primary:button:persist-project-name", "control:surface:/projects:normal:member:desktop:save:button:persist-attempt", "control:surface:/projects:normal:member:desktop:save:button:visual-only-success", "control:surface:/projects:normal:member:desktop:save:button:show-saved-success-without-persistence", "control:surface:/projects:normal:member:desktop:save:button:show-looks-saved-without-persistence"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Save", "control_type": "button", "disambiguator": "persist", "materiality": "material", "availability_condition": "editing project", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "runtime_trace", "expected_result": "persisted", "accepted_aliases": ["save changes"], "required_modes": ["runtime-only", "full-evidence"]
@@ -82,7 +83,7 @@
     {
       "id": "CASE-MISLEADING-SUCCESS", "case_id": "misleading-success", "kind": "transition",
       "semantic_key": "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["transition:alpha-edited:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted", "transition:editing:control:surface:/projects:normal:admin:desktop:save:button:persist:not-persisted", "transition:editing:control:surface:/projects:normal:member:desktop:save:button:persist-attempt:not-persisted", "transition:editing:control:surface:/projects:normal:member:desktop:save:button:show-saved-success-without-persistence:saved-success-message"],
+      "accepted_semantic_keys": ["transition:alpha-edited:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted", "transition:editing:control:surface:/projects:normal:admin:desktop:save:button:persist:not-persisted", "transition:project-edited:control:surface:/projects:normal:member:desktop:save-primary:button:persist-project-name:success-without-persistence", "transition:editing:control:surface:/projects:normal:member:desktop:save:button:persist-attempt:not-persisted", "transition:editing:control:surface:/projects:normal:member:desktop:save:button:show-saved-success-without-persistence:saved-success-message"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Save success toast", "disambiguator": "misleading-success", "before_state": "editing", "after_state": "not-persisted", "materiality": "material", "availability_condition": "failure fixture", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "success-without-persistence", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]
@@ -104,6 +105,7 @@
     {
       "id": "CASE-AVOIDED-DELETE", "case_id": "avoided-delete", "kind": "control",
       "semantic_key": "control:surface:/admin/data:normal:admin:desktop:delete-all-data:button:destructive", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["control:surface:/admin/data:normal:admin:desktop:delete-all-data:button:delete-workspace-data"],
       "identity": "Delete all data", "control_type": "button", "disambiguator": "destructive", "materiality": "material", "availability_condition": "admin role", "safety_class": "destructive",
       "allowed_dispositions_by_mode": {"runtime-only": ["avoided"], "full-evidence": ["avoided"]}, "minimum_evidence_class": "runtime_visual", "accepted_aliases": ["purge data"], "required_modes": ["runtime-only", "full-evidence"]
     },
@@ -117,7 +119,7 @@
     {
       "id": "CASE-DISABLED-CONTROL", "case_id": "unexplained-disabled-control", "kind": "control",
       "semantic_key": "control:surface:/projects:editing:member:desktop:archive:button:disabled", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["control:surface:/projects:normal:admin:desktop:archive:button:disabled"],
+      "accepted_semantic_keys": ["control:surface:/projects:normal:admin:desktop:archive:button:disabled", "control:surface:/projects:normal:member:desktop:archive:button:archive-project"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Archive", "control_type": "button", "disambiguator": "disabled", "materiality": "material", "availability_condition": "member editing project", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["blocked"], "full-evidence": ["blocked"]}, "minimum_evidence_class": "runtime_visual", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]

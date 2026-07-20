@@ -377,6 +377,42 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_equivalent_recovery_and_safety_vocabulary_matches(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "transition:invalid-name:control:surface:/projects:invalid:member:desktop:create:button:retry:created":
+                "transition:create-valid:control:surface:/projects:create-open:member:desktop:create:button:submit-create:project-created",
+            "transition:session-expired:control:surface:/projects:stale:member:desktop:reauthenticate:button:retry:restored":
+                "transition:session-expired:control:surface:/projects:stale-session:member:desktop:reauthenticate:button:restore-session:session-restored",
+            "control:surface:/admin/data:normal:admin:desktop:delete-all-data:button:destructive":
+                "control:surface:/admin/data:normal:admin:desktop:delete-all-data:button:delete-workspace-data",
+            "control:surface:/projects:editing:member:desktop:archive:button:disabled":
+                "control:surface:/projects:normal:member:desktop:archive:button:archive-project",
+        }
+        for row in result["rows"]:
+            row["semantic_key"] = replacements.get(row["semantic_key"], row["semantic_key"])
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
+    def test_equivalent_primary_save_vocabulary_matches(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "control:surface:/projects:editing:member:desktop:save:button:persist":
+                "control:surface:/projects:normal:member:desktop:save-primary:button:persist-project-name",
+            "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted":
+                "transition:project-edited:control:surface:/projects:normal:member:desktop:save-primary:button:persist-project-name:success-without-persistence",
+        }
+        for row in result["rows"]:
+            row["semantic_key"] = replacements.get(row["semantic_key"], row["semantic_key"])
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+            if finding["observed_effect_code"] == "success-without-persistence":
+                finding["observed_effect_code"] = "success-feedback-without-durable-save"
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_false_affordance_finding_may_use_observed_mobile_variant(self) -> None:
         result = self.complete_result()
         finding = next(item for item in result["findings"] if item["observed_effect_code"] == "false-affordance-noninteractive")

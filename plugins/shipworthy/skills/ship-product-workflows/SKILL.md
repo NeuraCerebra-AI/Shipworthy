@@ -84,6 +84,18 @@ Canonical browser viewport key values are `desktop`, `mobile`, or `tablet`. Reco
 
 Before closure, apply these row-level checks. A material spawned surface gets its own surface row; do not leave an opened menu, dialog, drawer, palette, popover, or visually actionable subregion attached only to its trigger. After every state-changing action, re-census newly revealed controls before navigating or resetting. Re-exercise every material surface-spawning control at each supplied role and viewport; a representative mobile screen does not cover another route's mobile control. A distinct input mode or keyboard shortcut gets its own control row even when it reaches an already known surface. A context-menu or keyboard trigger remains separate even if a pointer trigger reaches the same surface. Model invalid → corrected → success as distinct boundaries. A persistence finding requires a separate reload/re-entry control and transition. If one observation supports multiple defect classes, preserve separate finding lineage and effect code rather than collapsing them. When no shortcut inventory exists, run a bounded conventional shortcut probe (`Control/Command+K`, `/`, `?`, `Escape`, `Enter`/`Space`, and `Shift+F10`) and record only observed behavior. Parent a trigger to its triggering surface, not the resulting dialog or menu. Never model a noninteractive false affordance as a covered control; give the actionable-looking card or subregion its own observed surface row. A disabled control is `blocked` with zero invocation attempts, not `covered`; an unavailable capability gets a feature row with its reason, never only an intent or evidence-debt row. A reload or re-entry gets a separate transition row whenever it proves or disproves persistence. `sampled_with_justification` cannot replace direct coverage of the only role/state/viewport instance that establishes a material variant. Before claiming closure, build a bounded observation-to-frontier reconciliation table and reconcile every raw runtime observation to frontier rows: require one control row per distinct observed input mechanism, one row for every spawned surface, and one transition row per observed state boundary, including successful recovery and reload/re-entry proof. Closure fails while any observed interaction or resulting state lacks its row. A finding about state change or persistence includes the affected transition row, not only its originating control. A visible control that is disabled without an observed explanation or recovery route is a finding; its `blocked` row alone is not sufficient. Every `Fix` finding must point to its exact frontier rows and include a compact semantic `observed_effect_code` such as `success-without-persistence`, never an ordinal placeholder such as `effect-001`, plus evidence references.
 
+#### Non-negotiable closure checklist
+
+Before the verifier can approve, reconcile raw observations one by one and prove:
+
+- each observed input mechanism has its own control and transition rows;
+- invalid, corrected, and successful boundaries remain distinct;
+- each reload/re-entry control and transition used for persistence proof is separate;
+- every unavailable capability has a feature row and every false affordance has an observed surface row; and
+- one finding and semantic effect code per defect class, even when several classes share evidence.
+
+Do not accept prose, screenshots, or a combined finding as a substitute for any missing row or finding above.
+
 ## Audit Workflow
 
 1. Capture the ask, artifact, environment, credentials, fixture data, device targets, safe-test permission, and mutation boundaries.
