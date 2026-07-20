@@ -9,10 +9,10 @@ must make missed product surface visible and make unsupported completeness
 claims fail.
 
 The test target is a bounded adversarial product with a private ground-truth
-oracle. Fresh Codex and Claude sessions audit the product without seeing the
-oracle. Deterministic repository tooling compares each resulting frontier to
-the oracle and checks that Shipworthy discovered, exercised, bounded, and
-reported the product surface honestly.
+oracle. A fresh native Codex subagent launched from the Codex macOS app audits
+the product without being given the oracle. Deterministic repository tooling
+compares the resulting frontier to the oracle and checks that Shipworthy
+discovered, exercised, bounded, and reported the product surface honestly.
 
 The intended Shipworthy promise is:
 
@@ -49,7 +49,7 @@ Rejected alternatives:
 - **A large production-like demonstration application** would add maintenance,
   flakiness, and unrelated product code without improving the bounded oracle.
 - **A general crawler or graph engine** would violate the four-skill architecture
-  and duplicate capabilities already available from Codex and Claude hosts.
+  and duplicate capabilities already available from native Codex agents.
 
 ## Repository architecture
 
@@ -111,17 +111,21 @@ the oracle, comparator, controller source, or repository test tree.
 interface is:
 
 ```text
-run_acceptance.py --host codex|claude --mode runtime-only|full-evidence
-                  --skills-source PATH --output PATH --timeout-seconds N
+run_acceptance.py prepare --mode runtime-only|full-evidence
+                          --skills-source PATH --output PATH
+run_acceptance.py finalize --run-manifest PATH --agent-output PATH
+run_acceptance.py cleanup --run-manifest PATH
 ```
 
-It starts and health-checks the fixture, prepares isolated host state, launches
-one bounded host process, validates required artifacts, runs the comparator,
-terminates the complete fixture/host process group, retains bounded evidence,
-performs cleanup, derives the final status, atomically writes
-`acceptance-result.json`, and exits with the authoritative gate status. It uses
-`try/finally` for cleanup and preserves diagnostics and agent evidence on
-failure.
+`prepare` starts and health-checks the fixture and emits a run manifest with the
+target URL, allowed paths, evidence path, server process identity, reset token,
+and mode. The active Codex macOS coordinator then launches one native Codex
+subagent with no forked conversation history and waits for its artifacts.
+`finalize` validates artifacts, runs the comparator, terminates the fixture,
+retains bounded evidence, performs cleanup, derives final status, and atomically
+writes `acceptance-result.json`. `cleanup` is an idempotent recovery path after
+coordinator interruption. The script never launches Codex CLI, Claude, or any
+provider process.
 
 ## Adversarial surface
 
@@ -426,10 +430,9 @@ declared surface.
 
 Each acceptance run uses:
 
-- a fresh Codex or Claude context;
-- a temporary host home populated from repository skill sources when the host
-  supports isolated skill discovery;
-- otherwise, an explicit repository skill path with that limitation recorded;
+- a fresh native Codex subagent launched by the Codex macOS app with no forked
+  conversation history;
+- exact repository paths to the four Shipworthy skill bodies under test;
 - a new temporary app and evidence directory;
 - a clean fixture reset;
 - explicit goal-mode and parallel-agent authorization in the prompt;
@@ -438,41 +441,40 @@ Each acceptance run uses:
 - canonical ledger/frontier JSON and the mandatory HTML report;
 - no hints or interactive human rescue during the run.
 
-Tests never write real `~/.codex/skills`, `~/.claude/skills`, or application
-session skill caches. If a host cannot load temporary skills or run unattended,
-that host/mode is `NOT_PROVEN`, not synthetically passed.
+Tests never write real `~/.codex/skills`, application session skill caches, or
+Claude locations. If native Codex subagent dispatch is unavailable, the run is
+`NOT_PROVEN`, not synthetically passed.
 
 Each run root is isolated as:
 
 ```text
 <temp-run>/agent-workspace
 <temp-run>/full-evidence-copy       # full-evidence mode only
-<temp-run>/skills
-<temp-run>/host-home
 <temp-run>/evidence
 <controller-private>/server-source
 <controller-private>/oracle
 ```
 
-The runtime-only host working directory is the empty `agent-workspace`; the
-full-evidence host working directory is `full-evidence-copy`. Environment
-variables are allowlisted; real HOME, repository, unrelated credentials, and
-prior run paths are omitted.
-Strict oracle-blind acceptance additionally requires a host or OS filesystem
-allowlist that denies reads outside the target, temporary skills, host runtime
-dependencies, and evidence directories. Here, “target” means only the selected
-agent workspace for that mode, never the controller-private server source. A
-canary beside the oracle verifies the read boundary before the run. If no
-containment capability is available during preflight, the strict run is not
-attempted and returns `NOT_PROVEN`. If containment is available but the canary
-is readable or the boundary is escaped during the attempted run, the result is
-`FAIL`. The harness never describes mere prompt prohibition as filesystem
-isolation.
+The runtime-only subagent working directory is the empty `agent-workspace`; the
+full-evidence working directory is `full-evidence-copy`. The task gives the
+subagent an explicit read allowlist containing only the selected workspace, the
+four exact skill paths, and its evidence directory, and explicitly forbids
+searching the Shipworthy repository, test tree, comparator, controller-private
+paths, or oracle.
 
-Every host process and fixture process has a bounded timeout. Reset failure,
-health-check failure, malformed artifacts, missing artifacts, host nonzero exit,
-timeout, comparator mismatch, or cleanup failure is `FAIL` when the host was
-available. A missing or unsupported host/runtime capability is `NOT_PROVEN`.
+Native Codex subagents in the macOS app share local filesystem capability, so
+this is **procedural oracle blindness**, not OS-level containment. The
+controller uses an unadvertised randomized oracle path and a no-history agent,
+but does not claim that filesystem access made oracle discovery impossible.
+Every acceptance result records `oracle_blindness: procedural` and
+`filesystem_containment: NOT_PROVEN`. This limitation does not erase the
+behavioral comparison, but the report must not call the test cryptographically
+or OS-isolated.
+
+Every native agent run and fixture process has a bounded timeout. Reset failure,
+health-check failure, malformed artifacts, missing artifacts, agent failure,
+timeout, comparator mismatch, or cleanup failure is `FAIL` when native dispatch
+was available. Unavailable native subagent dispatch is `NOT_PROVEN`.
 
 Every terminal state uses one cleanup rule. `PASS` preserves the requested
 canonical ledger, report JSON/HTML, acceptance result, and bounded logs.
@@ -481,8 +483,7 @@ artifacts. `NOT_PROVEN` preserves the preflight/capability manifest and bounded
 diagnostics. `REVIEW_REQUIRED` preserves the complete acceptance result,
 unexpected-row set, canonical artifacts, and bounded logs needed for review.
 After copying the state-appropriate outputs, the harness removes agent
-workspace, evidence copy, temporary skills, host home, canary, and controller/
-server workspace. Sensitive environment values and host credentials are
+workspace, evidence copy, and controller/server workspace. Sensitive values are
 redacted. Any removal failure changes an otherwise available attempted run to
 `FAIL`; a preflight-only `NOT_PROVEN` remains nonpassing and records cleanup
 failure plus the exact residual path.
@@ -537,25 +538,27 @@ Any material oracle miss, false covered claim, or JSON/HTML contradiction marks
 that packet failed even when the agent report claimed closure. The unchanged
 false-closing report remains evidence of the failed acceptance run.
 
-`run_acceptance.py` is the sole writer of final `acceptance-result.json`. Its
-finalization order is: complete preflight/host/artifact work; obtain a comparison
+`run_acceptance.py finalize` is the sole writer of final
+`acceptance-result.json`. Its finalization order is: complete artifact work;
+obtain a comparison
 packet when comparison is reachable; copy state-appropriate retained evidence;
 perform cleanup; derive the final gate status including cleanup outcome; validate
 the final result; atomically write `acceptance-result.json` as the last artifact;
-then exit with the stable status code. Preflight `NOT_PROVEN`, launch/reset
+then exit with the stable status code. Preflight `NOT_PROVEN`, dispatch/reset
 failure, timeout, and other paths where the comparator never runs still produce
 an authoritative driver-written result. A final-result validation error is
 recorded as an internal `FAIL`; the driver emits a schema-valid failure result
 with the validation diagnostics rather than publishing the invalid draft.
 
-`acceptance-result.schema.json` defines the authoritative driver artifact. Required
-fields are schema version, run ID, host, mode, start/end timestamps, isolation
-and canary result, host-process exit/timeout state, artifact paths/digests/
-validation state, agent-claimed closure, oracle-derived closure, mismatches,
-unexpected rows, review-required reasons, gate status, stable exit code,
-NOT_PROVEN reasons, and cleanup status/residual paths. The driver validates the
-final result against this schema; an invalid draft becomes an internal `FAIL`
-represented by a schema-valid fallback result.
+`acceptance-result.schema.json` defines the authoritative driver artifact.
+Required fields are schema version, run ID, platform
+`codex_macos_native`, native agent ID, mode, start/end timestamps,
+oracle-blindness and filesystem-containment disclosure, agent completion/
+timeout state, artifact paths/digests/validation state, agent-claimed closure,
+oracle-derived closure, mismatches, unexpected rows, review-required reasons,
+gate status, stable exit code, NOT_PROVEN reasons, and cleanup status/residual
+paths. The driver validates the final result against this schema; an invalid
+draft becomes an internal `FAIL` represented by a schema-valid fallback result.
 
 ## Validation boundary
 
@@ -605,29 +608,30 @@ on its own. Passing requires:
 - no unexplained source/runtime differences;
 - exact frontier/report count reconciliation;
 - matching JSON and HTML closure state;
-- refusal of exhaustive closure whenever the comparator finds a material miss.
+- refusal of acceptance `PASS` whenever the comparator finds a material miss,
+  while preserving any false-closing agent report as evidence.
 
 Several runs may measure reliability, but misses from one run cannot be filled
 with discoveries from another to create an aggregate pass.
 
 Suite-level outcomes are:
 
-- `PASS`: host available, isolation proven, all required artifacts valid, and
-  comparator gate passed;
-- `FAIL`: host available but launch, reset, artifact, isolation canary,
-  comparison, cleanup, or timeout requirements failed;
-- `NOT_PROVEN`: the host or required containment capability is unavailable and
-  no strict run occurred;
+- `PASS`: native Codex dispatch completed, all required artifacts are valid,
+  and the comparator gate passed under disclosed procedural oracle blindness;
+- `FAIL`: native Codex was available but dispatch, reset, artifact, comparison,
+  cleanup, or timeout requirements failed;
+- `NOT_PROVEN`: native Codex subagent dispatch was unavailable and no run
+  occurred;
 - `REVIEW_REQUIRED`: execution and deterministic checks completed, but an
   unexpected semantic row requires oracle/false-positive classification.
 
 Stable driver exits are `0` for `PASS`, `1` for `FAIL`, `2` for `NOT_PROVEN`,
 and `3` for `REVIEW_REQUIRED`.
 
-A configured available host/mode `FAIL` or `REVIEW_REQUIRED` blocks release.
-`NOT_PROVEN` never counts as a pass. A release may proceed with a missing
-host/mode only through an explicit human waiver recorded in release evidence;
-the release must not claim cross-host proof for waived modes.
+An available Codex mode returning `FAIL` or `REVIEW_REQUIRED` blocks release.
+`NOT_PROVEN` never counts as a pass. A release may proceed without native-agent
+acceptance only through an explicit human waiver recorded in release evidence
+and must not claim native-agent behavioral proof.
 
 ## Objective closure derivation
 
@@ -665,14 +669,15 @@ This tier launches no external agents and performs no external network calls.
 
 ### Release acceptance suite
 
-Run before releases when the corresponding host is available:
+Run before releases when native Codex subagents are available in the Codex
+macOS app:
 
 1. Codex runtime-only;
-2. Codex full-evidence;
-3. Claude runtime-only;
-4. Claude full-evidence.
+2. Codex full-evidence.
 
-Host or mode unavailability remains explicitly `NOT_PROVEN`.
+Native Codex or mode unavailability remains explicitly `NOT_PROVEN`. Claude
+Code, Claude CLI, and the Claude macOS app are outside this design's current
+acceptance scope and are neither invoked nor counted as missing proof.
 
 ### Discovery-protocol soak
 
@@ -735,17 +740,18 @@ the complete audit record; the default HTML remains a decision document.
 
 1. Write failing oracle-schema, comparator, and frontier-invariant tests.
 2. Build the deterministic fixture and prove reset/seed behavior.
-3. Add the development-only acceptance driver and isolation preflight.
+3. Add the development-only prepare/finalize/cleanup harness.
 4. Extend the canonical ledger/report schemas and templates minimally.
 5. Add repository-only validation and make invalid frontier fixtures fail.
-6. Run the first fresh standalone Codex runtime-only audit as behavioral RED
-   evidence before deciding whether an installed validator is justified.
+6. Launch the first fresh native Codex runtime-only audit from the Codex macOS
+   app as behavioral RED evidence before deciding whether an installed
+   validator is justified.
 7. Update discovery, lane, verifier, and closure instructions.
 8. Add the compact HTML coverage model and expandable evidence sections.
 9. If the RED evidence proves installed validation necessary, document and pass
    the existing script-necessity gate before promoting a bounded utility.
 10. Repair until one fresh run satisfies the oracle without unsupported closure.
-11. Run Codex full-evidence and available Claude modes.
+11. Run Codex full-evidence through another fresh native Codex subagent.
 12. Preserve every discovered failure mode as a deterministic regression where
     possible and as an acceptance scenario otherwise.
 13. Run focused tests, the complete new suite, all legacy suites, compile checks,
@@ -765,6 +771,7 @@ Explicit non-goals:
 - no general crawler or browser abstraction;
 - no automatic Playwright installation;
 - no provider integration;
+- no Claude Code, Claude CLI, or Claude macOS acceptance work in this scope;
 - no writes to actual installed skill directories during tests;
 - no second ledger, report source of truth, or duplicate readiness verdict;
 - no raw control dump in the default human report;
