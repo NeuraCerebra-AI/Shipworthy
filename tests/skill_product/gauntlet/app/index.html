@@ -55,7 +55,7 @@
       <p id="invite-permission">Inviting requires the Admin fixture role.</p>
       <button data-case-id="mobile-invite" id="invite" aria-describedby="invite-permission">Invite member</button>
       <p id="pending-invites" aria-live="polite"></p>
-      <dialog id="invite-dialog" aria-labelledby="invite-title"><p id="invite-title">Invite a teammate</p><label>Email <input id="invite-email" type="email" aria-describedby="invite-status"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status" role="alert" aria-live="polite"></p></dialog>
+      <dialog id="invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title"><p id="invite-title">Invite a teammate</p><label>Email <input id="invite-email" type="email" aria-describedby="invite-status"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status" role="alert" aria-live="polite"></p></dialog>
     </section>
 
     <section id="admin">

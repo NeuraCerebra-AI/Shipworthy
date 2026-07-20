@@ -413,6 +413,36 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_fresh_native_runtime_vocabulary_matches(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "surface:/dashboard:avatar-menu:member:desktop": "surface:/:avatar-menu:member:desktop",
+            "control:surface:/team:normal:admin:mobile:invite-member:button:open-dialog": "control:surface:/team:normal:admin:mobile:invite-member:button:open-overlay",
+            "control:surface:/projects:normal:member:desktop:project-actions:context-menu:open": "control:surface:/projects:normal:member:desktop:project-row:pointer-contextmenu:contextmenu",
+            "control:surface:/dashboard:normal:member:desktop:command-palette:keyboard:open": "control:surface:/:normal:member:desktop:quick-actions:keyboard-shortcut:meta-k",
+            "transition:invalid-name:control:surface:/projects:invalid:member:desktop:create:button:retry:created": "transition:create-corrected:control:surface:/projects:create-form:member:desktop:create:button:submit:project-created",
+            "transition:session-expired:control:surface:/projects:stale:member:desktop:reauthenticate:button:retry:restored": "transition:session-expired:control:surface:/projects:session-expired:member:desktop:reauthenticate:button:restore-session:session-restored",
+            "control:surface:/projects:editing:member:desktop:save:button:persist": "control:surface:/projects:normal:member:desktop:save:button:server-backed",
+            "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted": "transition:edited-valid:control:surface:/projects:normal:member:desktop:save:button:server-backed:saved-successfully",
+            "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost": "transition:saved-successfully:control:surface:/projects:normal:member:desktop:reload:browser-control:verify-server-save:original-value-restored",
+            "surface:/dashboard:upgrade-card:member:desktop": "surface:/:upgrade-card:member:desktop",
+            "control:surface:/projects:editing:member:desktop:archive:button:disabled": "control:surface:/projects:normal:member:desktop:archive:button:disabled-unavailable",
+        }
+        effects = {
+            "success-without-persistence": "success-without-persistence-after-backend-save-failure",
+            "reload-data-loss": "success-without-persistence-after-backend-save-failure",
+            "false-affordance-noninteractive": "action-styled-surface-without-interaction",
+            "unexplained-disabled-control": "disabled-action-without-recovery-path",
+            "duplicate-save-behavior-ambiguity": "duplicate-accessible-labels-hide-distinct-effects",
+        }
+        for row in result["rows"]:
+            row["semantic_key"] = replacements.get(row["semantic_key"], row["semantic_key"])
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+            finding["observed_effect_code"] = effects.get(finding["observed_effect_code"], finding["observed_effect_code"])
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_false_affordance_finding_may_use_observed_mobile_variant(self) -> None:
         result = self.complete_result()
         finding = next(item for item in result["findings"] if item["observed_effect_code"] == "false-affordance-noninteractive")

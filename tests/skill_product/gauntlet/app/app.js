@@ -6,6 +6,11 @@ function setValidation(input, status, message, invalid) {
   input.setAttribute("aria-invalid", String(invalid));
 }
 
+function clearValidation(input, status) {
+  status.textContent = "";
+  input.setAttribute("aria-invalid", "false");
+}
+
 async function api(path, body = {}) {
   const response = await fetch(path, {
     method: "POST",
@@ -20,6 +25,7 @@ async function loadState() {
   const state = await response.json();
   const row = $("#project-row");
   if (row) row.querySelector("strong").textContent = state.projects.join(", ");
+  $("#project-name").value = state.project.name;
   $("#project-state").textContent = `Project state: ${state.project.state}`;
   $("#pending-invites").textContent = state.invites.length ? `Pending invites: ${state.invites.join(", ")}` : "No pending invites";
 }
@@ -151,6 +157,7 @@ $("#duplicate")?.addEventListener("click", async () => {
 });
 $("#create-first")?.addEventListener("click", () => show($("#project-form"), true));
 $("#cancel-create")?.addEventListener("click", closeProjectForm);
+$("#new-name")?.addEventListener("input", () => clearValidation($("#new-name"), $("#form-error")));
 $("#project-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const result = await api("/api/projects", {name: $("#new-name").value});
@@ -185,6 +192,7 @@ $("#stale")?.addEventListener("click", async () => {
   $("#toast").after(retry);
 });
 $("#invite")?.addEventListener("click", openInviteDialog);
+$("#invite-email")?.addEventListener("input", () => clearValidation($("#invite-email"), $("#invite-status")));
 $("#send-invite")?.addEventListener("click", async () => {
   const result = await api("/api/invite", {email: $("#invite-email").value});
   setValidation($("#invite-email"), $("#invite-status"), result.status === 200 ? "Invitation queued" : "Valid email is required", result.status !== 200);
@@ -220,6 +228,7 @@ $("#export")?.addEventListener("click", async () => {
   link.click();
   URL.revokeObjectURL(link.href);
 });
+$("#import-file")?.addEventListener("change", () => clearValidation($("#import-file"), $("#import-status")));
 $("#start-import")?.addEventListener("click", async () => {
   const file = $("#import-file").files[0];
   if (!file) { setValidation($("#import-file"), $("#import-status"), "Choose a JSON export", true); return; }

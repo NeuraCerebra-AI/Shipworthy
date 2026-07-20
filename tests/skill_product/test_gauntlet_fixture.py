@@ -181,6 +181,11 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('function closeInviteDialog()', script)
         self.assertIn('$("#avatar-menu")?.querySelector("a")?.focus()', script)
         self.assertIn('show($("#invite-permission"), role !== "admin")', script)
+        self.assertIn('$("#project-name").value = state.project.name', script)
+        self.assertIn('function clearValidation(', script)
+        self.assertIn('$("#new-name")?.addEventListener("input",', script)
+        self.assertIn('$("#import-file")?.addEventListener("change",', script)
+        self.assertIn('<dialog id="invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title">', html)
         self.assertIn('$("#project-state").textContent', script)
         self.assertIn('$("#project-actions")?.addEventListener', script)
         self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
@@ -192,7 +197,7 @@ class GauntletFixtureTests(unittest.TestCase):
     def test_supporting_forms_have_named_dialog_and_associated_validation(self) -> None:
         html = (APP / "index.html").read_text(encoding="utf-8")
         script = (APP / "app.js").read_text(encoding="utf-8")
-        self.assertIn('<dialog id="invite-dialog" aria-labelledby="invite-title">', html)
+        self.assertIn('<dialog id="invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title">', html)
         self.assertIn('id="invite-title"', html)
         for input_id, status_id in (
             ("new-name", "form-error"),
