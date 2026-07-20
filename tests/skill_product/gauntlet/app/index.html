@@ -13,7 +13,7 @@
     <span role="group" aria-label="Synthetic audit role"><button data-supporting-control="role-member" data-expected-effect="bind-member-role" id="role-member">Member</button>
     <button data-supporting-control="role-admin" data-expected-effect="bind-admin-role" id="role-admin">Admin</button></span>
     <span class="fixture-note">Synthetic fixture roles; not sign-in controls.</span>
-    <button id="avatar" data-case-id="avatar-settings" aria-haspopup="menu">WC</button>
+    <button id="avatar" data-case-id="avatar-settings" aria-haspopup="menu" aria-expanded="false" aria-controls="avatar-menu">WC</button>
     <div id="avatar-menu" hidden><a href="/settings/profile">Profile settings</a></div>
   </header>
   <main>
@@ -27,11 +27,11 @@
 
     <section id="projects">
       <h2>Projects</h2>
-      <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Right-click for actions</span><button id="project-actions" data-case-id="context-menu">Project actions</button></article>
+      <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Open project actions</span><button id="project-actions" data-case-id="context-menu">Project actions</button></article>
       <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
       <p id="duplicate-status" aria-live="polite"></p>
       <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
-      <form id="project-form" hidden><label>Name <input id="new-name" aria-describedby="form-error"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><button type="button" id="cancel-create" data-supporting-control="create-cancel" data-expected-effect="form-closed">Cancel</button><p id="form-error" aria-live="polite"></p></form>
+      <form id="project-form" hidden><label>Name <input id="new-name" aria-describedby="form-error"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><button type="button" id="cancel-create" data-supporting-control="create-cancel" data-expected-effect="form-closed">Cancel</button><p id="form-error" role="alert" aria-live="polite"></p></form>
       <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
     </section>
 
@@ -43,7 +43,7 @@
       <button data-case-id="prerequisite-publish" id="publish">Publish</button>
       <button data-case-id="unexplained-disabled-control" disabled title="Unavailable">Archive</button>
       <p id="project-state"></p>
-      <p id="toast" aria-live="polite"></p>
+      <p id="toast" role="status" aria-live="polite"></p>
       <div data-case-id="misleading-success" class="evidence-hook" aria-hidden="true"></div>
       <div data-case-id="reload-loss" class="evidence-hook" aria-hidden="true"></div>
       <div data-case-id="invalid-input-recovery" class="evidence-hook" aria-hidden="true"></div>
@@ -55,7 +55,7 @@
       <p id="invite-permission">Inviting requires the Admin fixture role.</p>
       <button data-case-id="mobile-invite" id="invite" aria-describedby="invite-permission">Invite member</button>
       <p id="pending-invites" aria-live="polite"></p>
-      <dialog id="invite-dialog" aria-labelledby="invite-title"><p id="invite-title">Invite a teammate</p><label>Email <input id="invite-email" type="email" aria-describedby="invite-status"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status" aria-live="polite"></p></dialog>
+      <dialog id="invite-dialog" aria-labelledby="invite-title"><p id="invite-title">Invite a teammate</p><label>Email <input id="invite-email" type="email" aria-describedby="invite-status"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status" role="alert" aria-live="polite"></p></dialog>
     </section>
 
     <section id="admin">
@@ -70,7 +70,7 @@
       <p>Upload a JSON export to start an import.</p>
       <label>Export file <input id="import-file" type="file" accept="application/json" aria-describedby="import-status"></label>
       <button id="start-import" data-supporting-control="start-import" data-expected-effect="import-completed">Start import</button>
-      <p id="import-status" aria-live="polite"></p>
+      <p id="import-status" role="alert" aria-live="polite"></p>
       <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>
     </section>
 

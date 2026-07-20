@@ -34,6 +34,17 @@ function openPalette() {
   $("#palette-button")?.setAttribute("aria-expanded", "true");
 }
 
+function closeAvatarMenu() {
+  show($("#avatar-menu"), false);
+  $("#avatar")?.setAttribute("aria-expanded", "false");
+}
+
+function toggleAvatarMenu() {
+  const opening = $("#avatar-menu")?.hidden;
+  show($("#avatar-menu"), opening);
+  $("#avatar")?.setAttribute("aria-expanded", String(Boolean(opening)));
+}
+
 function closeProjectForm() {
   if ($("#project-form")?.hidden) return;
   show($("#project-form"), false);
@@ -68,13 +79,14 @@ function route() {
   else { show($("#dashboard")); show($("#analytics")); }
 }
 
-$("#avatar")?.addEventListener("click", () => show($("#avatar-menu"), $("#avatar-menu").hidden));
+$("#avatar")?.addEventListener("click", toggleAvatarMenu);
 $("#palette-button")?.addEventListener("click", () => $("#palette").hidden ? openPalette() : closePalette());
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
     openPalette();
   } else if (event.key === "Escape") {
+    closeAvatarMenu();
     closePalette();
     closeProjectForm();
     closeContextMenu();

@@ -176,6 +176,16 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.prompts)
 
+    def test_verifier_rechecks_variant_execution_input_modes_and_safety_dispositions(self) -> None:
+        for phrase in (
+            "independently repeat the bounded conventional shortcut probe",
+            "material supplied role/state/viewport variant",
+            "cannot be `sampled_with_justification`",
+            "in-scope destructive control is `avoided`, not `out_of_scope`",
+            "event listeners and keyboard handlers",
+        ):
+            self.assertIn(phrase, self.prompts)
+
     def test_orchestrator_routes_to_canonical_contract_before_collection(self) -> None:
         for path in (
             "references/schemas/readiness-ledger.schema.json",

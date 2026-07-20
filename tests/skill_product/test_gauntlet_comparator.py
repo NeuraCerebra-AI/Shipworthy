@@ -309,6 +309,31 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_observed_reload_and_duplicate_label_vocabulary_matches_expected_defects(self) -> None:
+        result = self.complete_result()
+        save_key = "control:surface:/projects:editing:member:desktop:save:button:persist"
+        save_actual = "control:surface:/projects:normal:member:desktop:save:button:show-saved-success-without-persistence"
+        misleading_key = "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"
+        misleading_actual = "transition:editing:control:surface:/projects:normal:member:desktop:save:button:show-saved-success-without-persistence:saved-success-message"
+        reload_key = "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost"
+        reload_actual = "transition:saved-success-message:control:surface:/projects:editing:member:desktop:reload-page:keyboard-shortcut:verify-edit-persistence:not-persisted"
+        replacements = {save_key: save_actual, misleading_key: misleading_actual, reload_key: reload_actual}
+        for row in result["rows"]:
+            row["semantic_key"] = replacements.get(row["semantic_key"], row["semantic_key"])
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+            if finding["observed_effect_code"] == "duplicate-save-behavior-ambiguity":
+                finding["observed_effect_code"] = "duplicate-labels-ambiguous-action"
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
+    def test_false_affordance_finding_may_use_observed_mobile_variant(self) -> None:
+        result = self.complete_result()
+        finding = next(item for item in result["findings"] if item["observed_effect_code"] == "false-affordance-noninteractive")
+        finding["affected_semantic_keys"] = ["surface:/dashboard:upgrade-card:member:mobile"]
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_observed_false_affordance_may_be_missing_or_blocked(self) -> None:
         for status in ("missing", "blocked"):
             result = self.complete_result()

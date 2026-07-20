@@ -15,7 +15,7 @@
       "id": "DEFECT-RELOAD-LOSS",
       "affected_semantic_keys": ["transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost"],
       "observed_effect_code": "reload-data-loss",
-      "accepted_observation_aliases": ["changes-disappear-after-reload", "save_false_success_not_persisted"],
+      "accepted_observation_aliases": ["changes-disappear-after-reload", "save_false_success_not_persisted", "success-without-persistence"],
       "materiality": "release-blocking",
       "minimum_proof": "before_after",
       "required_modes": ["runtime-only", "full-evidence"]
@@ -23,6 +23,7 @@
     {
       "id": "DEFECT-FALSE-AFFORDANCE",
       "affected_semantic_keys": ["surface:/dashboard:upgrade-card:member:desktop"],
+      "accepted_affected_semantic_keys": ["surface:/dashboard:upgrade-card:member:mobile"],
       "observed_effect_code": "false-affordance-noninteractive",
       "accepted_observation_aliases": ["looks-clickable-but-is-not", "upgrade_false_affordance", "actionable-looking-noninteractive", "upgrade-apparent-action-no-navigation"],
       "materiality": "material",
@@ -42,7 +43,7 @@
       "id": "DEFECT-DUPLICATE-SAVE",
       "affected_semantic_keys": ["control:surface:/projects:editing:member:desktop:save:button:persist"],
       "observed_effect_code": "duplicate-save-behavior-ambiguity",
-      "accepted_observation_aliases": ["duplicate_save_behavior_ambiguity", "duplicate-name-divergent-behavior"],
+      "accepted_observation_aliases": ["duplicate_save_behavior_ambiguity", "duplicate-name-divergent-behavior", "duplicate-labels-ambiguous-action"],
       "materiality": "material",
       "minimum_proof": "runtime_trace",
       "required_modes": ["runtime-only", "full-evidence"]

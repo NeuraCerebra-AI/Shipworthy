@@ -184,6 +184,16 @@ class GauntletFixtureTests(unittest.TestCase):
             self.assertRegex(html, rf'id="{input_id}"[^>]*aria-describedby="{status_id}"')
         self.assertIn('setAttribute("aria-invalid"', script)
 
+    def test_incidental_accessibility_and_touch_noise_is_not_part_of_the_gauntlet(self) -> None:
+        html = (APP / "index.html").read_text(encoding="utf-8")
+        script = (APP / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="avatar" data-case-id="avatar-settings" aria-haspopup="menu" aria-expanded="false" aria-controls="avatar-menu"', html)
+        self.assertIn("function closeAvatarMenu()", script)
+        self.assertIn("closeAvatarMenu();", script.split('event.key === "Escape"', 1)[1])
+        self.assertNotIn("Right-click for actions", html)
+        for status_id in ("form-error", "toast", "invite-status", "import-status"):
+            self.assertRegex(html, rf'id="{status_id}"[^>]*role="(?:alert|status)"')
+
 
 if __name__ == "__main__":
     unittest.main()

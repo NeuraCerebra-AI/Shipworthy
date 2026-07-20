@@ -236,8 +236,9 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
     def matches(finding: dict[str, Any], defect: dict[str, Any]) -> bool:
         expected_keys = set(defect["affected_semantic_keys"])
         actual_keys = set(finding.get("affected_semantic_keys", []))
+        accepted_affected = set(defect.get("accepted_affected_semantic_keys", []))
         lineage_matches = all(
-            bool(actual_keys & ({key} | matched_keys.get(key, set())))
+            bool(actual_keys & ({key} | matched_keys.get(key, set()) | accepted_affected))
             for key in expected_keys
         )
         return (
