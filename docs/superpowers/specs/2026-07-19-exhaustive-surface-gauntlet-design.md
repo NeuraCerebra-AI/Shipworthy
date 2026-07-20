@@ -62,13 +62,19 @@ tests/skill_product/gauntlet/
 │   ├── index.html
 │   ├── app.js
 │   ├── styles.css
-│   └── product-docs/
+│   ├── product-docs/
+│   ├── product-tests/
+│   ├── fixtures/
+│   └── roles.json
 ├── oracle/
 │   ├── surface-oracle.json
-│   └── expected-defects.json
+│   ├── surface-oracle.schema.json
+│   ├── expected-defects.json
+│   └── expected-defects.schema.json
 ├── prompts/
 │   ├── runtime-only.md
 │   └── full-evidence.md
+├── run_acceptance.py
 ├── compare_agent_result.py
 └── README.md
 ```
@@ -97,6 +103,20 @@ The server, app, and docs are copied to a temporary target directory for each
 run. The oracle and comparator remain outside that directory. Runtime-only
 agents receive only the URL, synthetic credentials, safe-test boundary, reset
 conditions, and output path.
+
+`run_acceptance.py` is a development-only standard-library driver. Its public
+interface is:
+
+```text
+run_acceptance.py --host codex|claude --mode runtime-only|full-evidence
+                  --skills-source PATH --output PATH --timeout-seconds N
+```
+
+It starts and health-checks the fixture, prepares isolated host state, launches
+one bounded host process, validates required artifacts, runs the comparator,
+writes `acceptance-result.json`, terminates the complete fixture/host process
+group, and exits with the authoritative gate status. It uses `try/finally` for
+cleanup and preserves diagnostics and agent evidence on failure.
 
 ## Adversarial surface
 
@@ -138,7 +158,8 @@ Extend the existing canonical `path_frontier` rows with these fields:
 ```text
 kind: intent | feature | surface | control | transition
 parent_id
-discovery_method
+semantic_key
+observations[]
 control_identity
 before_state
 after_state
@@ -150,6 +171,23 @@ Existing fields for role, account state, fixture, state/device variant, risk,
 attempt count, wave, blocker reason, sample justification, and next action
 remain authoritative.
 
+Each `observations[]` entry records:
+
+```text
+method_family
+method_detail
+provenance
+role
+state
+viewport
+discovery_pass_id
+evidence_refs
+```
+
+Multiple discovery channels merge into one semantic frontier row. They do not
+create duplicate rows. Conflicting observations on one semantic key are
+preserved and must be reconciled or left as evidence debt.
+
 Parent relationships provide traceable lineage:
 
 ```text
@@ -158,6 +196,27 @@ feature -> surface/state -> control -> transition
 
 Fields that do not apply to a row kind may be absent. The schema must define
 the conditional requirements for each kind without creating duplicated models.
+
+Semantic keys follow deterministic type-specific rules:
+
+```text
+feature:    feature:<normalized-feature-name>
+surface:    surface:<route-or-window>:<material-state>:<role>:<viewport-class>
+control:    control:<surface-key>:<normalized-name>:<control-type>:<disambiguator>
+transition: transition:<before-state-key>:<control-key>:<after-state-or-effect>
+```
+
+The control disambiguator uses a stable destination/effect, DOM or
+accessibility path, command identity, or documented ordinal in that priority
+order. Same-label controls such as the two Save controls therefore remain
+distinct. Oracle entries may declare accepted aliases, but aliases normalize to
+one semantic key and may not hide duplicates.
+
+The canonical `readiness-ledger.schema.json` owns the complete frontier rows,
+observations, discovery passes, reconciliation differences, and derived closure
+inputs. `report-input.schema.json` reuses that definition rather than defining a
+second frontier shape. Any report-facing counts are derived from canonical rows;
+caller-supplied counts must either reconcile exactly or fail validation.
 
 ## Discovery closure
 
@@ -175,6 +234,23 @@ material. They are not mandatory ritual for every tiny product.
 Two repetitions of the same browser walk, role, viewport, fixture, and method
 do not satisfy independent closure. If only one channel is available, the audit
 may continue but its closure state is `single_source`, not exhaustive.
+
+Channel proof applies at three levels:
+
+- globally, at least two independent method families must contribute evidence;
+- every material feature and surface must be reconciled by runtime observation
+  plus an independent structural/UI-tree/source channel when that channel is
+  available in the declared mode;
+- every material control must be directly observed through a runtime visual,
+  DOM/accessibility, or native UI-tree channel, or receive an explicit
+  non-runtime terminal disposition.
+
+After the last newly discovered material row, closure still requires two
+consecutive zero-yield discovery/testing passes. Each pass records method
+family, role, fixture, viewport, starting frontier digest, ending frontier
+digest, and new semantic keys. The two pass signatures may not be identical,
+and at least one must use a different method family or material role/state/
+device variant from the initial happy-path walk.
 
 Control census occurs at every materially distinct product state. A state is
 materially distinct when controls, navigation, permissions, recovery options,
@@ -209,6 +285,34 @@ IDs. A representative entry is:
 Oracle categories are features, surfaces, states, controls, transitions,
 role/device conditions, safe/unsafe actions, seeded defects, expected missing
 paths, and deliberate decoys.
+
+Both oracle files have versioned JSON Schemas. Each surface item declares:
+
+- semantic key and accepted aliases;
+- materiality and required modes;
+- availability condition;
+- safety class;
+- allowed terminal dispositions by mode;
+- minimum evidence class;
+- expected transition/effect when applicable;
+- decoy status when it must not be treated as an interactive feature.
+
+Availability/disposition rules are explicit:
+
+- available and safe: `covered` is required;
+- available but unsafe/destructive: discovery plus `avoided` is required;
+- intentionally inaccessible in the supplied mode: `blocked` is required;
+- prerequisite-disabled but safely enableable: prerequisite transition and
+  eventual `covered` are required;
+- feature-flag unavailable: the oracle-declared blocked/evidence-debt status is
+  required;
+- promised but absent: `missing` is required.
+
+Expected defects declare affected semantic keys, expected symptom/effect codes,
+accepted observation aliases, materiality, and minimum proof. The comparator
+matches a finding only when both its affected frontier lineage and normalized
+observed effect match. Ambiguous prose-only similarity is quarantined for human
+review rather than counted as a deterministic pass.
 
 An item may declare which mode can reasonably discover it. Runtime-only runs
 must not fail for source-only facts; full-evidence runs must reconcile both.
@@ -253,12 +357,37 @@ Tests never write real `~/.codex/skills`, `~/.claude/skills`, or application
 session skill caches. If a host cannot load temporary skills or run unattended,
 that host/mode is `NOT_PROVEN`, not synthetically passed.
 
+Each run root is isolated as:
+
+```text
+<temp-run>/target
+<temp-run>/skills
+<temp-run>/host-home
+<temp-run>/evidence
+<controller-private>/oracle
+```
+
+The host working directory is `target`; environment variables are allowlisted;
+real HOME, repository, unrelated credentials, and prior run paths are omitted.
+Strict oracle-blind acceptance additionally requires a host or OS filesystem
+allowlist that denies reads outside the target, temporary skills, host runtime
+dependencies, and evidence directories. A canary beside the oracle verifies the
+read boundary before the run. If that boundary cannot be demonstrated, the run
+may provide diagnostic evidence but its oracle-blind isolation status is
+`NOT_PROVEN` and it cannot satisfy the strict release gate. The harness never
+describes mere prompt prohibition as filesystem isolation.
+
+Every host process and fixture process has a bounded timeout. Reset failure,
+health-check failure, malformed artifacts, missing artifacts, host nonzero exit,
+timeout, comparator mismatch, or cleanup failure is `FAIL` when the host was
+available. A missing or unsupported host/runtime capability is `NOT_PROVEN`.
+
 ## Deterministic comparator
 
 The comparator normalizes agent rows by:
 
 ```text
-kind + feature + surface + control identity + role + state + viewport
+type-specific semantic_key + accepted oracle aliases
 ```
 
 It checks four dimensions.
@@ -290,10 +419,32 @@ It checks four dimensions.
 Unexpected semantic rows are reported separately and require review. They do
 not silently pass or fail the release gate until classified.
 
-## Frontier validator
+The comparator is authoritative for acceptance, not for the audited product's
+canonical evidence. It never rewrites or repairs the agent-authored ledger or
+HTML, because that would mask false closure. It writes a separate versioned
+`acceptance-result.json` containing agent-claimed closure, independently derived
+oracle closure, mismatches, artifact consistency, isolation status, and final
+gate status. Any material oracle miss, false covered claim, or JSON/HTML
+contradiction produces `gate_status: FAIL` and a nonzero process exit even when
+the agent report claimed closure. The unchanged false-closing report remains
+evidence of the failed acceptance run.
 
-The validator is a bounded standard-library utility, not a shared domain model.
-It validates only declared schema and cross-field invariants:
+## Validation boundary
+
+A repository-only development validator is required to test the schemas,
+comparator inputs, fixture outputs, and cross-field invariants. It is not copied
+into installed skills.
+
+An installed frontier validator is optional and may be promoted into
+`ship-readiness-orchestrator/scripts/` only after a fresh standalone-skill RED
+run demonstrates that instructions plus schemas cannot reliably preserve the
+required exactness. Promotion requires a written necessity record naming its
+caller, frequency, failure consequence, smaller instruction/schema alternative,
+reviewable size budget, and retirement criterion, as required by the existing
+four-skill design.
+
+Whether repository-only or later promoted, validation covers only declared
+schema and cross-field invariants:
 
 - unique stable row IDs;
 - existing parent references and permitted lineage;
@@ -308,7 +459,8 @@ It validates only declared schema and cross-field invariants:
 
 It accepts explicit input and evidence-root paths, performs no network or target
 mutation, emits machine-readable status plus bounded human diagnostics, and
-runs under `python3 -I` with the standard library only.
+runs under `python3 -I` with the standard library only. It must not grow into a
+shared domain model, importer framework, or execution layer.
 
 ## Pass and failure rules
 
@@ -329,6 +481,38 @@ on its own. Passing requires:
 
 Several runs may measure reliability, but misses from one run cannot be filled
 with discoveries from another to create an aggregate pass.
+
+Suite-level outcomes are:
+
+- `PASS`: host available, isolation proven, all required artifacts valid, and
+  comparator gate passed;
+- `FAIL`: host available but launch, reset, artifact, isolation canary,
+  comparison, cleanup, or timeout requirements failed;
+- `NOT_PROVEN`: the host or required containment capability is unavailable and
+  no strict run occurred.
+
+A configured available host/mode failure blocks release. `NOT_PROVEN` never
+counts as a pass. A release may proceed with a missing host/mode only through an
+explicit human waiver recorded in release evidence; the release must not claim
+cross-host proof for waived modes.
+
+## Objective closure derivation
+
+Closure is derived from canonical rows and pass evidence in this precedence
+order:
+
+| State | Objective condition |
+|---|---|
+| `blocked` | Target access/launch/auth failure prevents establishing a bounded product universe. |
+| `incomplete` | Target is inspectable, but material rows remain unresolved, reconciliation differs, artifacts are invalid, or two zero-yield passes are unmet. |
+| `static_only` | No runtime channel was available by the declared audit mode, although the static frontier reached terminal dispositions. |
+| `single_source` | Runtime was inspected and rows are terminal, but fewer than two independent discovery families support closure. |
+| `closed_multi_source` | Runtime inspection, required row dispositions, feature/surface reconciliation, two independent channel families, and two qualifying zero-yield passes all succeed. |
+
+Terminal `blocked` and `avoided` rows do not automatically prevent discovery
+closure when the surface was found and honestly dispositioned. They remain
+visible coverage/evidence gaps and may still block a readiness verdict. Discovery
+closure and product readiness are therefore related but not interchangeable.
 
 ## Test tiers
 
@@ -394,6 +578,14 @@ most important gap. Use native `<details>` sections, without JavaScript, for
 control-level evidence, role/state/device coverage, blocked/avoided actions,
 discovery reconciliation, and the full frontier manifest.
 
+The renderer consumes the frontier embedded in the canonical report input,
+derives counts and closure presentation from those rows, and refuses internally
+inconsistent caller-supplied summaries. Legacy inputs without frontier rows
+retain the current bounded “coverage not recorded” behavior. For large products,
+the HTML shows feature summaries and material gaps; it links the complete local
+JSON manifest rather than embedding thousands of control rows. Expandable
+details remain subordinate to the action-first findings.
+
 Do not show a vague completeness score. Use explicit closure states:
 
 - `closed_multi_source`;
@@ -408,18 +600,22 @@ the complete audit record; the default HTML remains a decision document.
 
 ## Development sequence
 
-1. Write failing oracle/comparator and frontier-invariant tests.
+1. Write failing oracle-schema, comparator, and frontier-invariant tests.
 2. Build the deterministic fixture and prove reset/seed behavior.
-3. Extend the frontier schema and templates minimally.
-4. Add the bounded validator and make invalid frontier fixtures fail.
-5. Update discovery, lane, verifier, and closure instructions.
-6. Add the compact HTML coverage model and expandable evidence sections.
-7. Run the first fresh Codex runtime-only audit as behavioral RED evidence.
-8. Repair until one fresh run satisfies the oracle without unsupported closure.
-9. Run Codex full-evidence and available Claude modes.
-10. Preserve every discovered failure mode as a deterministic regression where
+3. Add the development-only acceptance driver and isolation preflight.
+4. Extend the canonical ledger/report schemas and templates minimally.
+5. Add repository-only validation and make invalid frontier fixtures fail.
+6. Run the first fresh standalone Codex runtime-only audit as behavioral RED
+   evidence before deciding whether an installed validator is justified.
+7. Update discovery, lane, verifier, and closure instructions.
+8. Add the compact HTML coverage model and expandable evidence sections.
+9. If the RED evidence proves installed validation necessary, document and pass
+   the existing script-necessity gate before promoting a bounded utility.
+10. Repair until one fresh run satisfies the oracle without unsupported closure.
+11. Run Codex full-evidence and available Claude modes.
+12. Preserve every discovered failure mode as a deterministic regression where
     possible and as an acceptance scenario otherwise.
-11. Run focused tests, the complete new suite, all legacy suites, compile checks,
+13. Run focused tests, the complete new suite, all legacy suites, compile checks,
     `git diff --check`, parity checks, and forbidden-behavior scans.
 
 ## Scope boundary
