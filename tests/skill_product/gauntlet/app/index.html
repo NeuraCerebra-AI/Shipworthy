@@ -21,8 +21,8 @@
       <h1>Project dashboard</h1>
       <p data-decoy="negative-control">Keyboard-friendly navigation</p>
       <div class="upgrade-card" data-case-id="false-affordance"><strong>Upgrade now</strong><span>Unlock more capacity →</span></div>
-      <button data-case-id="keyboard-palette" id="palette-button" class="quiet">Quick actions</button>
-      <div id="palette" role="dialog" hidden><a href="/projects/import">Import project</a></div>
+      <button data-case-id="keyboard-palette" id="palette-button" class="quiet" aria-expanded="false" aria-controls="palette">Quick actions</button>
+      <div id="palette" role="dialog" aria-label="Quick actions" hidden><a href="/projects/import">Import project</a></div>
     </section>
 
     <section id="projects">
@@ -31,7 +31,7 @@
       <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
       <p id="duplicate-status" aria-live="polite"></p>
       <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
-      <form id="project-form" hidden><label>Name <input id="new-name"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><p id="form-error"></p></form>
+      <form id="project-form" hidden><label>Name <input id="new-name"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><button type="button" id="cancel-create" data-supporting-control="create-cancel" data-expected-effect="form-closed">Cancel</button><p id="form-error"></p></form>
       <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
     </section>
 
@@ -53,6 +53,7 @@
       <h2>Team</h2>
       <p id="invite-permission">Inviting requires the Admin fixture role.</p>
       <button data-case-id="mobile-invite" id="invite" aria-describedby="invite-permission">Invite member</button>
+      <p id="pending-invites" aria-live="polite"></p>
       <dialog id="invite-dialog"><p>Invite a teammate</p><label>Email <input id="invite-email" type="email"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status"></p></dialog>
     </section>
 
@@ -74,7 +75,7 @@
 
     <section id="profile">
       <h2>Profile settings</h2>
-      <label>Display name <input id="profile-name" value="Warren" readonly aria-describedby="profile-policy"></label>
+      <p>Display name: <output id="profile-name" aria-describedby="profile-policy">Warren</output></p>
       <p id="profile-policy">Display name is managed by the workspace identity provider.</p>
       <p>Avatar and profile preferences are managed here.</p>
     </section>

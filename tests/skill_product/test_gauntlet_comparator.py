@@ -170,6 +170,20 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_explicit_canonical_alternatives_match_the_same_observed_behavior(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            item["semantic_key"]: item["accepted_semantic_keys"][0]
+            for item in self.oracle["items"]
+            if item.get("accepted_semantic_keys")
+        }
+        self.assertTrue(replacements)
+        for row in result["rows"]:
+            if row["semantic_key"] in replacements:
+                row["semantic_key"] = replacements[row["semantic_key"]]
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_known_fixture_route_inventory_is_classified_but_unknown_route_is_reviewed(self) -> None:
         result = self.complete_result()
         result["rows"].append(
@@ -188,6 +202,32 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("REVIEW_REQUIRED", packet["status"])
         self.assertEqual(1, len(packet["unexpected_rows"]))
+
+    def test_arbitrary_not_found_probe_is_classified_as_fixture_support(self) -> None:
+        result = self.complete_result()
+        result["rows"].append(
+            {
+                "semantic_key": "surface:/definitely-absent:not-found:member:desktop",
+                "kind": "surface",
+                "status": "covered",
+                "material": True,
+                "evidence_refs": ["evidence/not-found.json"],
+            }
+        )
+        result["summary"]["surface"] += 1
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_defect_lineage_accepts_matched_canonical_alternative_and_effect_alias(self) -> None:
+        result = self.complete_result()
+        expected = "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"
+        actual = "transition:alpha-edited:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"
+        row = next(item for item in result["rows"] if item["semantic_key"] == expected)
+        row["semantic_key"] = actual
+        finding = next(item for item in result["findings"] if expected in item["affected_semantic_keys"])
+        finding["affected_semantic_keys"] = [actual]
+        finding["observed_effect_code"] = "save_false_success_not_persisted"
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
 
     def test_separate_incomplete_runs_are_not_aggregated(self) -> None:
         first = self.complete_result()

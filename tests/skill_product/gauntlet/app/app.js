@@ -15,6 +15,23 @@ async function loadState() {
   const state = await response.json();
   const row = $("#project-row");
   if (row) row.querySelector("strong").textContent = state.projects.join(", ");
+  $("#pending-invites").textContent = state.invites.length ? `Pending invites: ${state.invites.join(", ")}` : "No pending invites";
+}
+
+function closePalette() {
+  show($("#palette"), false);
+  $("#palette-button")?.setAttribute("aria-expanded", "false");
+}
+
+function openPalette() {
+  show($("#palette"), true);
+  $("#palette-button")?.setAttribute("aria-expanded", "true");
+}
+
+function closeProjectForm() {
+  if ($("#project-form")?.hidden) return;
+  show($("#project-form"), false);
+  $("#create-first")?.focus();
 }
 
 function applyRole(role) {
@@ -40,12 +57,18 @@ function route() {
 }
 
 $("#avatar")?.addEventListener("click", () => show($("#avatar-menu"), $("#avatar-menu").hidden));
-$("#palette-button")?.addEventListener("click", () => show($("#palette"), true));
+$("#palette-button")?.addEventListener("click", () => $("#palette").hidden ? openPalette() : closePalette());
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
-    show($("#palette"), true);
+    openPalette();
+  } else if (event.key === "Escape") {
+    closePalette();
+    closeProjectForm();
   }
+});
+document.addEventListener("click", (event) => {
+  if (!$("#palette").hidden && !$("#palette").contains(event.target) && event.target !== $("#palette-button")) closePalette();
 });
 $("#project-row")?.addEventListener("contextmenu", (event) => {
   event.preventDefault();
@@ -64,6 +87,7 @@ $("#duplicate")?.addEventListener("click", async () => {
   show($("#context-menu"), false);
 });
 $("#create-first")?.addEventListener("click", () => show($("#project-form"), true));
+$("#cancel-create")?.addEventListener("click", closeProjectForm);
 $("#project-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const result = await api("/api/projects", {name: $("#new-name").value});
@@ -95,6 +119,7 @@ $("#invite")?.addEventListener("click", () => $("#invite-dialog").showModal());
 $("#send-invite")?.addEventListener("click", async () => {
   const result = await api("/api/invite", {email: $("#invite-email").value});
   $("#invite-status").textContent = result.status === 200 ? "Invitation queued" : "Valid email is required";
+  if (result.status === 200) await loadState();
 });
 $("#close-invite")?.addEventListener("click", () => $("#invite-dialog").close());
 $("#role-member")?.addEventListener("click", () => applyRole("member"));

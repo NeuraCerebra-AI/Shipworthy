@@ -107,6 +107,7 @@ class GauntletReportTests(unittest.TestCase):
         ):
             self.assertIn(phrase, visual)
         self.assertIn("after the action-first finding sections", visual)
+        self.assertIn('data-closure-state="<exact canonical closure_state>"', visual)
         self.assertIn("exact denominator", contract)
         self.assertIn("caller totals must reconcile exactly with canonical rows", contract)
 

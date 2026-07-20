@@ -103,7 +103,10 @@ unknown closure labels or caller/row count drift instead of presenting them.
    self-contained, escaped HTML document directly from the final ledger and this
    fixed contract, with no external resources. Record deterministic script
    execution, SARIF, and bundle generation as `NOT_PROVEN`; do not omit the
-   mandatory HTML report or pretend the fallback was script-rendered.
+   mandatory HTML report or pretend the fallback was script-rendered. The
+   fallback must put `data-closure-state="<exact canonical closure_state>"` on
+   the root `<html>` element so HTML and JSON closure remain mechanically
+   comparable.
 
 3. Point the user to `readiness-report.html`. Repository contributors can use
    the repository-only fixtures under `tests/`; installed skills contain no

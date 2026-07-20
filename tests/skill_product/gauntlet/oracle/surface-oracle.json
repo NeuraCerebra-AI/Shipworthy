@@ -13,6 +13,7 @@
     {
       "id": "CASE-MOBILE-INVITE", "case_id": "mobile-invite", "kind": "control",
       "semantic_key": "control:surface:/team:normal:admin:mobile:invite-member:button:open-dialog", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["control:surface:/team:invite-dialog:admin:mobile:invite-member:button:open-dialog"],
       "identity": "Invite member", "control_type": "button", "disambiguator": "open-dialog", "materiality": "material", "availability_condition": "admin mobile viewport", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "runtime_trace", "expected_result": "invite-dialog-open", "accepted_aliases": ["invite"], "required_modes": ["runtime-only", "full-evidence"]
     },
@@ -25,6 +26,7 @@
     {
       "id": "CASE-CONTEXT-MENU", "case_id": "context-menu", "kind": "control",
       "semantic_key": "control:surface:/projects:normal:member:desktop:project-actions:context-menu:open", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["control:surface:/projects:editing:member:desktop:project-row:article:open-menu"],
       "identity": "Project actions", "control_type": "context-menu", "disambiguator": "open", "materiality": "material", "availability_condition": "secondary click on project row", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "runtime_visual", "expected_result": "context-menu-open", "accepted_aliases": ["row actions"], "required_modes": ["runtime-only", "full-evidence"]
     },
@@ -43,6 +45,7 @@
     {
       "id": "CASE-PREREQUISITE-PUBLISH", "case_id": "prerequisite-publish", "kind": "transition",
       "semantic_key": "transition:draft:control:surface:/projects:draft:member:desktop:publish:button:publish:published", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist-state:published"],
       "accepted_surface_states": ["draft", "normal"],
       "identity": "Publish", "disambiguator": "prerequisite-enable", "before_state": "draft", "after_state": "published", "materiality": "material", "availability_condition": "name prerequisite satisfied", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "published", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]
@@ -50,12 +53,14 @@
     {
       "id": "CASE-EMPTY-STATE", "case_id": "empty-state-action", "kind": "control",
       "semantic_key": "control:surface:/projects:empty:member:desktop:create-project:button:create", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["control:surface:/projects:editing:member:desktop:create-project:button:open-form"],
       "identity": "Create project", "control_type": "button", "disambiguator": "empty-state", "materiality": "material", "availability_condition": "empty fixture", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "runtime_trace", "expected_result": "project-form-open", "accepted_aliases": ["new project"], "required_modes": ["runtime-only", "full-evidence"]
     },
     {
       "id": "CASE-INVALID-RECOVERY", "case_id": "invalid-input-recovery", "kind": "transition",
       "semantic_key": "transition:invalid-name:control:surface:/projects:invalid:member:desktop:create:button:retry:created", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["transition:valid-input:control:surface:/projects:create:member:desktop:create:button:persist:created"],
       "identity": "Retry valid project", "control_identity": "Create", "disambiguator": "validation-recovery", "before_state": "invalid-name", "after_state": "created", "materiality": "material", "availability_condition": "invalid then corrected name", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "created", "accepted_aliases": ["correct and retry"], "required_modes": ["runtime-only", "full-evidence"]
     },
@@ -75,6 +80,7 @@
     {
       "id": "CASE-MISLEADING-SUCCESS", "case_id": "misleading-success", "kind": "transition",
       "semantic_key": "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["transition:alpha-edited:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Save success toast", "disambiguator": "misleading-success", "before_state": "editing", "after_state": "not-persisted", "materiality": "material", "availability_condition": "failure fixture", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "success-without-persistence", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]
@@ -82,6 +88,7 @@
     {
       "id": "CASE-RELOAD-LOSS", "case_id": "reload-loss", "kind": "transition",
       "semantic_key": "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
+      "accepted_semantic_keys": ["transition:saved-success-toast:control:surface:/projects:editing:member:desktop:save:button:persist:lost-after-reload"],
       "accepted_surface_states": ["editing", "normal"],
       "identity": "Reload verification", "disambiguator": "persistence-check", "before_state": "apparently-saved", "after_state": "lost", "materiality": "material", "availability_condition": "after misleading save", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "reload-data-loss", "accepted_aliases": ["changes disappear"], "required_modes": ["runtime-only", "full-evidence"]

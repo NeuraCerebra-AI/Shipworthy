@@ -113,6 +113,14 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.product)
 
+        for phrase in (
+            "re-census newly revealed controls",
+            "distinct input mode or keyboard shortcut gets its own control row",
+            "Never model a noninteractive false affordance as a covered control",
+            "triggering surface, not the resulting dialog",
+        ):
+            self.assertIn(phrase, self.product)
+
     def test_closed_frontier_requires_two_independent_zero_yield_passes(self) -> None:
         for document in (self.orchestrator, self.evidence, self.discovery):
             self.assertIn("two qualifying zero-yield discovery passes", document)

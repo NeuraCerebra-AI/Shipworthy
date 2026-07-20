@@ -126,7 +126,7 @@ def _behavior_tokens(*values: str) -> set[str]:
 
 
 def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
-    if row.get("semantic_key") == item["semantic_key"]:
+    if row.get("semantic_key") in {item["semantic_key"], *item.get("accepted_semantic_keys", [])}:
         return True
     if row.get("kind") != item["kind"]:
         return False
@@ -189,11 +189,13 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
     }
     missing: list[str] = []
     matched_rows: set[int] = set()
+    matched_keys: dict[str, set[str]] = {}
     for key, item in required.items():
         grouped = [(index, row) for index, row in enumerate(rows) if _matches_item(row, item)]
         if not grouped:
             missing.append(key)
             continue
+        matched_keys[key] = {candidate["semantic_key"] for _, candidate in grouped}
         index, row = grouped[0]
         matched_rows.add(index)
         allowed = item["allowed_dispositions_by_mode"][mode]
@@ -218,8 +220,13 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
 
     def matches(finding: dict[str, Any], defect: dict[str, Any]) -> bool:
         expected_keys = set(defect["affected_semantic_keys"])
+        actual_keys = set(finding.get("affected_semantic_keys", []))
+        lineage_matches = all(
+            bool(actual_keys & ({key} | matched_keys.get(key, set())))
+            for key in expected_keys
+        )
         return (
-            expected_keys.issubset(set(finding.get("affected_semantic_keys", [])))
+            lineage_matches
             and normalize_token(finding.get("observed_effect_code", ""))
             in {normalize_token(defect["observed_effect_code"]), *(normalize_token(alias) for alias in defect.get("accepted_observation_aliases", []))}
             and bool(finding.get("evidence_refs"))
@@ -243,6 +250,7 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         and row.get("kind") != "intent"
         and row.get("material", True)
         and _row_route(row) not in known_routes
+        and ":not-found:" not in str(row.get("semantic_key", ""))
     ]
     if reasons:
         status = "FAIL"
