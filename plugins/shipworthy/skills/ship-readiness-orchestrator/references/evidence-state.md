@@ -170,7 +170,7 @@ Before judging quality, inventory:
 
 ## Path Frontier Ledger
 
-The **Path Frontier Ledger** is the active `path_frontier` burn-down queue. Build it before judging readiness or design quality, then update it after each discovery/testing wave. It exists to make hidden work visible: if a follow-up "do another round" could reasonably find more material paths, the first run was not exhausted.
+The **Path Frontier Ledger** is the active, canonical `path_frontier` burn-down queue. Build it before judging readiness or design quality, then update it after each discovery/testing wave. It exists to make hidden work visible: if a follow-up "do another round" could reasonably find more material paths, the first run was not exhausted. The schema authority is `references/schemas/readiness-ledger.schema.json#/$defs/path_frontier`; do not maintain a second frontier shape.
 
 Frontier sources:
 
@@ -186,24 +186,15 @@ Human-Tester Matrix:
 - guest, member, owner, admin, permission-denied, expired/session-stale states where relevant;
 - happy path, create, edit, delete/cancel, recover, invite/share/export/import, settings/account, onboarding, failure recovery, payment/auth where applicable.
 
-Track these fields per `path_frontier` row:
+Use semantic lineage `intent → feature → surface → control → transition`. Every row has a unique stable ID, kind, `shipworthy-semantic-v1` semantic key, parent ID when applicable, materiality, status, attempt count, evidence refs, and `shipworthy-methods-v1` observations. Control rows include label/accessibility name, control type, and disambiguator. Transition rows include `before_state` and `after_state`; caller-supplied counts must exactly equal counts derived from rows.
 
-- frontier ID;
-- source;
-- expected intent or user goal;
-- surface, route, screen, control, API, integration, or missing entry point;
-- role, account state, fixture, state variant, device/input variant;
-- mutation/safety risk;
-- status: `unattempted`, `unknown`, `maybe`, `covered`, `sampled_with_justification`, `blocked`, `avoided`, `missing`, `out_of_scope`, or `evidence_debt`;
-- attempt count;
-- evidence references;
-- wave discovered and wave attempted;
-- blocker reason or sample justification;
-- next action.
+The only closure states are `closed_multi_source`, `incomplete`, `single_source`, `blocked`, and `static_only`.
 
-A full final verdict is forbidden while any material path_frontier row remains `unattempted`, `unknown`, or `maybe`. Frontier closure requires all material rows to reach a terminal status and two consecutive discovery/testing passes find no new material routes, controls, roles, states, device variants, or user intents.
+**Closure precedence:** unresolved material rows, evidence debt, or reconciliation differences produce `incomplete`; a material blocker may produce `blocked`; static evidence without runtime produces `static_only`; one canonical discovery family produces `single_source`; only reconciled terminal rows with multiple independent families and two qualifying zero-yield discovery passes from distinct canonical method families produce `closed_multi_source`. Preserve reconciliation differences instead of smoothing them into narrative agreement.
 
-If closure is impossible in the current run, record `exhaustion_status: incomplete`, the remaining rows, the next frontier batch, and the resume prompt. This is evidence/orchestration debt, not a passed gate.
+A full final verdict is forbidden unless the derived state is `closed_multi_source`. Two qualifying zero-yield discovery passes must begin from the current frontier, end with the same digest, produce no new semantic keys, and use distinct canonical method families. Time, attempt count, repeated agents, or renamed method details never establish closure.
+
+If closure is impossible in the current run, record `closure_state: incomplete`, the unresolved rows, differences, and resume prompt. This is evidence/orchestration debt, not a passed gate.
 
 ## Claim Ledger Fields
 

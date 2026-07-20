@@ -1,0 +1,113 @@
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SKILLS = ROOT / "plugins/shipworthy/skills"
+ORCHESTRATOR = SKILLS / "ship-readiness-orchestrator"
+PRODUCT = SKILLS / "ship-product-workflows"
+
+
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+class ExhaustiveSurfaceContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.orchestrator = read(ORCHESTRATOR / "SKILL.md")
+        cls.evidence = read(ORCHESTRATOR / "references/evidence-state.md")
+        cls.prompts = read(ORCHESTRATOR / "references/lane-prompts.md")
+        cls.pressure = read(ORCHESTRATOR / "references/pressure-tests.md")
+        cls.product = read(PRODUCT / "SKILL.md")
+        cls.discovery = read(PRODUCT / "references/path-discovery-and-coverage.md")
+
+    def test_product_lane_requires_material_state_control_census_and_safe_attempts(self) -> None:
+        for phrase in (
+            "material-state control census",
+            "every visible or discoverable interactive control",
+            "once per materially different behavior",
+            "noninteractive false affordance",
+            "control identity",
+        ):
+            self.assertIn(phrase, self.product)
+
+    def test_discovery_contract_names_four_real_method_families(self) -> None:
+        for family in (
+            "runtime_human_interaction",
+            "runtime_structural_inventory",
+            "static_implementation_inventory",
+            "declared_behavior_inventory",
+        ):
+            self.assertIn(family, self.discovery)
+        self.assertIn("A renamed method_detail does not create an independent method family", self.discovery)
+
+    def test_discovery_requires_semantic_lineage_variants_and_reconciliation(self) -> None:
+        for phrase in (
+            "intent → feature → surface → control → transition",
+            "shipworthy-semantic-v1",
+            "role, state, viewport",
+            "feature and surface levels",
+            "before_state",
+            "after_state",
+        ):
+            self.assertIn(phrase, self.discovery)
+
+    def test_closed_frontier_requires_two_independent_zero_yield_passes(self) -> None:
+        for document in (self.orchestrator, self.evidence, self.discovery):
+            self.assertIn("two qualifying zero-yield discovery passes", document)
+            self.assertIn("distinct canonical method families", document)
+
+    def test_evidence_contract_defines_objective_closure_precedence(self) -> None:
+        for state in ("closed_multi_source", "incomplete", "single_source", "blocked", "static_only"):
+            self.assertIn(f"`{state}`", self.evidence)
+        self.assertIn("Closure precedence", self.evidence)
+        self.assertIn("caller-supplied counts must exactly equal counts derived from rows", self.evidence)
+        self.assertIn("reconciliation differences", self.evidence)
+
+    def test_findings_are_separate_from_expected_dispositions(self) -> None:
+        for phrase in (
+            "Do not turn a normal blocked, avoided, missing, or out-of-scope disposition into a finding",
+            "affected_semantic_keys",
+            "observed_effect_code",
+            "evidence_refs",
+        ):
+            self.assertIn(phrase, self.prompts)
+
+    def test_verifier_rejects_false_exhaustive_closure(self) -> None:
+        for phrase in (
+            "single_source",
+            "unresolved material rows",
+            "unreconciled feature or surface differences",
+            "summary/row count drift",
+            "closed_multi_source",
+        ):
+            self.assertIn(phrase, self.prompts)
+
+    def test_orchestrator_routes_to_canonical_contract_before_collection(self) -> None:
+        for path in (
+            "references/schemas/readiness-ledger.schema.json",
+            "references/evidence-state.md",
+            "ship-product-workflows/references/path-discovery-and-coverage.md",
+        ):
+            self.assertIn(path, self.orchestrator)
+        self.assertIn("one canonical `path_frontier`", self.orchestrator)
+
+    def test_pressure_suite_includes_confusing_surface_gauntlet(self) -> None:
+        self.assertIn("Scenario 12: Exhaustive Surface Gauntlet", self.pressure)
+        for phrase in (
+            "duplicate labels",
+            "mobile-only",
+            "role-gated",
+            "keyboard-only",
+            "reload",
+            "false affordance",
+            "promised-but-missing",
+        ):
+            self.assertIn(phrase, self.pressure)
+
+
+if __name__ == "__main__":
+    unittest.main()

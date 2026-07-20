@@ -133,6 +133,15 @@ class FrontierContractTests(unittest.TestCase):
         with self.assertRaises(FrontierValidationError):
             validate_frontier(candidate, self.evidence_root)
 
+    def test_reconciliation_debt_objectively_derives_incomplete(self) -> None:
+        candidate = valid_frontier()
+        candidate["closure_state"] = "incomplete"
+        candidate["reconciliation_differences"] = [
+            {"semantic_key": "feature:project-management", "reason": "runtime/source conflict"}
+        ]
+        result = validate_frontier(candidate, self.evidence_root)
+        self.assertEqual("incomplete", result["closure_state"])
+
     def test_rejects_relabelled_method_details_and_nonqualifying_zero_yield_passes(self) -> None:
         candidate = valid_frontier()
         for item in candidate["rows"]:

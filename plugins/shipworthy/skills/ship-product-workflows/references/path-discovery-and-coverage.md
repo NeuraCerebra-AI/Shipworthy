@@ -33,7 +33,18 @@ When a living audit ledger exists, the first coverage map is provisional. Append
 
 ## Path Frontier For Full Shipworthy Runs
 
-When this lane is running under `ship-readiness-orchestrator` for a full Shipworthy invocation, return path_frontier additions, not just findings. Each addition should identify the expected intent, source, surface/route/control, role, state/device variant, mutation risk, current status, and next action. The orchestrator owns the canonical Path Frontier Ledger, but this lane must keep feeding it new paths until discovery dries up.
+When this lane is running under `ship-readiness-orchestrator` for a full Shipworthy invocation, return additions to one canonical `path_frontier`, not just findings. Use stable rows with semantic lineage `intent → feature → surface → control → transition`. Use `shipworthy-semantic-v1` keys, and include role, state, viewport in each surface identity. A control identity contains its label or accessible name, control type, and behavior disambiguator; a transition contains `before_state` and `after_state`. Observations point to evidence and to the discovery pass that produced them.
+
+Use only the `shipworthy-methods-v1` canonical method families:
+
+- `runtime_human_interaction`: adaptive interaction through the visible product;
+- `runtime_structural_inventory`: an independent DOM, accessibility-tree, UI-tree, route, or equivalent runtime inventory;
+- `static_implementation_inventory`: source, route, component, fixture, or test inventory;
+- `declared_behavior_inventory`: product docs, contracts, stories, or declared promises.
+
+A renamed method_detail does not create an independent method family. Reconcile runtime discovery against at least one independent canonical family at both feature and surface levels; preserve every discrepancy in `reconciliation_differences` until resolved or the run is downgraded. Runtime-only work may use two genuinely independent runtime families. Full-evidence work should reconcile runtime with static or declared behavior.
+
+Closed multi-source exhaustion requires two qualifying zero-yield discovery passes from distinct canonical method families. Each pass records its family, role, fixture, viewport, starting and ending frontier digests, and new semantic keys. A pass qualifies only when it began from the current frontier, produced no new semantic keys, and did not merely relabel the same method.
 
 Do not call the lane exhausted while material paths remain `unattempted`, `unknown`, or `maybe`, or while the last discovery/testing pass found new material routes, controls, roles, states, device variants, or user intents.
 
@@ -44,6 +55,7 @@ Map these before judging findings:
 - product area, app type, platform, and launch path;
 - roles, permissions, and actor types;
 - routes, screens, windows, dialogs, panels, menus, tabs, overlays, and drawers;
+- every visible or discoverable interactive control on each material role/state/device variant, including duplicate labels, nested menus, context menus, keyboard-only, mobile-only, and disabled controls;
 - entry points and deep links;
 - primary tasks and secondary tasks;
 - success, empty, loading, error, disabled, unauthorized, stale, offline, pending, draft, dirty, conflict, and completed states;

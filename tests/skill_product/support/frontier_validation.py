@@ -78,7 +78,9 @@ def _check_evidence(references: Any, root: Path, label: str, errors: list[str]) 
 def _derive_closure(frontier: dict[str, Any], families: set[str]) -> str:
     rows = frontier.get("rows", [])
     material = [row for row in rows if row.get("material", True)]
-    if any(row.get("status") in UNRESOLVED_STATUSES | {"evidence_debt"} for row in material):
+    if frontier.get("reconciliation_differences") or any(
+        row.get("status") in UNRESOLVED_STATUSES | {"evidence_debt"} for row in material
+    ):
         return "incomplete"
     if any(row.get("status") == "blocked" for row in material):
         return "blocked"

@@ -64,12 +64,18 @@ A screenshot proves only the state visible at capture time; it does not prove an
 - Preserve necessary complexity, proof, governance, accessibility paths, expert controls, and productive friction. A "simpler" fix that removes safety or trust is not automatically better.
 - Label assumptions about roles, goals, data, credentials, fixtures, device size, environment, and production risk.
 
+## Material-State Control Census
+
+For `audit_all` and full Shipworthy runs, build a **material-state control census** before claiming surface coverage. On every material surface and materially different role, state, viewport, and input mode, enumerate every visible or discoverable interactive control: buttons, links, inputs, menus, tabs, dialogs, context menus, keyboard commands, mobile-only controls, disabled controls, and controls revealed only after another action. Record control identity as label or accessible name, control type, containing surface, and a disambiguator; duplicate labels on one surface are separate controls when their behavior differs. Record a visually actionable but noninteractive false affordance as observed behavior, not as a working control.
+
+Exercise every safe control at least once per materially different behavior and record the observed transition, including `before_state`, `after_state`, and evidence. Re-test persistence-affecting behavior after refresh or re-entry when persistence is material. Do not click unsafe controls: give blocked or avoided controls an explicit terminal disposition and reason. A surface is not covered merely because it was opened, screenshotted, or its primary happy path worked.
+
 ## Audit Workflow
 
 1. Capture the ask, artifact, environment, credentials, fixture data, device targets, safe-test permission, and mutation boundaries.
 2. Run a provisional router pass: process route, audit mode, evidence path, risk gate, likely tools, and whether a clarity lane is needed.
 3. For major, full-pass, long-running, agent-assisted, or compaction-prone audits, start or update a living audit ledger after the provisional route. Record only the safe-test boundary, provisional route, and initial unknowns before discovery; do not pretend the path universe is known yet. Keep newly discovered paths visible instead of treating them as scope creep.
-4. Discover product surfaces and build a coverage map: screens/routes/windows, roles, states, actions, variants, hidden paths, data dependencies, integrations, and mutation risks. Update the ledger after discovery when one exists.
+4. Discover product surfaces and build a coverage map plus the material-state control census: screens/routes/windows, roles, states, actions, variants, hidden paths, data dependencies, integrations, and mutation risks. Update the ledger after discovery when one exists.
 5. Finalize scope and audit mode:
    - `audit_all`: audit the discoverable product-workflow surface in scope, with explicit coverage limits.
    - `audit_selected`: audit user-selected flows, screens, routes, or roles.
@@ -79,7 +85,7 @@ A screenshot proves only the state visible at capture time; it does not prove an
 6. For full Shipworthy runs, return path_frontier additions and frontier burn-down signals after each discovery/testing pass; do not treat newly discovered paths as scope creep.
 7. Decide single-agent, parallel lanes, or staged waves. For major audits, keep the coordinator responsible for safe-test boundaries, evidence standards, deduplication, severity, ledger updates, and final recommendations.
 8. Collect evidence: screenshots, recordings, DOM/UI tree, accessibility tree, focus traversal, console output, network/API observations, logs, route traces, state snapshots, code/diff references, product docs, and path traces. For a full flagship Shipworthy lane, include the actual frontend tool and path-walk status or explicitly downgrade the lane packet.
-9. Execute or trace safe user paths through the actual frontend when available. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
+9. Execute or trace safe user paths through the actual frontend when available. Exercise every safe control once per materially different behavior. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
 10. Inspect backend/API/data symptoms only where they affect product workflows: failed requests, stale state, missing persistence, authorization leaks, inconsistent payloads, job/status drift, broken imports/exports, or misleading UI after backend failure.
 11. Call `$ship-workflow-clarity` for the clarity lane when comprehension, consequence, recovery, proof, governance, or human-obviousness risks are present. Pass path evidence and constraints; merge only evidence-backed clarity findings.
 12. Update the ledger after each major discovery pass, material evidence-changing tool batch, agent packet, wave, reroute, major finding, and final synthesis when a ledger exists.

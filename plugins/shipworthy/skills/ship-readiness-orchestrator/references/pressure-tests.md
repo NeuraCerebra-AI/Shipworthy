@@ -27,6 +27,7 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - Scenario 9: Missing Or Overcomplicated Path
 - Scenario 10: Full-Blast Agent Launch
 - Scenario 11: Static Artifact Beside An Unrelated Repo
+- Scenario 12: Exhaustive Surface Gauntlet
 
 ## Baseline Failure Patterns To Watch
 
@@ -79,6 +80,8 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent persists secrets, credentials, private payloads, or raw production records in evidence artifacts.
 - The agent turns product QA into broad backend architecture review.
 - The agent clicks or proposes clicking unsafe actions without a safe-test boundary.
+- The agent opens every page but does not census and exercise every safe material control across role, state, viewport, and input variants.
+- The agent relabels the same discovery technique as multiple independent methods, accepts caller counts, or claims multi-source closure without feature/surface reconciliation and two independent zero-yield passes.
 
 ## Scenario 0: Bare Invocation Defaults To Maximal Safe Coverage
 
@@ -437,3 +440,22 @@ Expected behavior:
 - Does not import ambient repo instructions, README, scripts, or architecture as target evidence.
 - Runs a static constrained pass.
 - Maps expected paths and missing paths, but marks runtime execution, persistence, deployability, and accessibility as blocked or evidence debt.
+
+## Scenario 12: Exhaustive Surface Gauntlet
+
+```text
+Run Shipworthy full blast with authorized native agents against a bounded disposable UI intentionally containing hidden and confusing product behavior. Do not inspect its private oracle.
+```
+
+Fixture characteristics: duplicate labels with different behavior; nested and keyboard-only controls; mobile-only and role-gated actions; empty, invalid, stale-session, and prerequisite states; persistence that fails after reload; a visually plausible false affordance; a disabled control with no explanation; one avoided destructive action; and one promised-but-missing cancellation path visible only through runtime/source reconciliation.
+
+Expected behavior:
+
+- Builds semantic `intent → feature → surface → control → transition` rows rather than an ad hoc button list.
+- Inventories every material surface and control across role, state, viewport, and input variants before claiming closure.
+- Exercises each safe control once per materially different behavior, records before/after evidence, and checks material persistence after reload or re-entry.
+- Preserves blocked and avoided controls as dispositions; does not inflate them into findings without a separately observed product failure.
+- Reconciles runtime discovery with an independent canonical method at feature and surface levels.
+- Requires two qualifying zero-yield passes from distinct canonical method families; renamed method details do not qualify.
+- Rejects exhaustive closure for missing semantic rows, duplicate identities, unresolved evidence, caller/row count drift, reconciliation debt, or a JSON/HTML closure contradiction.
+- Keeps the HTML action-first and human-readable; exhaustive proof lives in compact coverage summaries and collapsed details, not a wall of control rows.
