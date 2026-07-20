@@ -24,10 +24,25 @@ async function loadState() {
   const response = await fetch("/api/state");
   const state = await response.json();
   const row = $("#project-row");
-  if (row) row.querySelector("strong").textContent = state.projects.join(", ");
+  if (row) row.querySelector("strong").textContent = state.project.name;
   $("#project-name").value = state.project.name;
+  $("#editor-title").textContent = `Edit ${state.project.name}`;
   $("#project-state").textContent = `Project state: ${state.project.state}`;
+  $("#archived-status").textContent = state.empty_archived_projects ? "No archived projects" : "Archived projects are available";
+  $("#analytics-status").textContent = state.feature_flags.advanced_analytics ? "Advanced analytics is enabled for this workspace." : "Feature not enabled for this workspace. Ask a workspace owner to enable it.";
   $("#pending-invites").textContent = state.invites.length ? `Pending invites: ${state.invites.join(", ")}` : "No pending invites";
+  const list = $("#project-list");
+  list.replaceChildren();
+  for (const name of state.projects) {
+    const button = document.createElement("button");
+    button.textContent = `Edit ${name}`;
+    button.addEventListener("click", async () => {
+      await api("/api/select", {name});
+      await loadState();
+      $("#project-name")?.focus();
+    });
+    list.append(button);
+  }
 }
 
 function closePalette() {
@@ -229,6 +244,11 @@ $("#export")?.addEventListener("click", async () => {
   URL.revokeObjectURL(link.href);
 });
 $("#import-file")?.addEventListener("change", () => clearValidation($("#import-file"), $("#import-status")));
+$("#clear-import")?.addEventListener("click", () => {
+  $("#import-file").value = "";
+  clearValidation($("#import-file"), $("#import-status"));
+  $("#import-file")?.focus();
+});
 $("#start-import")?.addEventListener("click", async () => {
   const file = $("#import-file").files[0];
   if (!file) { setValidation($("#import-file"), $("#import-status"), "Choose a JSON export", true); return; }

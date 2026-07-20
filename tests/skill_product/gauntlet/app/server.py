@@ -130,6 +130,8 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 with self.server.state.lock:
                     self.server.state.value["projects"].append(name)
+                    self.server.state.value["project"]["name"] = name
+                    self.server.state.value["project"]["state"] = "draft"
                 self._json(201, {"ok": True, "name": name})
             return
         if path == "/api/import":
@@ -151,8 +153,21 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/duplicate":
             with self.server.state.lock:
-                self.server.state.value["projects"].append("Alpha copy")
-            self._json(201, {"ok": True, "name": "Alpha copy"})
+                source = self.server.state.value["project"]["name"]
+                name = f"{source} copy"
+                self.server.state.value["projects"].append(name)
+                self.server.state.value["project"]["name"] = name
+                self.server.state.value["project"]["state"] = "draft"
+            self._json(201, {"ok": True, "name": name})
+            return
+        if path == "/api/select":
+            name = str(body.get("name", ""))
+            with self.server.state.lock:
+                if name not in self.server.state.value["projects"]:
+                    self._json(404, {"error": "project-not-found"})
+                    return
+                self.server.state.value["project"]["name"] = name
+            self._json(200, {"ok": True, "name": name})
             return
         if path == "/api/invite":
             email = str(body.get("email", "")).strip()
@@ -179,6 +194,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(409, {"error": "name-prerequisite"})
             else:
                 with self.server.state.lock:
+                    previous = self.server.state.value["project"]["name"]
+                    projects = self.server.state.value["projects"]
+                    if previous in projects:
+                        projects[projects.index(previous)] = name
                     self.server.state.value["project"]["name"] = name
                     self.server.state.value["project"]["state"] = "published"
                 self._json(200, {"ok": True, "state": "published"})

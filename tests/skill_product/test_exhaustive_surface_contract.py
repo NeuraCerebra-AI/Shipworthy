@@ -221,6 +221,19 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
             self.assertIn(path, self.orchestrator)
         self.assertIn("one canonical `path_frontier`", self.orchestrator)
 
+    def test_final_artifacts_cannot_hide_frontier_or_finding_lineage_in_sidecars(self) -> None:
+        combined = self.orchestrator + self.prompts
+        for phrase in (
+            "final readiness-ledger.json and report-input.json",
+            "top-level `path_frontier`",
+            "Schema-valid legacy compatibility is not sufficient",
+            "Re-open both final JSON files from disk",
+            "affected_semantic_keys",
+            "observed_effect_code",
+            "evidence_refs",
+        ):
+            self.assertIn(phrase, combined)
+
     def test_pressure_suite_includes_confusing_surface_gauntlet(self) -> None:
         self.assertIn("Scenario 12: Exhaustive Surface Gauntlet", self.pressure)
         for phrase in (

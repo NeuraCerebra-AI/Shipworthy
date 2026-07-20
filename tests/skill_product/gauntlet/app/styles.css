@@ -15,5 +15,6 @@ button:disabled { cursor: not-allowed; }
 .upgrade-card { display: flex; justify-content: space-between; padding: 1rem; border: 2px solid #635bff; border-radius: 8px; color: #4038b4; }
 .empty { padding: 1rem; border: 1px dashed #8b96aa; margin: 1rem 0; }
 #project-row { gap: .75rem; display: flex; align-items: center; justify-content: space-between; padding: .8rem; border: 1px solid #ccd3df; }
+#project-list { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0; }
 .evidence-hook { display: none; }
 @media (max-width: 600px) { header { flex-wrap: wrap; gap: .45rem; } nav { order: 3; width: 100%; } .fixture-note { order: 4; width: 100%; } #avatar { margin-left: 0; } main { margin: .7rem auto; } #invite { width: 100%; } }

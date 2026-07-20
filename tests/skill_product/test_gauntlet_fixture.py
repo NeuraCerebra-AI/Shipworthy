@@ -93,7 +93,12 @@ class GauntletFixtureTests(unittest.TestCase):
 
     def test_supporting_duplicate_invite_and_publish_behaviors_are_real(self) -> None:
         self.assertEqual(201, self.fixture.request("/api/duplicate", "POST", {})[0])
-        self.assertIn("Alpha copy", self.fixture.request("/api/state")[1]["projects"])
+        state = self.fixture.request("/api/state")[1]
+        self.assertIn("Alpha copy", state["projects"])
+        self.assertEqual("Alpha copy", state["project"]["name"])
+        self.assertEqual(200, self.fixture.request("/api/select", "POST", {"name": "Alpha"})[0])
+        self.assertEqual("Alpha", self.fixture.request("/api/state")[1]["project"]["name"])
+        self.assertEqual(404, self.fixture.request("/api/select", "POST", {"name": "Missing"})[0])
         self.assertEqual(422, self.fixture.request("/api/invite", "POST", {"email": ""})[0])
         self.assertEqual(200, self.fixture.request("/api/invite", "POST", {"email": "person@example.test"})[0])
         self.assertIn("person@example.test", self.fixture.request("/api/state")[1]["invites"])
@@ -102,6 +107,7 @@ class GauntletFixtureTests(unittest.TestCase):
         state = self.fixture.request("/api/state")[1]
         self.assertEqual("published", state["project"]["state"])
         self.assertEqual("Ready", state["project"]["name"])
+        self.assertIn("Ready", state["projects"])
 
     def test_export_import_round_trip_restores_the_complete_fixture_state(self) -> None:
         self.fixture.request("/api/projects", "POST", {"name": "Round Trip"})
@@ -182,9 +188,15 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('$("#avatar-menu")?.querySelector("a")?.focus()', script)
         self.assertIn('show($("#invite-permission"), role !== "admin")', script)
         self.assertIn('$("#project-name").value = state.project.name', script)
+        self.assertIn('$("#editor-title").textContent = `Edit ${state.project.name}`', script)
+        self.assertIn('state.empty_archived_projects ? "No archived projects" : "Archived projects are available"', script)
+        self.assertIn('state.feature_flags.advanced_analytics ? "Advanced analytics is enabled for this workspace."', script)
+        self.assertIn('api("/api/select", {name})', script)
         self.assertIn('function clearValidation(', script)
         self.assertIn('$("#new-name")?.addEventListener("input",', script)
         self.assertIn('$("#import-file")?.addEventListener("change",', script)
+        self.assertIn('id="clear-import"', html)
+        self.assertIn('$("#clear-import")?.addEventListener("click",', script)
         self.assertIn('<dialog id="invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title">', html)
         self.assertIn('$("#project-state").textContent', script)
         self.assertIn('$("#project-actions")?.addEventListener', script)

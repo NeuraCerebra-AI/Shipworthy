@@ -28,15 +28,16 @@
     <section id="projects">
       <h2>Projects</h2>
       <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Open project actions</span><button id="project-actions" data-case-id="context-menu">Project actions</button></article>
+      <div id="project-list" aria-label="Project selection"></div>
       <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
       <p id="duplicate-status" aria-live="polite"></p>
-      <div class="empty"><p>No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
+      <div class="empty"><p id="archived-status">No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
       <form id="project-form" hidden><label>Name <input id="new-name" aria-describedby="form-error"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><button type="button" id="cancel-create" data-supporting-control="create-cancel" data-expected-effect="form-closed">Cancel</button><p id="form-error" role="alert" aria-live="polite"></p></form>
       <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
     </section>
 
     <section id="editor">
-      <h2>Edit Alpha</h2>
+      <h2 id="editor-title">Edit Alpha</h2>
       <label>Name <input id="project-name" value="Alpha"></label>
       <button data-case-id="duplicate-save-behavior" id="save-real">Save</button>
       <button data-case-id="duplicate-save-behavior" id="save-visual">Save</button>
@@ -70,6 +71,7 @@
       <p>Upload a JSON export to start an import.</p>
       <p id="import-guidance">Use a complete Northstar JSON export from Workspace data.</p>
       <label>Import file <input id="import-file" type="file" accept="application/json" aria-describedby="import-guidance import-status"></label>
+      <button type="button" id="clear-import" data-supporting-control="clear-import" data-expected-effect="file-selection-cleared">Clear selected file</button>
       <button id="start-import" data-supporting-control="start-import" data-expected-effect="import-completed">Start import</button>
       <p id="import-status" role="alert" aria-live="polite"></p>
       <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>
@@ -83,7 +85,7 @@
     </section>
 
     <section id="analytics" data-case-id="unavailable-feature-flag">
-      <h2>Advanced analytics</h2><p>Feature not enabled for this workspace. Ask a workspace owner to enable it.</p>
+      <h2>Advanced analytics</h2><p id="analytics-status">Feature not enabled for this workspace. Ask a workspace owner to enable it.</p>
     </section>
   </main>
   <script src="/app.js"></script>

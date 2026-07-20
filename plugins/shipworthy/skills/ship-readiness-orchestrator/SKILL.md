@@ -223,6 +223,10 @@ For operational Shipworthy runs, include an **Orchestration Checkpoint** in the 
 
 For each finding include evidence, user consequence, likely cause, smallest useful fix, counterfactual/no-change baseline when relevant, downstream regression or simplification risk, and exact verification step. For full runs, include a coverage table for every discovered material path and expected user intent, including paths covered, sampled, blocked, avoided, inferred, missing, out of scope, and still carrying evidence debt.
 
+### Canonical artifact gate
+
+Before the verifier approves or HTML is rendered, the final readiness-ledger.json and report-input.json must each contain the same top-level `path_frontier` object with every canonical row, discovery pass, reconciliation difference, derived count, and closure field. Do not leave the frontier only in a raw observation file, sidecar, checkpoint, or narrative. Schema-valid legacy compatibility is not sufficient for a current full run. Every `Fix` finding must contain non-empty `affected_semantic_keys`, a semantic `observed_effect_code`, and `evidence_refs`. Re-open both final JSON files from disk after writing them, compare their frontier identities/counts/closure and finding lineage, then render HTML from that exact report input. Missing or divergent canonical data fails completion even when a legacy-compatible schema accepts the shell.
+
 Do not implement fixes unless the user explicitly asks for implementation after the review.
 
 End every operational Shipworthy final answer with this concise fix handoff unless the user explicitly forbids follow-up work:
