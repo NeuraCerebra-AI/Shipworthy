@@ -212,11 +212,17 @@ creating duplicated models.
 Semantic keys follow deterministic type-specific rules:
 
 ```text
+intent:     intent:<normalized-actor-or-role>:<normalized-user-goal>
 feature:    feature:<normalized-feature-name>
 surface:    surface:<route-or-window>:<material-state>:<role>:<viewport-class>
 control:    control:<surface-key>:<normalized-name>:<control-type>:<disambiguator>
 transition: transition:<before-state-key>:<control-key>:<after-state-or-effect>
 ```
+
+Use `all-users` as the actor token only when the intent genuinely applies across
+the declared roles. Role-specific intents retain the role token. Equivalent
+goal aliases normalize through the same versioned alias mechanism as other row
+kinds.
 
 The control disambiguator uses a stable destination/effect, DOM or
 accessibility path, command identity, or documented ordinal in that priority
@@ -520,17 +526,27 @@ stable nonzero exit. Review resolves it by correcting the oracle, accepting a
 supported alias/variant into the versioned oracle, or preserving it as a false-
 positive/duplicate failure, then reruns the deterministic comparison.
 
-The comparator is authoritative for acceptance, not for the audited product's
-canonical evidence. It never rewrites or repairs the agent-authored ledger or
-HTML, because that would mask false closure. It writes a separate versioned
-`acceptance-result.json` containing agent-claimed closure, independently derived
-oracle closure, mismatches, artifact consistency, isolation status, and final
-gate status. Any material oracle miss, false covered claim, or JSON/HTML
-contradiction produces `gate_status: FAIL` and a nonzero process exit even when
-the agent report claimed closure. The unchanged false-closing report remains
-evidence of the failed acceptance run.
+The comparator is authoritative for oracle comparison, not for the audited
+product's canonical evidence. It never rewrites or repairs the agent-authored
+ledger or HTML, because that would mask false closure. It returns a versioned
+structured comparison packet containing agent-claimed closure, independently
+derived oracle closure, mismatches, artifact consistency, and unexpected rows.
+Any material oracle miss, false covered claim, or JSON/HTML contradiction marks
+that packet failed even when the agent report claimed closure. The unchanged
+false-closing report remains evidence of the failed acceptance run.
 
-`acceptance-result.schema.json` defines the authoritative artifact. Required
+`run_acceptance.py` is the sole writer of final `acceptance-result.json`. Its
+finalization order is: complete preflight/host/artifact work; obtain a comparison
+packet when comparison is reachable; copy state-appropriate retained evidence;
+perform cleanup; derive the final gate status including cleanup outcome; validate
+the final result; atomically write `acceptance-result.json` as the last artifact;
+then exit with the stable status code. Preflight `NOT_PROVEN`, launch/reset
+failure, timeout, and other paths where the comparator never runs still produce
+an authoritative driver-written result. A final-result validation error is
+recorded as an internal `FAIL`; the driver emits a schema-valid failure result
+with the validation diagnostics rather than publishing the invalid draft.
+
+`acceptance-result.schema.json` defines the authoritative driver artifact. Required
 fields are schema version, run ID, host, mode, start/end timestamps, isolation
 and canary result, host-process exit/timeout state, artifact paths/digests/
 validation state, agent-claimed closure, oracle-derived closure, mismatches,
