@@ -74,6 +74,7 @@ tests/skill_product/gauntlet/
 ├── prompts/
 │   ├── runtime-only.md
 │   └── full-evidence.md
+├── acceptance-result.schema.json
 ├── run_acceptance.py
 ├── compare_agent_result.py
 └── README.md
@@ -162,6 +163,7 @@ kind: intent | feature | surface | control | transition
 parent_id
 semantic_key
 normalization_version
+method_taxonomy_version
 observations[]
 control_identity
 before_state
@@ -187,6 +189,11 @@ discovery_pass_id
 evidence_refs
 ```
 
+Every observation and discovery-pass record declares
+`method_taxonomy_version: shipworthy-methods-v1`. Changing family boundaries or
+independence rules requires a new version; prior evidence is not reclassified
+silently.
+
 Multiple discovery channels merge into one semantic frontier row. They do not
 create duplicate rows. Conflicting observations on one semantic key are
 preserved and must be reconciled or left as evidence debt.
@@ -194,11 +201,13 @@ preserved and must be reconciled or left as evidence debt.
 Parent relationships provide traceable lineage:
 
 ```text
-feature -> surface/state -> control -> transition
+intent -> feature -> surface -> control -> transition
 ```
 
-Fields that do not apply to a row kind may be absent. The schema must define
-the conditional requirements for each kind without creating duplicated models.
+Material state is a required surface/observation dimension when relevant, not a
+separate row kind. Fields that do not apply to a row kind may be absent. The
+schema must define allowed parent kinds and conditional requirements without
+creating duplicated models.
 
 Semantic keys follow deterministic type-specific rules:
 
@@ -305,14 +314,17 @@ IDs. A representative entry is:
 {
   "id": "CTRL-INVITE-MOBILE",
   "kind": "control",
-  "semantic_key": "control:surface:team:normal:admin:mobile:invite-member:button:invite-dialog",
+  "semantic_key": "control:surface:team-page:normal:admin:mobile:invite-member:button:invite-dialog-open",
   "normalization_version": "shipworthy-semantic-v1",
+  "method_taxonomy_version": "shipworthy-methods-v1",
   "feature": "team-management",
   "surface": "team-page",
   "role": "admin",
   "state": "normal",
   "viewport": "mobile",
   "identity": "Invite member",
+  "control_type": "button",
+  "disambiguator": "invite-dialog-open",
   "materiality": "material",
   "availability_condition": "admin at mobile viewport",
   "safety_class": "safe",
@@ -454,14 +466,18 @@ health-check failure, malformed artifacts, missing artifacts, host nonzero exit,
 timeout, comparator mismatch, or cleanup failure is `FAIL` when the host was
 available. A missing or unsupported host/runtime capability is `NOT_PROVEN`.
 
-After success, the harness preserves only the requested canonical ledger,
-report JSON/HTML, acceptance result, and bounded logs under the explicit output
-path; it removes agent workspace, evidence copy, temporary skills, host home,
-canary, and controller/server workspace. After failure or timeout, it first
-copies bounded diagnostics and any partial canonical artifacts to the output,
-then removes the same transient paths. Sensitive environment values and host
-credentials are redacted from retained logs. Any removal failure changes an
-otherwise available run to `FAIL` and records the exact residual path.
+Every terminal state uses one cleanup rule. `PASS` preserves the requested
+canonical ledger, report JSON/HTML, acceptance result, and bounded logs.
+`FAIL` and timeout preserve bounded diagnostics plus any partial canonical
+artifacts. `NOT_PROVEN` preserves the preflight/capability manifest and bounded
+diagnostics. `REVIEW_REQUIRED` preserves the complete acceptance result,
+unexpected-row set, canonical artifacts, and bounded logs needed for review.
+After copying the state-appropriate outputs, the harness removes agent
+workspace, evidence copy, temporary skills, host home, canary, and controller/
+server workspace. Sensitive environment values and host credentials are
+redacted. Any removal failure changes an otherwise available attempted run to
+`FAIL`; a preflight-only `NOT_PROVEN` remains nonpassing and records cleanup
+failure plus the exact residual path.
 
 ## Deterministic comparator
 
@@ -513,6 +529,15 @@ gate status. Any material oracle miss, false covered claim, or JSON/HTML
 contradiction produces `gate_status: FAIL` and a nonzero process exit even when
 the agent report claimed closure. The unchanged false-closing report remains
 evidence of the failed acceptance run.
+
+`acceptance-result.schema.json` defines the authoritative artifact. Required
+fields are schema version, run ID, host, mode, start/end timestamps, isolation
+and canary result, host-process exit/timeout state, artifact paths/digests/
+validation state, agent-claimed closure, oracle-derived closure, mismatches,
+unexpected rows, review-required reasons, gate status, stable exit code,
+NOT_PROVEN reasons, and cleanup status/residual paths. The comparator validates
+its result against this schema before exit; an invalid acceptance result is
+`FAIL` for an attempted run.
 
 ## Validation boundary
 
