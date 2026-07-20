@@ -103,6 +103,15 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertEqual("published", state["project"]["state"])
         self.assertEqual("Ready", state["project"]["name"])
 
+    def test_export_import_round_trip_restores_the_complete_fixture_state(self) -> None:
+        self.fixture.request("/api/projects", "POST", {"name": "Round Trip"})
+        self.fixture.request("/api/publish", "POST", {"name": "Published Name"})
+        exported = self.fixture.request("/api/state")[1]
+        self.fixture.request("/api/reset", "POST", {}, self.fixture.reset_token)
+        self.assertEqual(422, self.fixture.request("/api/import", "POST", {"project": "partial"})[0])
+        self.assertEqual(200, self.fixture.request("/api/import", "POST", exported)[0])
+        self.assertEqual(exported, self.fixture.request("/api/state")[1])
+
     def test_static_paths_cannot_escape_fixture_root(self) -> None:
         self.assertIn(self.fixture.request("/../../../../etc/passwd")[0], (400, 404))
 
@@ -162,7 +171,7 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('function closePalette()', script)
         self.assertIn('function closeProjectForm()', script)
         self.assertIn('state.invites.join(", ")', script)
-        self.assertIn('api("/api/projects", {name: value.project})', script)
+        self.assertIn('api("/api/import", value)', script)
         self.assertIn('$("#project-state").textContent', script)
         self.assertIn('$("#project-actions")?.addEventListener', script)
         self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
@@ -193,6 +202,12 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertNotIn("Right-click for actions", html)
         for status_id in ("form-error", "toast", "invite-status", "import-status"):
             self.assertRegex(html, rf'id="{status_id}"[^>]*role="(?:alert|status)"')
+        self.assertIn("Ask a workspace owner to enable it", html)
+        self.assertIn("function openContextMenu()", script)
+        self.assertIn('$("#palette")?.querySelector("a")?.focus()', script)
+        self.assertIn('$("#duplicate")?.focus()', script)
+        self.assertIn('event.key === "Tab"', script)
+        self.assertIn('api("/api/import", value)', script)
 
 
 if __name__ == "__main__":

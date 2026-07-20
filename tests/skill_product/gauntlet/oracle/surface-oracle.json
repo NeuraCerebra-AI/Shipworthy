@@ -2,8 +2,8 @@
   "schema_version": "shipworthy-gauntlet-surface-v1",
   "normalization_version": "shipworthy-semantic-v1",
   "method_taxonomy_version": "shipworthy-methods-v1",
-  "supporting_routes": ["/", "/dashboard", "/projects", "/team", "/admin/data", "/projects/import", "/settings/profile", "/not-a-route"],
-  "supporting_features": ["feature:workspace-navigation", "feature:dashboard", "feature:dashboard-navigation", "feature:projects", "feature:team", "feature:team-invites", "feature:team-invitations", "feature:data-administration", "feature:project-import", "feature:project-import-export", "feature:profile", "feature:profile-settings", "feature:route-recovery", "feature:error-recovery", "feature:session-recovery", "feature:upgrade"],
+  "supporting_routes": ["/", "/dashboard", "/projects", "/team", "/admin/data", "/projects/import", "/settings/profile", "/not-a-route", "/definitely-not-a-real-route"],
+  "supporting_features": ["feature:workspace-navigation", "feature:navigation", "feature:dashboard", "feature:dashboard-navigation", "feature:projects", "feature:project-lifecycle", "feature:team", "feature:team-management", "feature:team-invites", "feature:team-invitations", "feature:data-administration", "feature:data-portability", "feature:project-import", "feature:project-import-export", "feature:profile", "feature:profile-settings", "feature:route-recovery", "feature:error-recovery", "feature:session-recovery", "feature:upgrade"],
   "items": [
     {
       "id": "CASE-AVATAR-SETTINGS", "case_id": "avatar-settings", "kind": "surface",
@@ -46,7 +46,7 @@
     {
       "id": "CASE-PREREQUISITE-PUBLISH", "case_id": "prerequisite-publish", "kind": "transition",
       "semantic_key": "transition:draft:control:surface:/projects:draft:member:desktop:publish:button:publish:published", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
-      "accepted_semantic_keys": ["transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist-state:published", "transition:editing:control:surface:/projects:editing:member:desktop:publish:button:publish-current-input:published", "transition:draft:control:surface:/projects:normal:admin:desktop:publish:button:persist:published"],
+      "accepted_semantic_keys": ["transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist-state:published", "transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist:published", "transition:editing:control:surface:/projects:editing:member:desktop:publish:button:publish-current-input:published", "transition:draft:control:surface:/projects:normal:admin:desktop:publish:button:persist:published"],
       "accepted_surface_states": ["draft", "normal"],
       "identity": "Publish", "disambiguator": "prerequisite-enable", "before_state": "draft", "after_state": "published", "materiality": "material", "availability_condition": "name prerequisite satisfied", "safety_class": "safe",
       "allowed_dispositions_by_mode": {"runtime-only": ["covered"], "full-evidence": ["covered"]}, "minimum_evidence_class": "before_after", "expected_result": "published", "accepted_aliases": [], "required_modes": ["runtime-only", "full-evidence"]
@@ -126,7 +126,7 @@
       "id": "CASE-UNAVAILABLE-FLAG", "case_id": "unavailable-feature-flag", "kind": "feature",
       "semantic_key": "feature:advanced-analytics", "normalization_version": "shipworthy-semantic-v1", "method_taxonomy_version": "shipworthy-methods-v1",
       "identity": "Advanced analytics", "disambiguator": "feature-flag-off", "materiality": "material", "availability_condition": "flag disabled in supplied fixture", "safety_class": "safe",
-      "allowed_dispositions_by_mode": {"runtime-only": ["blocked"], "full-evidence": ["blocked"]}, "minimum_evidence_class": "runtime_or_source", "accepted_aliases": ["analytics beta"], "required_modes": ["runtime-only", "full-evidence"]
+      "allowed_dispositions_by_mode": {"runtime-only": ["blocked", "missing"], "full-evidence": ["blocked", "missing"]}, "minimum_evidence_class": "runtime_or_source", "accepted_aliases": ["analytics beta"], "required_modes": ["runtime-only", "full-evidence"]
     }
   ],
   "negative_controls": [

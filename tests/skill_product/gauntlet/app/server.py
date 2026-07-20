@@ -132,6 +132,23 @@ class Handler(BaseHTTPRequestHandler):
                     self.server.state.value["projects"].append(name)
                 self._json(201, {"ok": True, "name": name})
             return
+        if path == "/api/import":
+            valid = (
+                set(body) == set(SEED)
+                and isinstance(body.get("project"), dict)
+                and isinstance(body.get("projects"), list)
+                and isinstance(body.get("invites"), list)
+                and isinstance(body.get("session"), str)
+                and isinstance(body.get("feature_flags"), dict)
+                and isinstance(body.get("empty_archived_projects"), bool)
+            )
+            if not valid:
+                self._json(422, {"error": "complete-export-required"})
+            else:
+                with self.server.state.lock:
+                    self.server.state.value = copy.deepcopy(body)
+                self._json(200, {"ok": True, "restored": True})
+            return
         if path == "/api/duplicate":
             with self.server.state.lock:
                 self.server.state.value["projects"].append("Alpha copy")

@@ -27,11 +27,13 @@ async function loadState() {
 function closePalette() {
   show($("#palette"), false);
   $("#palette-button")?.setAttribute("aria-expanded", "false");
+  $("#palette-button")?.focus();
 }
 
 function openPalette() {
   show($("#palette"), true);
   $("#palette-button")?.setAttribute("aria-expanded", "true");
+  $("#palette")?.querySelector("a")?.focus();
 }
 
 function closeAvatarMenu() {
@@ -55,6 +57,11 @@ function closeContextMenu() {
   if ($("#context-menu")?.hidden) return;
   show($("#context-menu"), false);
   $("#project-row")?.focus();
+}
+
+function openContextMenu() {
+  show($("#context-menu"), true);
+  $("#duplicate")?.focus();
 }
 
 function applyRole(role) {
@@ -95,15 +102,30 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("click", (event) => {
   if (!$("#palette").hidden && !$("#palette").contains(event.target) && event.target !== $("#palette-button")) closePalette();
 });
+$("#palette")?.addEventListener("keydown", (event) => {
+  if (event.key === "Tab") {
+    event.preventDefault();
+    $("#palette")?.querySelector("a")?.focus();
+  }
+});
 $("#project-row")?.addEventListener("contextmenu", (event) => {
   event.preventDefault();
-  show($("#context-menu"), true);
+  openContextMenu();
 });
-$("#project-actions")?.addEventListener("click", () => show($("#context-menu"), true));
+$("#project-actions")?.addEventListener("click", openContextMenu);
 $("#project-row")?.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || (event.shiftKey && event.key === "F10")) {
     event.preventDefault();
-    show($("#context-menu"), true);
+    openContextMenu();
+  }
+});
+$("#context-menu")?.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowDown" || event.key === "Tab") {
+    event.preventDefault();
+    $("#duplicate")?.focus();
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    closeContextMenu();
   }
 });
 $("#duplicate")?.addEventListener("click", async () => {
@@ -151,8 +173,9 @@ $("#send-invite")?.addEventListener("click", async () => {
 $("#close-invite")?.addEventListener("click", () => $("#invite-dialog").close());
 $("#role-member")?.addEventListener("click", () => applyRole("member"));
 $("#role-admin")?.addEventListener("click", () => applyRole("admin"));
-$("#export")?.addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify({project: "Alpha"})], {type: "application/json"});
+$("#export")?.addEventListener("click", async () => {
+  const state = await (await fetch("/api/state")).json();
+  const blob = new Blob([JSON.stringify(state)], {type: "application/json"});
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = "northstar-export.json";
@@ -164,10 +187,10 @@ $("#start-import")?.addEventListener("click", async () => {
   if (!file) { setValidation($("#import-file"), $("#import-status"), "Choose a JSON export", true); return; }
   try {
     const value = JSON.parse(await file.text());
-    if (typeof value.project !== "string") { setValidation($("#import-file"), $("#import-status"), "Invalid JSON export", true); return; }
-    const result = await api("/api/projects", {name: value.project});
-    setValidation($("#import-file"), $("#import-status"), result.status === 201 ? "Import completed" : "Import failed", result.status !== 201);
-    if (result.status === 201) await loadState();
+    if (!value.project || !Array.isArray(value.projects)) { setValidation($("#import-file"), $("#import-status"), "Invalid JSON export", true); return; }
+    const result = await api("/api/import", value);
+    setValidation($("#import-file"), $("#import-status"), result.status === 200 ? "Import completed" : "Import failed", result.status !== 200);
+    if (result.status === 200) await loadState();
   } catch (_) {
     setValidation($("#import-file"), $("#import-status"), "Invalid JSON export", true);
   }

@@ -233,7 +233,7 @@ class GauntletComparatorTests(unittest.TestCase):
 
     def test_observed_supporting_feature_names_are_classified(self) -> None:
         result = self.complete_result()
-        for key in ("feature:project-import-export", "feature:profile", "feature:upgrade"):
+        for key in ("feature:project-import-export", "feature:profile", "feature:upgrade", "feature:navigation", "feature:project-lifecycle", "feature:team-management", "feature:data-portability"):
             result["rows"].append(
                 {
                     "semantic_key": key,
@@ -243,8 +243,39 @@ class GauntletComparatorTests(unittest.TestCase):
                     "evidence_refs": ["evidence/support.json"],
                 }
             )
-        result["summary"]["feature"] += 3
+        result["summary"]["feature"] += 7
         self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_supported_not_found_probe_route_name_is_classified(self) -> None:
+        result = self.complete_result()
+        for kind, key in (
+            ("surface", "surface:/definitely-not-a-real-route:normal:member:desktop"),
+            ("control", "control:surface:/definitely-not-a-real-route:normal:member:desktop:the-dashboard:link:navigate"),
+        ):
+            result["rows"].append({"semantic_key": key, "kind": kind, "status": "covered", "material": True, "evidence_refs": ["evidence/not-found.json"]})
+            result["summary"][kind] += 1
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_unavailable_feature_may_be_recorded_missing(self) -> None:
+        result = self.complete_result()
+        row = next(item for item in result["rows"] if item["semantic_key"] == "feature:advanced-analytics")
+        row["status"] = "missing"
+        self.assertEqual("PASS", self.compare(result)["status"])
+
+    def test_observed_publish_semantics_and_expected_effect_vocabulary_match(self) -> None:
+        result = self.complete_result()
+        publish = "transition:draft:control:surface:/projects:draft:member:desktop:publish:button:publish:published"
+        actual_publish = "transition:draft:control:surface:/projects:editing:member:desktop:publish:button:persist:published"
+        next(row for row in result["rows"] if row["semantic_key"] == publish)["semantic_key"] = actual_publish
+        replacements = {
+            "false-affordance-noninteractive": "affordance_without_activation",
+            "unexplained-disabled-control": "disabled_without_recovery",
+            "duplicate-save-behavior-ambiguity": "ambiguous_duplicate_save_controls",
+        }
+        for finding in result["findings"]:
+            finding["observed_effect_code"] = replacements.get(finding["observed_effect_code"], finding["observed_effect_code"])
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
 
     def test_matching_prefers_an_allowed_direct_row_over_a_sampled_alias(self) -> None:
         result = self.complete_result()

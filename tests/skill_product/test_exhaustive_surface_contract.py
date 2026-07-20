@@ -186,6 +186,16 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.prompts)
 
+    def test_verifier_rejects_missing_variant_retry_and_reload_lineage(self) -> None:
+        for phrase in (
+            "raw role/state/viewport observation or screenshot",
+            "invalid-to-valid retry",
+            "reload or re-entry control and transition",
+            "must not be folded into the original Save transition",
+            "Every conventional shortcut that produced behavior",
+        ):
+            self.assertIn(phrase, self.prompts)
+
     def test_orchestrator_routes_to_canonical_contract_before_collection(self) -> None:
         for path in (
             "references/schemas/readiness-ledger.schema.json",
