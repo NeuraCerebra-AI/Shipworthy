@@ -107,6 +107,22 @@ class GauntletComparatorTests(unittest.TestCase):
         self.assertEqual("REVIEW_REQUIRED", packet["status"])
         self.assertEqual(1, len(packet["unexpected_rows"]))
 
+    def test_structural_intents_and_explicit_nonmaterial_rows_do_not_require_review(self) -> None:
+        result = self.complete_result()
+        result["rows"].extend(
+            [
+                {"semantic_key": "intent:member:manage-projects", "kind": "intent", "status": "covered", "material": True, "evidence_refs": ["evidence/intent.json"]},
+                {"semantic_key": "control:surface:/projects:normal:member:desktop:help:link:supporting", "kind": "control", "status": "covered", "material": False, "evidence_refs": ["evidence/help.json"]},
+            ]
+        )
+        result["summary"] = {
+            kind: sum(row["kind"] == kind for row in result["rows"])
+            for kind in ("feature", "surface", "control", "transition")
+        }
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+        self.assertEqual([], packet["unexpected_rows"])
+
     def test_unexpected_finding_requires_review(self) -> None:
         result = self.complete_result()
         result["findings"].append(

@@ -160,7 +160,12 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         if not any(matches(finding, defect) for defect in expected_defects)
     ]
 
-    unexpected = [row for row in rows if row.get("semantic_key") not in required]
+    unexpected = [
+        row for row in rows
+        if row.get("semantic_key") not in required
+        and row.get("kind") != "intent"
+        and row.get("material", True)
+    ]
     if reasons:
         status = "FAIL"
     elif unexpected or unexpected_findings:
