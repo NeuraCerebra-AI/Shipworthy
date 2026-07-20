@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shipworthy://gauntlet/expected-defects-v1",
+  "title": "Shipworthy Gauntlet expected defects",
+  "type": "object",
+  "required": ["schema_version", "normalization_version", "defects"],
+  "properties": {
+    "schema_version": {"const": "shipworthy-gauntlet-defects-v1"},
+    "normalization_version": {"const": "shipworthy-semantic-v1"},
+    "defects": {"type": "array", "minItems": 1}
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": "shipworthy-gauntlet-defects-v1",
+  "normalization_version": "shipworthy-semantic-v1",
+  "defects": [
+    {
+      "id": "DEFECT-MISLEADING-SUCCESS",
+      "affected_semantic_keys": ["transition:editing:control:surface:/projects/alpha:editing:member:desktop:save:button:persist:not-persisted"],
+      "observed_effect_code": "success-without-persistence",
+      "accepted_observation_aliases": ["success-toast-but-save-failed"],
+      "materiality": "release-blocking",
+      "minimum_proof": "before_after",
+      "required_modes": ["runtime-only", "full-evidence"]
+    },
+    {
+      "id": "DEFECT-RELOAD-LOSS",
+      "affected_semantic_keys": ["transition:apparently-saved:control:surface:/projects/alpha:editing:member:desktop:reload:browser:verify:lost"],
+      "observed_effect_code": "reload-data-loss",
+      "accepted_observation_aliases": ["changes-disappear-after-reload"],
+      "materiality": "release-blocking",
+      "minimum_proof": "before_after",
+      "required_modes": ["runtime-only", "full-evidence"]
+    },
+    {
+      "id": "DEFECT-FALSE-AFFORDANCE",
+      "affected_semantic_keys": ["surface:/dashboard:upgrade-card:member:desktop"],
+      "observed_effect_code": "false-affordance-noninteractive",
+      "accepted_observation_aliases": ["looks-clickable-but-is-not"],
+      "materiality": "material",
+      "minimum_proof": "runtime_visual",
+      "required_modes": ["runtime-only", "full-evidence"]
+    },
+    {
+      "id": "DEFECT-MISSING-CANCEL",
+      "affected_semantic_keys": ["feature:import-cancellation"],
+      "observed_effect_code": "promised-path-missing",
+      "accepted_observation_aliases": ["documented-cancel-absent"],
+      "materiality": "material",
+      "minimum_proof": "source_runtime_reconciliation",
+      "required_modes": ["full-evidence"]
+    }
+  ]
+}
