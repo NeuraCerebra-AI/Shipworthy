@@ -443,6 +443,32 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
+    def test_role_scoped_exhaustive_runtime_vocabulary_matches(self) -> None:
+        result = self.complete_result()
+        replacements = {
+            "control:surface:/dashboard:normal:member:desktop:command-palette:keyboard:open": "control:surface:/:normal:member:desktop:meta-k:keyboard-shortcut:open-dialog-meta-k",
+            "transition:draft:control:surface:/projects:draft:member:desktop:publish:button:publish:published": "transition:draft:control:surface:/projects:editing:member:desktop:publish:button:publish-project:published",
+            "transition:invalid-name:control:surface:/projects:invalid:member:desktop:create:button:retry:created": "transition:corrected:control:surface:/projects:create-project:member:desktop:create:button:submit-valid-name:created",
+            "control:surface:/projects:editing:member:desktop:save:button:persist": "control:surface:/projects:editing:member:desktop:save:button:persist-attempt",
+            "transition:editing:control:surface:/projects:editing:member:desktop:save:button:persist:not-persisted": "transition:editing-valid:control:surface:/projects:editing:member:desktop:save:button:persist-attempt:success-feedback",
+            "transition:apparently-saved:control:surface:/projects:editing:member:desktop:reload:browser:verify:lost": "transition:success-feedback:control:surface:/projects:save-feedback:member:desktop:reload:browser-reload:verify-first-save-persistence:not-persisted",
+            "control:surface:/projects:editing:member:desktop:archive:button:disabled": "control:surface:/projects:archive-unavailable:member:desktop:archive:button:disabled",
+            "feature:advanced-analytics": "feature:member-advanced-analytics",
+        }
+        effects = {
+            "reload-data-loss": "success-without-persistence",
+            "false-affordance-noninteractive": "actionable-visual-has-no-interaction",
+            "unexplained-disabled-control": "disabled-control-lacks-recovery",
+            "duplicate-save-behavior-ambiguity": "duplicate-label-controls-diverge",
+        }
+        for row in result["rows"]:
+            row["semantic_key"] = replacements.get(row["semantic_key"], row["semantic_key"])
+        for finding in result["findings"]:
+            finding["affected_semantic_keys"] = [replacements.get(key, key) for key in finding["affected_semantic_keys"]]
+            finding["observed_effect_code"] = effects.get(finding["observed_effect_code"], finding["observed_effect_code"])
+        packet = self.compare(result)
+        self.assertEqual("PASS", packet["status"], packet)
+
     def test_false_affordance_finding_may_use_observed_mobile_variant(self) -> None:
         result = self.complete_result()
         finding = next(item for item in result["findings"] if item["observed_effect_code"] == "false-affordance-noninteractive")

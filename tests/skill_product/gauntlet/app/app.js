@@ -11,6 +11,13 @@ function clearValidation(input, status) {
   input.setAttribute("aria-invalid", "false");
 }
 
+function projectNameOrError() {
+  const name = $("#project-name").value.trim();
+  if (name) return name;
+  $("#toast").textContent = "Name is required";
+  return null;
+}
+
 async function api(path, body = {}) {
   const response = await fetch(path, {
     method: "POST",
@@ -184,11 +191,17 @@ $("#project-form")?.addEventListener("submit", async (event) => {
     $("#create-first")?.focus();
   }
 });
+$("#project-name")?.addEventListener("input", () => { $("#toast").textContent = ""; });
 $("#save-real")?.addEventListener("click", async () => {
-  const result = await api("/api/save-failure", {name: $("#project-name").value});
+  const name = projectNameOrError();
+  if (!name) return;
+  const result = await api("/api/save-failure", {name});
   $("#toast").textContent = result.body.ok ? "Saved successfully" : "Save failed";
 });
-$("#save-visual")?.addEventListener("click", () => { $("#toast").textContent = "Looks saved"; });
+$("#save-visual")?.addEventListener("click", () => {
+  if (!projectNameOrError()) return;
+  $("#toast").textContent = "Looks saved";
+});
 $("#publish")?.addEventListener("click", async () => {
   const result = await api("/api/publish", {name: $("#project-name").value});
   $("#toast").textContent = result.status === 200 ? "Published" : "Name is required before publishing";
