@@ -24,6 +24,8 @@ npm-debug.log*
 **/audit-ledger.md
 !plugins/shipworthy/skills/ship-product-workflows/templates/audit-ledger.md
 evidence/
+!tests/skill_product/fixtures/evidence/
+!tests/skill_product/fixtures/evidence/*.json
 !docs/phase0/evidence/
 !docs/phase0/evidence/lean-host-native-red-green-ledger.md
 outputs/
