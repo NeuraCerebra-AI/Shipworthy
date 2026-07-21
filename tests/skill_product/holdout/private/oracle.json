@@ -1,0 +1,24 @@
+{
+  "schema_version": "shipworthy-holdout-oracle-v1",
+  "material_behaviors": [
+    {"id": "HB-01", "kind": "route", "aliases": ["/welcome", "start setup"], "receipt": {"clauses": [{"event_types": ["route_visit"], "routes": ["/", "/welcome"]}]}},
+    {"id": "HB-02", "kind": "control", "aliases": ["workspace name", "name is required"], "receipt": {"clauses": [{"event_types": ["input"], "behaviors": ["workspace-name"]}]}},
+    {"id": "HB-03", "kind": "transition", "aliases": ["guided setup", "guided path"], "receipt": {"clauses": [{"event_types": ["input", "activation"], "behaviors": ["path"]}]}},
+    {"id": "HB-04", "kind": "transition", "aliases": ["manual setup", "manual path"], "receipt": {"clauses": [{"event_types": ["input", "activation"], "behaviors": ["path"]}]}},
+    {"id": "HB-05", "kind": "control", "aliases": ["back", "return to prior step"], "receipt": {"clauses": [{"event_types": ["activation"], "control_identities": ["Back"], "behaviors": ["back"]}]}},
+    {"id": "HB-06", "kind": "control", "aliases": ["cancel", "cancel setup"], "receipt": {"clauses": [{"event_types": ["activation"], "control_identities": ["Cancel"], "behaviors": ["cancel"]}]}},
+    {"id": "HB-07", "kind": "transition", "aliases": ["permission change", "viewer access"], "receipt": {"clauses": [{"event_types": ["transition"], "behaviors": ["revoke"], "outcomes": ["ok"]}]}},
+    {"id": "HB-08", "kind": "transition", "aliases": ["stale session", "re-entry", "flow restarted"], "receipt": {"clauses": [{"event_types": ["reload_reentry"], "outcomes": ["flow-restarted"]}]}},
+    {"id": "HB-09", "kind": "control", "aliases": ["ctrl enter", "keyboard continue"], "receipt": {"clauses": [{"event_types": ["activation"], "input_mechanisms": ["keyboard"], "behaviors": ["ctrl-enter"]}]}}
+  ],
+  "seeded_defects": [
+    {"id": "HD-01", "release_blocking": true, "aliases": ["submitted successfully permission revoked", "success feedback after permission failure", "false success after access revoked"]},
+    {"id": "HD-02", "release_blocking": false, "aliases": ["cancel without warning", "unsaved changes discarded", "cancel loses draft"]},
+    {"id": "HD-03", "release_blocking": false, "aliases": ["permission changed but submit enabled", "viewer can still create", "no recovery after permission change"]},
+    {"id": "HD-04", "release_blocking": false, "aliases": ["re-entry loses progress", "stale session restarts flow", "flow restarted without recovery"]}
+  ],
+  "valid_extra_findings": [
+    {"id": "HX-01", "aliases": ["displayed role does not match server authorization", "editor shown but server rejects creation"]},
+    {"id": "HX-02", "aliases": ["corrected choice keeps error visible", "valid selection leaves stale error"]}
+  ]
+}

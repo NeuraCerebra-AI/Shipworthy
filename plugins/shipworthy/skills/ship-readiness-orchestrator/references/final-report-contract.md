@@ -103,12 +103,9 @@ Shipworthy final answer with this concise next-step ask:
    - Include the proof condition and any regression guard worth keeping.
 
 8. **Product Coverage**
-   - Place this after the action-first finding sections, before technical appendices.
-   - Show only `closed_multi_source`, `incomplete`, `single_source`, `blocked`, or `static_only`, with the closure reason.
-   - Show exact feature, surface, control, and transition counts plus each percentage's exact denominator.
-   - Summarize roles and canonical discovery families and show one compact row per feature.
-   - Keep Control evidence, Role / state / device coverage, Blocked / avoided actions, Discovery reconciliation, and Frontier manifest in collapsed native details.
-   - Link a safe local frontier JSON manifest instead of dumping large row arrays into HTML.
+   - Near the beginning, add a compact Coverage Confidence summary: tested/not tested scope; roles, states, and viewports; stop reason; closure; inferred, blocked, avoided, and NOT_PROVEN limits.
+   - After the action-first finding sections, show canonical closure/reason, exact counts and each exact denominator, discovery families, and bounded feature rows.
+   - Collapse Control evidence, Role/state/device coverage, blocked/avoided actions, reconciliation, and manifest detail; link safe local frontier JSON instead of dumping rows.
 
 9. **Workflow Detail Appendix**
    - Broken or risky workflows: user-visible failures, state drift, persistence loss, blocked paths, permissions, forms, navigation, exports/imports, AI/action handoffs, recovery failures.

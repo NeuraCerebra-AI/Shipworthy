@@ -64,37 +64,21 @@ A screenshot proves only the state visible at capture time; it does not prove an
 - Preserve necessary complexity, proof, governance, accessibility paths, expert controls, and productive friction. A "simpler" fix that removes safety or trust is not automatically better.
 - Label assumptions about roles, goals, data, credentials, fixtures, device size, environment, and production risk.
 
-## Material-State Control Census
+## Behavioral Proof Gate
 
-For `audit_all` and full Shipworthy runs, build a **material-state control census** before claiming surface coverage. On every material surface and materially different role, state, viewport, and input mode, enumerate every visible or discoverable interactive control: buttons, links, inputs, menus, tabs, dialogs, context menus, keyboard commands, mobile-only controls, disabled controls, and controls revealed only after another action. Record control identity as label or accessible name, control type, containing surface, and a disambiguator; duplicate labels on one surface are separate controls when their behavior differs. Record a visually actionable but noninteractive false affordance as observed behavior, not as a working control.
+For `audit_all` and full Shipworthy runs, read `references/path-discovery-and-coverage.md` before collection. Build a **material-state control census** across every material role, state, viewport, and input mode; enumerate every visible or discoverable interactive control, including duplicate labels, disabled controls, keyboard/context-menu paths, and controls revealed by another action. Record noninteractive false affordances as observed surfaces, never working controls.
 
-Exercise every safe control at least once per materially different behavior and record the observed transition, including `before_state`, `after_state`, and evidence. Re-test persistence-affecting behavior after refresh or re-entry when persistence is material. Do not click unsafe controls: give blocked or avoided controls an explicit terminal disposition and reason. A surface is not covered merely because it was opened, screenshotted, or its primary happy path worked.
+Before claiming closure:
 
-### Canonical frontier identity gate
+- exercise every safe control once per materially different behavior and record `before_state`, `after_state`, and evidence; give unsafe controls a blocked or avoided reason;
+- re-census each spawned surface and each state-changing action across the supplied material variants;
+- inventory discoverable keyboard handlers and probe context-conventional alternatives for primary submit, command/open, dismiss, activate, and context menu with relevant platform modifiers; record positive and negative attempts because omission does not prove absence;
+- keep one control per distinct input mechanism, distinct invalid → corrected → success boundaries, and separate reload/re-entry proof for persistence;
+- create one finding, semantic effect code, and exact frontier lineage per independently fixable defect, even when one action or artifact exposes several defects;
+- treat unexplained disabled controls as findings, unavailable capabilities as feature rows, and false affordances as surface rows; and
+- reconcile every raw observation to its control, spawned surface, transition, evidence, and finding before approval. Prose or screenshots cannot replace a missing row.
 
-For a full Shipworthy run, read
-`references/path-discovery-and-coverage.md` before creating frontier rows. Use
-the actual route and exactly
-`surface:<actual-route>:<state>:<role>:<viewport>`, then derive control and
-transition keys from that parent as documented. Shorthand keys such as `surface:dashboard`, `control:projects/save`, dotted IDs, invented logical
-routes, and prose aliases are invalid. Validate the final ledger against the
-supplied readiness schema; if any key fails its type-specific grammar, the run must not claim schema validation or frontier closure.
-
-Canonical browser viewport key values are `desktop`, `mobile`, or `tablet`. Record exact pixel dimensions in observations, not in semantic-key viewport components; for example, use `desktop` with an observed width of 1200 rather than `desktop-1200`.
-
-Before closure, apply these row-level checks. A material spawned surface gets its own surface row; do not leave an opened menu, dialog, drawer, palette, popover, or visually actionable subregion attached only to its trigger. After every state-changing action, re-census newly revealed controls before navigating or resetting. Re-exercise every material surface-spawning control at each supplied role and viewport; a representative mobile screen does not cover another route's mobile control. A distinct input mode or keyboard shortcut gets its own control row even when it reaches an already known surface. A context-menu or keyboard trigger remains separate even if a pointer trigger reaches the same surface. Model invalid → corrected → success as distinct boundaries. A persistence finding requires a separate reload/re-entry control and transition. If one observation supports multiple defect classes, preserve separate finding lineage and effect code rather than collapsing them. When no shortcut inventory exists, run a bounded conventional shortcut probe (`Control/Command+K`, `/`, `?`, `Escape`, `Enter`/`Space`, and `Shift+F10`) and record only observed behavior. Parent a trigger to its triggering surface, not the resulting dialog or menu. Never model a noninteractive false affordance as a covered control; give the actionable-looking card or subregion its own observed surface row. A disabled control is `blocked` with zero invocation attempts, not `covered`; an unavailable capability gets a feature row with its reason, never only an intent or evidence-debt row. A reload or re-entry gets a separate transition row whenever it proves or disproves persistence. `sampled_with_justification` cannot replace direct coverage of the only role/state/viewport instance that establishes a material variant. Before claiming closure, build a bounded observation-to-frontier reconciliation table and reconcile every raw runtime observation to frontier rows: require one control row per distinct observed input mechanism, one row for every spawned surface, and one transition row per observed state boundary, including successful recovery and reload/re-entry proof. Closure fails while any observed interaction or resulting state lacks its row. A finding about state change or persistence includes the affected transition row, not only its originating control. A visible control that is disabled without an observed explanation or recovery route is a finding; its `blocked` row alone is not sufficient. Every `Fix` finding must point to its exact frontier rows and include a compact semantic `observed_effect_code` such as `success-without-persistence`, never an ordinal placeholder such as `effect-001`, plus evidence references.
-
-#### Non-negotiable closure checklist
-
-Before the verifier can approve, reconcile raw observations one by one and prove:
-
-- each observed input mechanism has its own control and transition rows;
-- invalid, corrected, and successful boundaries remain distinct;
-- each reload/re-entry control and transition used for persistence proof is separate;
-- every unavailable capability has a feature row and every false affordance has an observed surface row; and
-- one finding and semantic effect code per defect class, even when several classes share evidence.
-
-Do not accept prose, screenshots, or a combined finding as a substitute for any missing row or finding above.
+Use the reference's mechanical identities from the actual route, including `surface:<actual-route>:<state>:<role>:<viewport>`, and derive child keys from their parents. Validate the final ledger; invalid shorthand, unresolved observations, or a missing proof row forbids frontier closure.
 
 ## Audit Workflow
 

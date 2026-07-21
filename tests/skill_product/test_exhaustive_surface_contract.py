@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILLS = ROOT / "plugins/shipworthy/skills"
+SKILLS = Path(os.environ.get("SHIPWORTHY_SKILLS_ROOT", ROOT / "plugins/shipworthy/skills"))
 ORCHESTRATOR = SKILLS / "ship-readiness-orchestrator"
 PRODUCT = SKILLS / "ship-product-workflows"
 
@@ -27,10 +28,10 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
     def test_product_lane_requires_material_state_control_census_and_safe_attempts(self) -> None:
         for phrase in (
             "material-state control census",
+            "every material role, state, viewport, and input mode",
             "every visible or discoverable interactive control",
             "once per materially different behavior",
-            "noninteractive false affordance",
-            "control identity",
+            "noninteractive false affordances",
         ):
             self.assertIn(phrase, self.product)
 
@@ -95,37 +96,26 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
 
     def test_top_level_skill_repeats_non_optional_frontier_identity_gate(self) -> None:
         for phrase in (
-            "Canonical frontier identity gate",
+            "Behavioral Proof Gate",
+            "read `references/path-discovery-and-coverage.md` before collection",
             "surface:<actual-route>:<state>:<role>:<viewport>",
-            "Shorthand keys such as `surface:dashboard`",
-            "must not claim schema validation",
+            "invalid shorthand",
+            "forbids frontier closure",
         ):
             self.assertIn(phrase, self.product)
 
     def test_top_level_gate_prevents_false_closure_on_material_substates(self) -> None:
         for phrase in (
-            "spawned surface gets its own surface row",
-            "disabled control is `blocked`",
-            "unavailable capability gets a feature row",
-            "reload or re-entry gets a separate transition row",
-            "sampled_with_justification",
-            "observed_effect_code",
+            "re-census each spawned surface",
+            "unexplained disabled controls as findings",
+            "unavailable capabilities as feature rows",
+            "separate reload/re-entry proof",
+            "semantic effect code",
+            "independently fixable defect",
         ):
             self.assertIn(phrase, self.product)
 
     def test_closure_reconciles_raw_interactions_findings_and_frontier_rows(self) -> None:
-        for phrase in (
-            "reconcile every raw runtime observation to frontier rows",
-            "observation-to-frontier reconciliation table",
-            "one control row per distinct observed input mechanism",
-            "one transition row per observed state boundary",
-            "includes the affected transition row",
-            "disabled without an observed explanation or recovery route is a finding",
-            "Canonical browser viewport key values are `desktop`, `mobile`, or `tablet`",
-            "Record exact pixel dimensions in observations",
-        ):
-            self.assertIn(phrase, self.product)
-
         for phrase in (
             "raw observation has no corresponding distinct input control",
             "spawned surface",
@@ -135,13 +125,10 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
             self.assertIn(phrase, self.prompts)
 
         for phrase in (
-            "re-census newly revealed controls",
-            "distinct input mode or keyboard shortcut gets its own control row",
-            "Never model a noninteractive false affordance as a covered control",
-            "triggering surface, not the resulting dialog",
-            "every material surface-spawning control at each supplied role and viewport",
-            "bounded conventional shortcut probe",
-            "never only an intent or evidence-debt row",
+            "inventory discoverable keyboard handlers",
+            "context-conventional alternatives",
+            "positive and negative attempts because omission does not prove absence",
+            "reconcile every raw observation",
         ):
             self.assertIn(phrase, self.product)
 
@@ -195,22 +182,16 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
             "Every conventional shortcut that produced behavior",
         ):
             self.assertIn(phrase, self.prompts)
-        for phrase in (
-            "context-menu or keyboard trigger",
-            "invalid → corrected → success",
-            "separate reload/re-entry control",
-            "separate finding lineage and effect code",
-            "Non-negotiable closure checklist",
-            "Do not accept prose, screenshots, or a combined finding as a substitute",
-            "unavailable capability has a feature row",
-            "false affordance has an observed surface row",
-        ):
-            self.assertIn(phrase, self.product)
-
-        for prompt in (self.prompts, self.product):
+        for prompt in (self.prompts,):
             self.assertIn("each observed input mechanism", prompt)
             self.assertIn("each reload/re-entry control and transition", prompt)
             self.assertIn("one finding and semantic effect code per defect class", prompt)
+        for phrase in (
+            "one control per distinct input mechanism",
+            "separate reload/re-entry proof",
+            "one finding, semantic effect code, and exact frontier lineage per independently fixable defect",
+        ):
+            self.assertIn(phrase, self.product)
 
     def test_orchestrator_routes_to_canonical_contract_before_collection(self) -> None:
         for path in (

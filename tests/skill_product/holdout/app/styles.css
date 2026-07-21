@@ -1,0 +1,10 @@
+:root { font: 16px/1.5 system-ui, sans-serif; color: #18202b; background: #f6f7f9; }
+body { margin: 0; }
+header { display: flex; justify-content: space-between; padding: 1rem 1.5rem; background: #18202b; color: white; }
+main { width: min(42rem, calc(100% - 2rem)); margin: 3rem auto; }
+section { background: white; border: 1px solid #d8dde5; border-radius: .75rem; padding: 1.5rem; box-shadow: 0 .25rem 1rem #18202b12; }
+label { display: block; margin: 1rem 0; }
+input[type="text"], input:not([type]) { width: min(28rem, 100%); padding: .65rem; }
+button { margin: .5rem .5rem .5rem 0; padding: .65rem 1rem; }
+[role="alert"], [role="status"] { min-height: 1.5rem; }
+@media (max-width: 40rem) { main { margin: 1rem auto; } section { padding: 1rem; } }

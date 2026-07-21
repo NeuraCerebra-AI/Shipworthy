@@ -59,6 +59,45 @@ class GauntletReportTests(unittest.TestCase):
         self.assertIn('data-closure-state="closed_multi_source"', report)
         self.assertNotIn("<h2>Coverage</h2>", report)
 
+    def test_coverage_confidence_summary_is_early_plain_language_and_bounded(self) -> None:
+        report = render(self.fixture)
+        summary = report.index("<h2>Coverage Confidence</h2>")
+        first_finding = report.index("<h2>Fix Next</h2>")
+        product_detail = report.index("<h2>Product Coverage</h2>")
+        self.assertLess(summary, first_finding)
+        self.assertLess(first_finding, product_detail)
+        for text in (
+            "What was tested",
+            "5 of 6 material frontier items were covered by evidence.",
+            "What was not tested",
+            "1 avoided for safety",
+            "Roles: admin, member",
+            "States: editing, normal",
+            "Viewports: desktop, mobile",
+            "Why testing stopped",
+            "All material rows reconciled; two independent discovery passes reached zero yield.",
+            "Closure achieved",
+            "Important proof limits",
+            "1 avoided",
+            "0 inferred",
+            "0 blocked",
+            "0 NOT_PROVEN",
+        ):
+            self.assertIn(text, report)
+        self.assertNotIn("PF-C2", report[summary:first_finding])
+
+    def test_coverage_confidence_summary_matches_incomplete_closure_and_escapes_text(self) -> None:
+        candidate = deepcopy(self.fixture)
+        frontier = candidate["source_ledger"]["path_frontier"]
+        frontier["closure_state"] = "incomplete"
+        frontier["closure_reason"] = '<img src=x onerror="alert(1)">'
+        frontier["rows"][0]["status"] = "inferred"
+        report = render(candidate)
+        self.assertIn("Closure not achieved", report)
+        self.assertIn("1 inferred", report)
+        self.assertIn("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;", report)
+        self.assertNotIn('<img src=x onerror="alert(1)">', report)
+
     def test_product_coverage_uses_five_bounded_details_and_manifest_link(self) -> None:
         report = render(self.fixture)
         for label in (
@@ -79,6 +118,12 @@ class GauntletReportTests(unittest.TestCase):
         self.assertNotIn("<script", report.lower())
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", report)
 
+    def test_print_styles_keep_title_and_confidence_summary_readable(self) -> None:
+        report = render(self.fixture)
+        self.assertIn("h1.title,.confidence-grid b,.confidence-summary .section-head h2{color:#111}", report)
+        self.assertIn(".confidence-summary,.read-key,.stat-chip{background:#fff", report)
+        self.assertIn(".confidence-grid span,.read-key{color:#4A5568}", report)
+
     def test_legacy_input_has_bounded_not_recorded_message(self) -> None:
         report = render({"findings": [{"section": "passed_keep", "title": "Legacy result"}]})
         self.assertIn("Product coverage not recorded for this run.", report)
@@ -98,6 +143,11 @@ class GauntletReportTests(unittest.TestCase):
         visual = (ROOT / "plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md").read_text(encoding="utf-8")
         contract = (ROOT / "plugins/shipworthy/skills/ship-readiness-orchestrator/references/final-report-contract.md").read_text(encoding="utf-8")
         for phrase in (
+            "Coverage Confidence",
+            "what was tested",
+            "what was not tested",
+            "why testing stopped",
+            "important proof limits",
             "Product Coverage",
             "Control evidence",
             "Role / state / device coverage",
@@ -107,8 +157,10 @@ class GauntletReportTests(unittest.TestCase):
         ):
             self.assertIn(phrase, visual)
         self.assertIn("after the action-first finding sections", visual)
+        self.assertIn("near the beginning", visual)
         self.assertIn('data-closure-state="<exact canonical closure_state>"', visual)
         self.assertIn("exact denominator", contract)
+        self.assertIn("roles, states, and viewports", contract)
         self.assertIn("caller totals must reconcile exactly with canonical rows", contract)
 
 

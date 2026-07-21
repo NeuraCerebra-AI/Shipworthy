@@ -60,26 +60,11 @@ Agents should emit compact ledger JSON only and never generate full HTML by hand
 The renderer fills a fixed template. This keeps token use low and prevents
 report style drift.
 
-## Product Coverage
+## Coverage Confidence And Product Coverage
 
-Render **Product Coverage** after the action-first finding sections. Keep the
-main view compact: canonical closure state and reason; exact feature, surface,
-control, and transition counts; the exact denominator for attempted material
-controls; role summary; discovery-family summary; and one compact row per
-feature. Do not dump the frontier row array into the visible report.
+Render a short **Coverage Confidence** summary near the beginning: what was tested, what was not tested, roles/states/viewports, why testing stopped, closure, and important proof limits. Keep findings prominent. Render **Product Coverage** after the action-first finding sections with canonical closure/reason, exact counts and denominators, discovery families, and bounded feature rows.
 
-Put secondary proof in five collapsed native `<details>` sections:
-
-1. **Control evidence**
-2. **Role / state / device coverage**
-3. **Blocked / avoided actions**
-4. **Discovery reconciliation**
-5. **Frontier manifest**
-
-The Frontier manifest section links the bounded JSON artifact when a safe local
-relative path is recorded. Large frontiers stay in JSON; HTML remains readable.
-Default rendering has no JavaScript. Escape all frontier-derived text and reject
-unknown closure labels or caller/row count drift instead of presenting them.
+Keep Control evidence, Role / state / device coverage, Blocked / avoided actions, Discovery reconciliation, and Frontier manifest in collapsed native `<details>`. Link bounded frontier JSON rather than dumping rows. Default rendering has no JavaScript. Escape canonical text and reject unknown closure labels or caller/row count drift.
 
 ## How to generate it
 

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Waypoint setup</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+  <header><strong>Waypoint</strong><span id="permission">Editor access</span></header>
+  <main aria-label="Multi-step workspace setup">
+    <section id="welcome">
+      <h1>Set up your workspace</h1><p>Follow a short multi-step flow to choose how your team begins.</p>
+      <button id="start">Start setup</button>
+    </section>
+    <section id="identity" hidden>
+      <p>Step 1 of 3</p><h1>Name the workspace</h1>
+      <label>Workspace name <input id="workspace-name" autocomplete="off" aria-describedby="name-status"></label>
+      <p id="name-status" role="alert"></p>
+      <button id="identity-next">Next</button><button class="cancel">Cancel</button>
+    </section>
+    <section id="branch" hidden>
+      <p>Step 2 of 3</p><h1>Choose a setup path</h1>
+      <label><input type="radio" name="path" value="guided"> Guided setup</label>
+      <label><input type="radio" name="path" value="manual"> Manual setup</label>
+      <p id="path-status" role="alert"></p>
+      <button class="back">Back</button><button id="branch-next">Next</button><button class="cancel">Cancel</button>
+    </section>
+    <section id="review" hidden>
+      <p>Step 3 of 3</p><h1>Review setup</h1>
+      <dl><dt>Name</dt><dd id="review-name"></dd><dt>Path</dt><dd id="review-path"></dd></dl>
+      <button class="back">Back</button><button id="submit">Create workspace</button><button class="cancel">Cancel</button>
+      <button id="revoke">Simulate permission change</button><button id="expire">Simulate stale session</button>
+      <p id="submit-status" role="status"></p>
+    </section>
+    <section id="complete" hidden><h1>Workspace ready</h1><p>Your setup is complete.</p></section>
+  </main>
+  <script src="/telemetry.js"></script><script src="/app.js"></script>
+</body>
+</html>

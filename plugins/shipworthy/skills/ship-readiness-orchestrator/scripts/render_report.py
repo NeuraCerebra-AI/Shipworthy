@@ -151,6 +151,8 @@ def summarize_frontier(frontier):
     observations = [item for row in rows for item in row.get("observations", []) if isinstance(item, dict)]
     passes = [item for item in frontier.get("discovery_passes", []) if isinstance(item, dict)]
     roles = sorted({str(item.get("role")) for item in observations + passes if item.get("role")})
+    states = sorted({str(item.get("state")) for item in observations if item.get("state")})
+    viewports = sorted({str(item.get("viewport")) for item in observations + passes if item.get("viewport")})
     families = sorted({str(item.get("method_family")) for item in observations + passes if item.get("method_family")})
     variants = sorted({" / ".join(str(item.get(key) or "—") for key in ("role", "state", "viewport")) for item in observations})
     controls = [row for row in rows if row.get("kind") == "control" and row.get("material", True)]
@@ -158,7 +160,8 @@ def summarize_frontier(frontier):
     pct = round(100 * attempted / len(controls)) if controls else 0
     return {
         "closure_state": closure, "closure_reason": frontier.get("closure_reason") or "No closure reason recorded.",
-        "counts": counts, "rows": rows, "roles": roles, "variants": variants,
+        "counts": counts, "rows": rows, "roles": roles, "states": states,
+        "viewports": viewports, "variants": variants,
         "method_families": families, "control_attempts": (attempted, len(controls), pct),
         "features": [row for row in rows if row.get("kind") == "feature"],
         "controls": controls,
@@ -166,6 +169,41 @@ def summarize_frontier(frontier):
         "differences": [row for row in frontier.get("reconciliation_differences", []) if isinstance(row, dict)],
         "manifest": frontier.get("manifest_artifact"),
     }
+
+def coverage_confidence_html(frontier):
+    """Render a bounded early explanation of scope and honest closure."""
+    summary = summarize_frontier(frontier)
+    if not summary:
+        return ('<section class="confidence-summary"><div class="section-head">'
+                '<h2>Coverage Confidence</h2></div><p class="muted-note">'
+                'Coverage confidence was not recorded for this run.</p></section>')
+    material = [row for row in summary["rows"] if row.get("material", True)]
+    status_counts = {status: sum(row.get("status") == status for row in material) for status in (
+        "covered", "sampled_with_justification", "blocked", "avoided", "inferred",
+        "missing", "out_of_scope", "evidence_debt",
+    )}
+    covered = status_counts["covered"]
+    not_proven = status_counts["missing"] + status_counts["evidence_debt"]
+    roles = ", ".join(summary["roles"]) or "not recorded"
+    states = ", ".join(summary["states"]) or "not recorded"
+    viewports = ", ".join(summary["viewports"]) or "not recorded"
+    closure_achieved = summary["closure_state"] == "closed_multi_source"
+    closure = "Closure achieved" if closure_achieved else "Closure not achieved"
+    limits = (
+        f'{status_counts["avoided"]} avoided for safety; {status_counts["inferred"]} inferred; '
+        f'{status_counts["blocked"]} blocked; {not_proven} NOT_PROVEN'
+    )
+    return (
+        '<section class="confidence-summary"><div class="section-head"><h2>Coverage Confidence</h2></div>'
+        '<div class="confidence-grid">'
+        f'<p><b>What was tested</b><span>{covered} of {len(material)} material frontier items were covered by evidence.</span></p>'
+        f'<p><b>Coverage conditions</b><span>Roles: {esc(roles)} · States: {esc(states)} · Viewports: {esc(viewports)}</span></p>'
+        f'<p><b>What was not tested / Important proof limits</b><span>{esc(limits)}. '
+        f'{status_counts["out_of_scope"]} out of scope; {status_counts["sampled_with_justification"]} sampled.</span></p>'
+        f'<p><b>Why testing stopped</b><span>{esc(summary["closure_reason"])}</span></p>'
+        f'<p><b>{closure}</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
+        '</div></section>'
+    )
 
 def project_input(data):
     """Project validated v1 ledger/report-input data into the stable report shape."""
@@ -472,6 +510,7 @@ def render(data, interactive=False):
     target = esc(data.get("target", "target"))
     gen = esc(data.get("generated_at") or datetime.date.today().isoformat())
     frontier = data.get("path_frontier") if isinstance(data.get("path_frontier"), dict) else None
+    confidence_block = coverage_confidence_html(frontier)
     product_cov_block = product_coverage_html(frontier)
     closure_attr = f' data-closure-state="{esc(frontier.get("closure_state"))}"' if frontier else ""
 
@@ -677,6 +716,7 @@ def render(data, interactive=False):
   .c-clear .n{{color:{SECTION['clear_before_ship'][0]}}}.c-fixnext .n{{color:{SECTION['fix_next'][0]}}}.c-notproven .n{{color:{SECTION['not_proven_not_tested'][0]}}}.c-passed .n{{color:{SECTION['passed_keep'][0]}}}
   .read-key{{max-width:660px;margin:18px auto 0;color:var(--muted);font-size:13px;line-height:1.65;text-align:left;border:1px solid var(--hairline-soft);background:#0D1A30;border-radius:10px;padding:12px 14px}}
   .read-key b{{color:var(--paper)}}.key-actions{{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}}.key-chip{{font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--hairline);color:var(--paper)}}
+  .confidence-summary{{margin:34px 0 12px;border:1px solid var(--hairline);background:#0D1A30;border-radius:var(--radius);padding:18px 20px}}.confidence-summary .section-head{{margin-bottom:10px}}.confidence-grid{{display:grid;gap:9px}}.confidence-grid p{{display:grid;grid-template-columns:155px 1fr;gap:12px;margin:0;font-size:12.8px;color:var(--prose)}}.confidence-grid b{{color:var(--paper);font-size:11px;letter-spacing:.04em}}.confidence-grid span{{color:var(--muted)}}
   .section{{margin-top:56px}}
   .section-head{{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:18px;padding-bottom:11px;border-bottom:1px solid var(--hairline)}}
   .section-head h2{{font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:0;color:var(--paper)}}
@@ -708,14 +748,16 @@ def render(data, interactive=False):
     .page{{max-width:none;padding:0}}
     footer,.section-head{{border-color:#ccd3df}}
     .brand{{color:#0B1220}} .brand .g{{color:#0B8A5B}}
-    .meta-line,.muted-note,.cov-line,.cov-key,.illus,.consequence{{color:#4A5568}}
+    .meta-line,.muted-note,.cov-line,.cov-key,.illus,.consequence,.confidence-grid span,.read-key{{color:#4A5568}}
+    h1.title,.confidence-grid b,.confidence-summary .section-head h2{{color:#111}}
+    .confidence-summary,.read-key,.stat-chip{{background:#fff;border-color:#ccd3df}}
     .cov-line strong,.finding h3,.ev-value.mono,.ev-value.prose,.orch-value{{color:#111}}
     .ev-label,.orch-label{{color:#556}}
     .finding,.orch{{background:#fff;border-color:#ccd3df;break-inside:avoid;page-break-inside:avoid}}
     .pill,.key-chip{{color:#111 !important;border-color:#bbb !important}}
     footer{{color:#555}} a{{color:#0B1220}}
   }}
-  @media (max-width:460px){{.orch-row{{grid-template-columns:1fr;gap:5px;padding:13px 0}}}}
+  @media (max-width:460px){{.orch-row,.confidence-grid p{{grid-template-columns:1fr;gap:5px;padding:5px 0}}}}
   @media (prefers-reduced-motion:reduce){{summary::before{{transition:none}}}}
 </style></head>
 <body><div class="page">
@@ -735,6 +777,7 @@ def render(data, interactive=False):
     </div>
     <p class="read-key"><b>Read this by action:</b> Clear Before Ship items block readiness. Fix Next items are real but non-blocking. Not Proven / Not Tested items are not passes. Passed / Keep items worked under the tested conditions. Each card says what to do and how strong the proof is.<span class="key-actions"><span class="key-chip">Fix</span><span class="key-chip">Prove</span><span class="key-chip">Decide</span><span class="key-chip">Skip</span><span class="key-chip">Keep</span></span></p>
   </section>
+  {confidence_block}
   {controls}
   {find_block}
   {product_cov_block}
