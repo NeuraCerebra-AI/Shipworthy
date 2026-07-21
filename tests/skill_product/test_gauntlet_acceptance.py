@@ -87,19 +87,27 @@ class AcceptanceHarnessTests(unittest.TestCase):
     def write_canonical_agent_evidence(self, output: Path, mode: str) -> Path:
         evidence = output / "agent-evidence"
         evidence.mkdir()
-        comparison = complete_result(mode)
-        frontier = {
-            "closure_state": comparison["closure_state"],
-            "summary": {"intent": 0, **comparison["summary"]},
-            "rows": comparison["rows"],
-        }
-        ledger = {"path_frontier": frontier, "findings": comparison["findings"]}
-        report = {"schema_version": "1.0.0", "source_ledger": ledger}
+        report = json.loads((ROOT / "tests/skill_product/fixtures/gauntlet-report-input.json").read_text(encoding="utf-8"))
+        ledger = report["source_ledger"]
         (evidence / "report-input.json").write_text(json.dumps(report), encoding="utf-8")
         (evidence / "readiness-ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
         (evidence / "report.html").write_text('<html data-closure-state="closed_multi_source"><h1>Readiness</h1></html>', encoding="utf-8")
         (output / "run.log").write_text("agent completed with canonical wrapper\n", encoding="utf-8")
         return evidence
+
+    def materialize_canonical_evidence_refs(self, evidence: Path) -> None:
+        ledger = json.loads((evidence / "readiness-ledger.json").read_text(encoding="utf-8"))
+        references: set[str] = set()
+        for row in ledger["path_frontier"]["rows"]:
+            references.update(row.get("evidence_refs", []))
+            for observation in row.get("observations", []):
+                references.update(observation.get("evidence_refs", []))
+        for finding in ledger.get("findings", []):
+            references.update(finding.get("evidence_refs", []))
+        for reference in references:
+            target = evidence / reference.split("#", 1)[0]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("{}\n", encoding="utf-8")
 
     def test_prepare_runtime_only_is_isolated_and_healthy(self) -> None:
         output, manifest = self.prepare("runtime-only")
@@ -133,25 +141,47 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertFalse(any(path.name == "__pycache__" for path in copy.rglob("*")))
         self.assertNotIn(str(APP), manifest["allowed_paths"])
 
-    def test_finalize_completed_pass_is_atomic_and_cleans_controller(self) -> None:
+    def test_finalize_rejects_legacy_list_shell_and_cleans_controller(self) -> None:
         output, manifest = self.prepare("runtime-only")
         evidence = self.write_agent_evidence(output, "runtime-only")
         result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-123", "--agent-output", evidence)
-        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(1, result.returncode, result.stderr)
         final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
-        self.assertEqual("PASS", final["status"])
+        self.assertEqual("FAIL", final["status"])
+        self.assertEqual("invalid-agent-artifacts", final["failure_code"])
         self.assertEqual("native-123", final["native_agent_id"])
         self.assertFalse(Path(manifest["controller_root"]).exists())
         self.assertFalse((output / ".acceptance-result.json.tmp").exists())
-        self.assertTrue((output / "comparison-packet.json").is_file())
+        self.assertFalse((output / "comparison-packet.json").is_file())
 
-    def test_finalize_accepts_canonical_report_input_wrapper(self) -> None:
+    def test_finalize_rejects_incomplete_canonical_report_input_wrapper(self) -> None:
         output, _ = self.prepare("runtime-only")
         evidence = self.write_canonical_agent_evidence(output, "runtime-only")
         result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-canonical", "--agent-output", evidence)
-        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(1, result.returncode, result.stderr)
         final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
-        self.assertEqual("PASS", final["status"])
+        self.assertEqual("FAIL", final["status"])
+        self.assertEqual("invalid-agent-artifacts", final["failure_code"])
+
+    def test_finalize_rejects_divergent_ledger_and_report_frontiers(self) -> None:
+        output, _ = self.prepare("runtime-only")
+        evidence = self.write_canonical_agent_evidence(output, "runtime-only")
+        ledger_path = evidence / "readiness-ledger.json"
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        ledger["path_frontier"]["rows"] = []
+        ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
+        result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-divergent", "--agent-output", evidence)
+        self.assertEqual(1, result.returncode, result.stderr)
+        final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
+        self.assertEqual("invalid-agent-artifacts", final["failure_code"])
+
+    def test_finalize_rejects_nonexistent_evidence_references(self) -> None:
+        output, _ = self.prepare("runtime-only")
+        evidence = self.write_canonical_agent_evidence(output, "runtime-only")
+        result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-missing-proof", "--agent-output", evidence)
+        self.assertEqual(1, result.returncode, result.stderr)
+        final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
+        self.assertIn("evidence", final["diagnostic"].lower())
 
     def test_dispatch_outcomes_map_to_not_proven_and_fail(self) -> None:
         for dispatch, expected_status, expected_code in (("unavailable", "NOT_PROVEN", 2), ("failed", "FAIL", 1), ("timeout", "FAIL", 1)):
@@ -182,9 +212,24 @@ class AcceptanceHarnessTests(unittest.TestCase):
 
     def test_exporter_redacts_copies_validates_and_never_mutates_source(self) -> None:
         output, _ = self.prepare("runtime-only")
-        evidence = self.write_agent_evidence(output, "runtime-only")
-        finalized = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-123", "--agent-output", evidence)
-        self.assertEqual(0, finalized.returncode)
+        self.write_canonical_agent_evidence(output, "runtime-only")
+        (output / "comparison-packet.json").write_text('{"status":"PASS"}\n', encoding="utf-8")
+        atomic_final_result(
+            output,
+            {
+                "schema_version": "shipworthy-gauntlet-acceptance-v1",
+                "status": "PASS",
+                "mode": "runtime-only",
+                "native_dispatch_status": "completed",
+                "native_agent_id": "native-123",
+                "failure_code": "",
+                "diagnostic": "",
+                "comparison_status": "PASS",
+                "oracle_blindness": "PROCEDURAL_ONLY",
+                "filesystem_containment": "NOT_PROVEN",
+                "artifacts": {},
+            },
+        )
         source_digest = hashlib.sha256((output / "run.log").read_bytes()).hexdigest()
         destination = self.root / "durable"
         exported = subprocess.run(["python3", "-I", EXPORTER, "--run-manifest", output / "run-manifest.json", "--source", output, "--destination", destination, "--status", "PASS"], capture_output=True, text=True)
@@ -194,6 +239,20 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertEqual(source_digest, hashlib.sha256((output / "run.log").read_bytes()).hexdigest())
         self.assertNotIn(str(Path.home()), (destination / "run.log").read_text(encoding="utf-8"))
         self.assertEqual({"acceptance-result.json", "comparison-packet.json", "readiness-ledger.json", "report-input.json", "report.html", "run.log"}, {path.name for path in destination.iterdir()})
+
+    def test_exporter_refuses_to_relabel_failed_run_as_pass(self) -> None:
+        output, _ = self.prepare("runtime-only")
+        evidence = self.write_agent_evidence(output, "runtime-only")
+        finalized = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-fail", "--agent-output", evidence)
+        self.assertEqual(1, finalized.returncode)
+        destination = self.root / "misleading-durable"
+        exported = subprocess.run(
+            ["python3", "-I", EXPORTER, "--run-manifest", output / "run-manifest.json", "--source", output, "--destination", destination, "--status", "PASS"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(0, exported.returncode)
+        self.assertFalse(destination.exists())
 
     def test_briefs_name_exact_skills_and_do_not_expose_oracle(self) -> None:
         expected = {

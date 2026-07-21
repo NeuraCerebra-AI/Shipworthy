@@ -58,8 +58,23 @@ class FrontierValidationError(ValueError):
         super().__init__("; ".join(self.diagnostics))
 
 
+def extract_frontier(document: Any) -> dict[str, Any]:
+    """Return a canonical frontier from its supported document wrapper."""
+
+    if not isinstance(document, dict):
+        raise FrontierValidationError(["input must be a JSON object"])
+    source = document.get("source_ledger")
+    if isinstance(source, dict) and isinstance(source.get("path_frontier"), dict):
+        return source["path_frontier"]
+    if isinstance(document.get("path_frontier"), dict):
+        return document["path_frontier"]
+    if isinstance(document.get("rows"), list):
+        return document
+    raise FrontierValidationError(["input does not contain a canonical path_frontier"])
+
+
 def _evidence_path(reference: str, root: Path) -> Path | None:
-    candidate = Path(reference)
+    candidate = Path(reference.split("#", 1)[0])
     if candidate.is_absolute() or ".." in candidate.parts:
         return None
     resolved = (root / candidate).resolve()
@@ -124,8 +139,6 @@ def _derive_closure(frontier: dict[str, Any], families: set[str]) -> str:
         row.get("status") in UNRESOLVED_STATUSES | {"evidence_debt"} for row in material
     ):
         return "incomplete"
-    if any(row.get("status") == "blocked" for row in material):
-        return "blocked"
     runtime = families & {"runtime_human_interaction", "runtime_structural_inventory"}
     independent = families & {"static_implementation_inventory", "declared_behavior_inventory"}
     if not runtime and independent:
@@ -312,7 +325,7 @@ def main() -> int:
     parser.add_argument("--evidence-root", required=True, type=Path)
     args = parser.parse_args()
     try:
-        frontier = json.loads(args.input.read_text(encoding="utf-8"))
+        frontier = extract_frontier(json.loads(args.input.read_text(encoding="utf-8")))
         result = validate_frontier(frontier, args.evidence_root)
     except (OSError, json.JSONDecodeError, FrontierValidationError) as error:
         diagnostics = list(getattr(error, "diagnostics", (str(error),)))[:MAX_DIAGNOSTICS]

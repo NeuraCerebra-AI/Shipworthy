@@ -32,6 +32,12 @@ def export(manifest_path: Path, source: Path, destination: Path, status: str) ->
         raise ValueError("source does not match manifest output")
     if destination.exists():
         raise ValueError("destination must not exist")
+    acceptance_path = source / "acceptance-result.json"
+    if not acceptance_path.is_file() or acceptance_path.stat().st_size == 0:
+        raise ValueError("authoritative acceptance result is missing or empty")
+    acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+    if acceptance.get("status") != status:
+        raise ValueError("requested export status does not match authoritative acceptance result")
     destination.mkdir(parents=True)
     allowlist = PASS_FILES if status == "PASS" else NOT_PROVEN_FILES
     replacements = {
@@ -43,7 +49,7 @@ def export(manifest_path: Path, source: Path, destination: Path, status: str) ->
     files = []
     for relative, name in allowlist.items():
         origin = source / relative
-        if not origin.is_file() or origin.stat().st_size > MAX_FILE:
+        if not origin.is_file() or origin.stat().st_size == 0 or origin.stat().st_size > MAX_FILE:
             raise ValueError(f"missing or oversized evidence file: {relative}")
         original = origin.read_bytes()
         text = original.decode("utf-8")

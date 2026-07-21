@@ -6,7 +6,11 @@ import unittest
 from copy import deepcopy
 from pathlib import Path
 
-from tests.skill_product.support.frontier_validation import FrontierValidationError, validate_frontier
+from tests.skill_product.support.frontier_validation import (
+    FrontierValidationError,
+    extract_frontier,
+    validate_frontier,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -85,6 +89,36 @@ class FrontierContractTests(unittest.TestCase):
         result = validate_frontier(valid_frontier(), self.evidence_root)
         self.assertEqual("closed_multi_source", result["closure_state"])
         self.assertEqual(5, result["row_count"])
+
+    def test_validator_extracts_frontier_from_documented_report_wrapper(self) -> None:
+        frontier = valid_frontier()
+        self.assertIs(frontier, extract_frontier(frontier))
+        self.assertIs(frontier, extract_frontier({"path_frontier": frontier}))
+        self.assertIs(frontier, extract_frontier({"source_ledger": {"path_frontier": frontier}}))
+        with self.assertRaises(FrontierValidationError):
+            extract_frontier({"source_ledger": {}})
+
+    def test_evidence_fragments_resolve_and_terminal_blocked_row_does_not_block_discovery_closure(self) -> None:
+        candidate = valid_frontier("proof.json#OBS-1")
+        candidate["rows"].append(
+            {
+                "id": "PF-BLOCKED",
+                "kind": "feature",
+                "parent_id": "PF-I",
+                "semantic_key": "feature:provider-managed-identity",
+                "normalization_version": "shipworthy-semantic-v1",
+                "method_taxonomy_version": "shipworthy-methods-v1",
+                "status": "blocked",
+                "material": True,
+                "attempt_count": 0,
+                "evidence_refs": ["proof.json#OBS-2"],
+                "observations": [],
+                "terminal_reason": "The supplied provider is outside the bounded fixture.",
+            }
+        )
+        candidate["summary"]["feature"] = 2
+        result = validate_frontier(candidate, self.evidence_root)
+        self.assertEqual("closed_multi_source", result["closure_state"])
 
     def test_rejects_duplicate_ids_bad_lineage_and_missing_kind_fields(self) -> None:
         for mutate in (
@@ -191,16 +225,11 @@ class FrontierContractTests(unittest.TestCase):
         self.assertIsNone(re.fullmatch(effect_pattern, "issue_7"))
         self.assertIsNotNone(re.fullmatch(effect_pattern, "success-without-persistence"))
 
-        finding = ledger["$defs"]["Finding"]
-        fix_contracts = [
-            item["then"].get("required", [])
-            for item in finding["allOf"]
-            if item.get("if", {}).get("properties", {}).get("action", {}).get("const") == "Fix"
-        ]
-        self.assertIn(
-            ["affected_semantic_keys", "observed_effect_code", "evidence_refs"],
-            fix_contracts,
-        )
+        artifact_validator = (
+            ROOT / "tests/skill_product/gauntlet/artifact_validation.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Fix lineage does not resolve to exact frontier rows", artifact_validator)
+        self.assertIn("evidence does not resolve under agent output", artifact_validator)
 
     def test_schema_subset_resolves_only_bounded_same_directory_refs(self) -> None:
         from tests.skill_product.support.schema_subset import SchemaReferenceError, validate

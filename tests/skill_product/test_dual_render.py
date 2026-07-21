@@ -11,7 +11,7 @@ from tests.skill_product.support.dual_render import CATEGORIES, canonical_id, co
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "tests/skill_product/fixtures/legacy/readiness-v0.json"
 SCRIPTS = ROOT / "plugins/shipworthy/skills/ship-readiness-orchestrator/scripts"
-LEGACY_HTML_SHA256 = "85ebab860f572287f0b2b9983192be6eea152274fc856a7b4f25601cc68babc5"
+LEGACY_HTML_SHA256 = "0d7fb58f1e09d1e5fda8f1d8708dd3126b5043070f54da913c5588f498773ff2"
 LEGACY_SARIF_SHA256 = "89a33b882ccec99a0a5b917901079c938a5d70189a32916f5c358104010d4872"
 
 

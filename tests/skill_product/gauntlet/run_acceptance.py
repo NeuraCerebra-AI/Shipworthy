@@ -19,10 +19,12 @@ from typing import Any
 
 if __package__:
     from .acceptance_result import EXIT_CODES, atomic_final_result, validate_acceptance_result
+    from .artifact_validation import ArtifactValidationError, validate_agent_artifacts
     from .compare_agent_result import compare_frontier, load_and_validate_oracle
 else:  # Direct `python3 -I run_acceptance.py` execution.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from acceptance_result import EXIT_CODES, atomic_final_result, validate_acceptance_result
+    from artifact_validation import ArtifactValidationError, validate_agent_artifacts
     from compare_agent_result import compare_frontier, load_and_validate_oracle
 
 
@@ -215,15 +217,18 @@ def finalize(args: argparse.Namespace) -> dict[str, Any]:
         if not all(path.is_file() and path.stat().st_size for path in required):
             status, failure_code, diagnostic = "FAIL", "invalid-agent-artifacts", "required agent artifacts are missing or empty"
         else:
-            report = json.loads(required[0].read_text(encoding="utf-8"))
-            html = required[2].read_text(encoding="utf-8")
-            report = comparison_view(report, html, manifest["mode"])
-            oracle, defects = load_and_validate_oracle(ORACLE, DEFECTS)
-            packet = compare_frontier(report, oracle, defects, manifest["mode"])
-            _json_write(output / "comparison-packet.json", packet)
-            status = packet["status"]
-            if status != "PASS":
-                failure_code = "comparison-not-pass"
+            try:
+                report = validate_agent_artifacts(evidence)
+            except ArtifactValidationError as error:
+                status, failure_code = "FAIL", "invalid-agent-artifacts"
+                diagnostic = str(error)[:MAX_DIAGNOSTIC]
+            else:
+                oracle, defects = load_and_validate_oracle(ORACLE, DEFECTS)
+                packet = compare_frontier(report, oracle, defects, manifest["mode"])
+                _json_write(output / "comparison-packet.json", packet)
+                status = packet["status"]
+                if status != "PASS":
+                    failure_code = "comparison-not-pass"
     elif dispatch == "unavailable":
         status, failure_code = "NOT_PROVEN", "native-dispatch-unavailable"
     else:

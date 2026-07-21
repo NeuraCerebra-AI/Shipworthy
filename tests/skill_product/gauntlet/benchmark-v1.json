@@ -1,0 +1,43 @@
+{
+  "schema_version": "shipworthy-behavioral-benchmark-v1",
+  "source_revision": "4651c8d1cd006230788d0d37f0e3fc312e5fbe48",
+  "diagnostic_dimensions": [
+    "discovery",
+    "execution",
+    "defect_detection",
+    "evidence_integrity"
+  ],
+  "official_acceptance_gate": "categorical",
+  "frozen_files": {
+    "tests/skill_product/gauntlet/app/server.py": "b1f471c13b6788664cd3f835a1d2a85ae120f038c5e3e303e284034c9d673bb3",
+    "tests/skill_product/gauntlet/app/index.html": "27cce0a43c2023a803b2bde1d3d7e554e21355ff794851a49b7903aaea7481c4",
+    "tests/skill_product/gauntlet/app/app.js": "2a3704c83cea78e0da34ca8f28c2f7b66aee63bc64e4412a3ab858f5c771552a",
+    "tests/skill_product/gauntlet/app/styles.css": "f6d087945d4032c29190f3cdaa9d175e2e4515bea0504a9812cd2dea4eb55343",
+    "tests/skill_product/gauntlet/app/fixtures/seed.json": "780dae6dc05d855980e115d0afa6904277150f626be30c84e4c7a1945df6e223",
+    "tests/skill_product/gauntlet/app/roles.json": "b5d96dc1c9793c5ba7e3b31786aad171a764043e3416d0a822014860393edcab",
+    "tests/skill_product/gauntlet/app/product-docs/README.md": "706f4a247cbea41c022e2504ae45247dca0aef646750311bc5f14dcd92e59c9e",
+    "tests/skill_product/gauntlet/app/product-tests/contract.md": "abaa74d16605f353241f4bb3ca72269b878bd908199193c26c466cd5f298403e",
+    "tests/skill_product/gauntlet/oracle/surface-oracle.json": "7521f44979cf7618f8f4098252c911412481c52df9233ba5c7bac09ed5718a46",
+    "tests/skill_product/gauntlet/oracle/expected-defects.json": "7f58bde65795f7ce1913192f774da3159371b7a1e2ced8823e3821fb381c07a5",
+    "docs/phase0/evidence/gauntlet-post-fix-acceptance.md": "8e1a21897645c6bd84916c883e55daef1c78280a1b2b352c97398975d9ef1285",
+    "docs/phase0/evidence/gauntlet-final-spec-review.md": "167dac8a97bcdf7f4ba6fff980b88184520ea85c87410b5cdc28e717ca5d646a",
+    "docs/phase0/evidence/gauntlet-final-quality-review.md": "c9f211e2f485b8cc59e5ffaa28570275a0df1867076130b575150456111f5aba"
+  },
+  "historical_results": {
+    "behavioral_acceptance_claimed": false,
+    "runtime_only": {
+      "status": "FAIL",
+      "acceptance_result_sha256": "d7858da18e4ac1bba5751b24502f1228add52994ea4632d267968b65496a678a",
+      "comparison_packet_sha256": "f636f79666fcebfef05a2a09880ca0b7f0c10caca58ec"
+    },
+    "full_evidence": {
+      "status": "FAIL",
+      "acceptance_result_sha256": "2701c66e07d43316f0e7800dd0dbc81acee5a74e7891adc1bc426ff7372061e1",
+      "comparison_packet_sha256": "a13c0b794a7752265fd87f95127e9eda9c44781f5e9a81d10333270c18aafd11"
+    }
+  },
+  "historical_pins": {
+    "pre_gauntlet_legacy_html_sha256": "85ebab860f572287f0b2b9983192be6eea152274fc856a7b4f25601cc68babc5",
+    "starting_revision_legacy_html_sha256": "0d7fb58f1e09d1e5fda8f1d8708dd3126b5043070f54da913c5588f498773ff2"
+  }
+}

@@ -14,7 +14,7 @@ SCHEMA_DESTINATION = ORCHESTRATOR / "references" / "schemas"
 FIXTURES = ROOT / "tests" / "skill_product" / "fixtures"
 EXPECTED_SCHEMA_HASHES = {
     "browser-evidence-envelope.schema.json": "bad61277f885bb7ba1437ab85e07edbc5a4454448e82aa664dde7005344c8024",
-    "readiness-ledger.schema.json": "a5ff4e630def7997e96c01e07937ad353e81915b7a5fa185726f03179a67eaca",
+    "readiness-ledger.schema.json": "5972326a8d0b91f642c3d6ad72b50db1b4e700332a3d13511804bd3993f31173",
     "report-input.schema.json": "9a6e6074184baca04e347508a1a3b299bb0167ced6667dd21f74fea213d3858c",
 }
 

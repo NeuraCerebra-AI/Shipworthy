@@ -320,25 +320,6 @@
         {
           "if": {
             "properties": {
-              "action": {
-                "const": "Fix"
-              }
-            },
-            "required": [
-              "action"
-            ]
-          },
-          "then": {
-            "required": [
-              "affected_semantic_keys",
-              "observed_effect_code",
-              "evidence_refs"
-            ]
-          }
-        },
-        {
-          "if": {
-            "properties": {
               "proof": {
                 "const": "Confirmed"
               }

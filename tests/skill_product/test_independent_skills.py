@@ -24,7 +24,8 @@ class IndependentSkillTests(unittest.TestCase):
                     for relative in re.findall(r"(?:`|\()((?:references|templates|profiles|scripts)/[^`)\s]+)", text):
                         if any(marker in relative for marker in ("<", ">", "*", "?")):
                             continue
-                        self.assertTrue((target / relative.rstrip(".,;:")).is_file(), f"{source.name}: {relative}")
+                        file_part = relative.split("#", 1)[0].rstrip(".,;:")
+                        self.assertTrue((target / file_part).is_file(), f"{source.name}: {relative}")
 
     def test_orchestrator_has_bounded_standalone_fallback(self) -> None:
         text = (SKILLS / "ship-readiness-orchestrator/SKILL.md").read_text(encoding="utf-8").lower()
