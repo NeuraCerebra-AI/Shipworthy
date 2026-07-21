@@ -10,6 +10,7 @@ from tests.skill_product.gauntlet.compare_agent_result import compare_frontier, 
 ROOT = Path(__file__).resolve().parents[2]
 ORACLE_PATH = ROOT / "tests/skill_product/gauntlet/oracle/surface-oracle.json"
 DEFECTS_PATH = ROOT / "tests/skill_product/gauntlet/oracle/expected-defects.json"
+RECEIPT_EXPECTATIONS_PATH = ROOT / "tests/skill_product/gauntlet/oracle/receipt-expectations.json"
 
 
 class GauntletComparatorTests(unittest.TestCase):
@@ -184,7 +185,7 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
-    def test_known_fixture_route_inventory_is_classified_but_unknown_route_is_reviewed(self) -> None:
+    def test_known_route_does_not_silently_suppress_an_unproved_extra_control(self) -> None:
         result = self.complete_result()
         result["rows"].append(
             {
@@ -196,14 +197,38 @@ class GauntletComparatorTests(unittest.TestCase):
             }
         )
         result["summary"]["control"] += 1
-        self.assertEqual("PASS", self.compare(result)["status"])
+        first = self.compare(result)
+        self.assertEqual("REVIEW_REQUIRED", first["status"])
+        self.assertEqual([result["rows"][-1]["semantic_key"]], first["diagnostics"]["E_unsupported_or_false_positive"])
 
         result["rows"][-1]["semantic_key"] = "control:surface:/ghost:normal:member:desktop:help:link:open-help"
         packet = self.compare(result)
         self.assertEqual("REVIEW_REQUIRED", packet["status"])
         self.assertEqual(1, len(packet["unexpected_rows"]))
 
-    def test_arbitrary_not_found_probe_is_classified_as_fixture_support(self) -> None:
+    def test_private_receipt_rejects_false_coverage_claims(self) -> None:
+        result = self.complete_result()
+        expectations = __import__("json").loads(RECEIPT_EXPECTATIONS_PATH.read_text(encoding="utf-8"))["expectations"]
+        packet = compare_frontier(result, self.oracle, self.defects, result["mode"], receipt_events=[], receipt_expectations=expectations)
+        self.assertEqual("FAIL", packet["status"])
+        self.assertTrue(packet["diagnostics"]["B_execution_proof_lineage_failure"])
+        self.assertTrue(any("private receipt" in reason for reason in packet["reasons"]))
+
+    def test_receipt_backed_extra_is_class_d_and_does_not_reduce_recall(self) -> None:
+        result = self.complete_result()
+        key = "control:surface:/projects:normal:member:desktop:help:link:open-help"
+        result["rows"].append({"semantic_key": key, "kind": "control", "status": "covered", "material": True, "evidence_refs": ["evidence/help.json"]})
+        result["summary"]["control"] += 1
+        receipt = [{
+            "event_type": "activation", "route": "/projects", "role": "member", "viewport_class": "desktop",
+            "control": {"identity": "Help", "type": "link"}, "input_mechanism": "pointer", "behavior": "open-help",
+        }]
+        packet = compare_frontier(result, self.oracle, self.defects, result["mode"], receipt_events=receipt)
+        self.assertEqual("PASS", packet["status"], packet)
+        self.assertEqual([key], packet["diagnostics"]["D_valid_extra"])
+        self.assertEqual([], packet["unexpected_rows"])
+
+    def test_arbitrary_not_found_probe_without_receipt_requires_review(self) -> None:
         result = self.complete_result()
         result["rows"].append(
             {
@@ -215,7 +240,7 @@ class GauntletComparatorTests(unittest.TestCase):
             }
         )
         result["summary"]["surface"] += 1
-        self.assertEqual("PASS", self.compare(result)["status"])
+        self.assertEqual("REVIEW_REQUIRED", self.compare(result)["status"])
 
     def test_known_fixture_feature_inventory_is_classified(self) -> None:
         result = self.complete_result()
@@ -246,7 +271,7 @@ class GauntletComparatorTests(unittest.TestCase):
         result["summary"]["feature"] += 7
         self.assertEqual("PASS", self.compare(result)["status"])
 
-    def test_supported_not_found_probe_route_name_is_classified(self) -> None:
+    def test_known_not_found_route_does_not_suppress_an_unproved_control(self) -> None:
         result = self.complete_result()
         for kind, key in (
             ("surface", "surface:/definitely-not-a-real-route:normal:member:desktop"),
@@ -254,7 +279,10 @@ class GauntletComparatorTests(unittest.TestCase):
         ):
             result["rows"].append({"semantic_key": key, "kind": kind, "status": "covered", "material": True, "evidence_refs": ["evidence/not-found.json"]})
             result["summary"][kind] += 1
-        self.assertEqual("PASS", self.compare(result)["status"])
+        packet = self.compare(result)
+        self.assertEqual("REVIEW_REQUIRED", packet["status"])
+        self.assertEqual(1, len(packet["diagnostics"]["D_valid_extra"]))
+        self.assertEqual(1, len(packet["diagnostics"]["E_unsupported_or_false_positive"]))
 
     def test_unavailable_feature_may_be_recorded_missing(self) -> None:
         result = self.complete_result()

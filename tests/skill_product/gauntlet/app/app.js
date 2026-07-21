@@ -1,5 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const show = (element, visible = true) => { if (element) element.hidden = !visible; };
+const keyboardCommandEnabled = true;
 
 function setValidation(input, status, message, invalid) {
   status.textContent = message;
@@ -24,7 +25,9 @@ async function api(path, body = {}) {
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(body)
   });
-  return {status: response.status, body: await response.json()};
+  const result = {status: response.status, body: await response.json()};
+  activity({...context(), event_type: "transition", behavior: path.replace(/^\/api\//, ""), before_state: "request", after_state: `status-${response.status}`, outcome: result.body.effect || result.body.error || (result.body.ok ? "ok" : "completed")});
+  return result;
 }
 
 async function loadState() {
@@ -63,6 +66,7 @@ function openPalette() {
   show($("#palette"), true);
   $("#palette-button")?.setAttribute("aria-expanded", "true");
   $("#palette")?.querySelector("a")?.focus();
+  activity({...context(), event_type: "surface_spawn", surface: "quick-actions", behavior: "opened"});
 }
 
 function closeAvatarMenu() {
@@ -77,11 +81,13 @@ function toggleAvatarMenu() {
   show($("#avatar-menu"), opening);
   $("#avatar")?.setAttribute("aria-expanded", String(Boolean(opening)));
   if (opening) $("#avatar-menu")?.querySelector("a")?.focus();
+  if (opening) activity({...context(), event_type: "surface_spawn", surface: "avatar-menu", behavior: "opened"});
 }
 
 function openInviteDialog() {
   $("#invite-dialog")?.showModal();
   $("#invite-email")?.focus();
+  activity({...context(), event_type: "surface_spawn", surface: "invite-dialog", behavior: "opened"});
 }
 
 function closeInviteDialog() {
@@ -104,6 +110,7 @@ function closeContextMenu() {
 function openContextMenu() {
   show($("#context-menu"), true);
   $("#duplicate")?.focus();
+  activity({...context(), event_type: "surface_spawn", surface: "project-actions", behavior: "opened"});
 }
 
 function applyRole(role) {
@@ -116,6 +123,7 @@ function applyRole(role) {
   $("#invite").disabled = role !== "admin";
   $("#role-member").setAttribute("aria-pressed", String(role === "member"));
   $("#role-admin").setAttribute("aria-pressed", String(role === "admin"));
+  activity({...context(), role, event_type: "transition", before_state: "role-selection", after_state: role, behavior: "role-change"});
 }
 
 function route() {
@@ -132,8 +140,9 @@ function route() {
 $("#avatar")?.addEventListener("click", toggleAvatarMenu);
 $("#palette-button")?.addEventListener("click", () => $("#palette").hidden ? openPalette() : closePalette());
 document.addEventListener("keydown", (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+  if (keyboardCommandEnabled && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
+    activity({...context(), event_type: "activation", control: {identity: "Quick actions", type: "keyboard"}, input_mechanism: "keyboard", surface: "dashboard", behavior: "meta-k"});
     openPalette();
   } else if (event.key === "Escape") {
     closeAvatarMenu();
@@ -278,3 +287,8 @@ $("#start-import")?.addEventListener("click", async () => {
 route();
 applyRole(localStorage.getItem("gauntlet-role") || "member");
 loadState();
+activity({...context(), event_type: "route_visit", state: "loaded"});
+document.querySelectorAll("button:disabled").forEach((control) => activity({...context(), event_type: "blocked", control: controlDescriptor(control), surface: containingSurface(control), reason: "disabled"}));
+const priorRoute = sessionStorage.getItem("gauntlet-prior-route");
+if (priorRoute) activity({...context(), event_type: "reload_reentry", before_state: priorRoute, after_state: location.pathname, outcome: "page-loaded"});
+sessionStorage.setItem("gauntlet-prior-route", location.pathname);

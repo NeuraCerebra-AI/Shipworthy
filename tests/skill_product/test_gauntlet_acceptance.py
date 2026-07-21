@@ -76,7 +76,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
 
     def write_agent_evidence(self, output: Path, mode: str) -> Path:
         evidence = output / "agent-evidence"
-        evidence.mkdir()
+        evidence.mkdir(exist_ok=True)
         report = complete_result(mode)
         (evidence / "report-input.json").write_text(json.dumps(report), encoding="utf-8")
         (evidence / "readiness-ledger.json").write_text(json.dumps({"path_frontier": report["rows"]}), encoding="utf-8")
@@ -86,7 +86,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
 
     def write_canonical_agent_evidence(self, output: Path, mode: str) -> Path:
         evidence = output / "agent-evidence"
-        evidence.mkdir()
+        evidence.mkdir(exist_ok=True)
         report = json.loads((ROOT / "tests/skill_product/fixtures/gauntlet-report-input.json").read_text(encoding="utf-8"))
         ledger = report["source_ledger"]
         (evidence / "report-input.json").write_text(json.dumps(report), encoding="utf-8")
@@ -128,7 +128,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
 
     def test_prepare_accepts_reset_token_that_begins_with_dash(self) -> None:
         command = server_command("-leading-token")
-        self.assertEqual("--reset-token=-leading-token", command[-1])
+        self.assertIn("--reset-token=-leading-token", command)
 
     def test_prepare_enforces_mode_specific_product_source_and_sanitizes(self) -> None:
         bad_runtime = self.command("prepare", "--mode", "runtime-only", "--skills-source", SKILLS, "--output", self.root / "bad-runtime", "--product-source", APP)
@@ -183,11 +183,20 @@ class AcceptanceHarnessTests(unittest.TestCase):
         final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
         self.assertIn("evidence", final["diagnostic"].lower())
 
+    def test_finalize_refuses_agent_output_outside_the_prepared_evidence_directory(self) -> None:
+        output, _ = self.prepare("runtime-only")
+        outside = self.root / "outside-agent-output"
+        outside.mkdir()
+        result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", "completed", "--native-agent-id", "native-outside", "--agent-output", outside)
+        self.assertEqual(1, result.returncode)
+        final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
+        self.assertEqual("invalid-agent-output-path", final["failure_code"])
+
     def test_dispatch_outcomes_map_to_not_proven_and_fail(self) -> None:
         for dispatch, expected_status, expected_code in (("unavailable", "NOT_PROVEN", 2), ("failed", "FAIL", 1), ("timeout", "FAIL", 1)):
             output, _ = self.prepare("runtime-only")
             evidence = output / "agent-evidence"
-            evidence.mkdir()
+            evidence.mkdir(exist_ok=True)
             (output / "run.log").write_text(f"{dispatch}\n", encoding="utf-8")
             result = self.command("finalize", "--run-manifest", output / "run-manifest.json", "--native-dispatch-status", dispatch, "--native-agent-id", "native-x", "--agent-output", evidence, "--coordinator-diagnostic", dispatch)
             self.assertEqual(expected_code, result.returncode)

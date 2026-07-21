@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shipworthy.local/schemas/runtime-receipt-v1.json",
+  "title": "Shipworthy repository-only runtime receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "epochs"],
+  "properties": {
+    "schema_version": {"const": "shipworthy-runtime-receipt-v1"},
+    "epochs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "events"],
+        "properties": {
+          "id": {"type": "integer", "minimum": 1},
+          "events": {
+            "type": "array",
+            "maxItems": 512,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["event_type"],
+              "properties": {
+                "event_type": {"enum": ["route_visit", "activation", "input", "surface_spawn", "transition", "reload_reentry", "blocked", "avoided"]},
+                "route": {"type": "string", "minLength": 1, "maxLength": 512},
+                "role": {"type": "string", "minLength": 1, "maxLength": 512},
+                "state": {"type": "string", "minLength": 1, "maxLength": 512},
+                "viewport_class": {"type": "string", "minLength": 1, "maxLength": 512},
+                "control": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["identity", "type"],
+                  "properties": {
+                    "identity": {"type": "string", "minLength": 1, "maxLength": 512},
+                    "type": {"type": "string", "minLength": 1, "maxLength": 512}
+                  }
+                },
+                "input_mechanism": {"type": "string", "minLength": 1, "maxLength": 512},
+                "surface": {"type": "string", "minLength": 1, "maxLength": 512},
+                "behavior": {"type": "string", "minLength": 1, "maxLength": 512},
+                "before_state": {"type": "string", "minLength": 1, "maxLength": 512},
+                "after_state": {"type": "string", "minLength": 1, "maxLength": 512},
+                "outcome": {"type": "string", "minLength": 1, "maxLength": 512},
+                "reason": {"type": "string", "minLength": 1, "maxLength": 512}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

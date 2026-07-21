@@ -1,0 +1,19 @@
+{
+  "schema_version": "shipworthy-gauntlet-variants-v1",
+  "pairs": {
+    "persistence": {"controlled_behavior": "save_persists", "defective": "v-persistence-a", "corrected": "v-persistence-b"},
+    "disabled-recovery": {"controlled_behavior": "disabled_recovery", "defective": "v-disabled-a", "corrected": "v-disabled-b"},
+    "keyboard-command": {"controlled_behavior": "keyboard_command", "defective": "v-keyboard-b", "corrected": "v-keyboard-a"},
+    "truthful-feedback": {"controlled_behavior": "truthful_failure", "defective": "v-feedback-a", "corrected": "v-feedback-b"}
+  },
+  "variants": {
+    "v-persistence-a": {"save_persists": false},
+    "v-persistence-b": {"save_persists": true},
+    "v-disabled-a": {"disabled_recovery": false},
+    "v-disabled-b": {"disabled_recovery": true},
+    "v-keyboard-a": {"keyboard_command": true},
+    "v-keyboard-b": {"keyboard_command": false},
+    "v-feedback-a": {"truthful_failure": false},
+    "v-feedback-b": {"truthful_failure": true}
+  }
+}

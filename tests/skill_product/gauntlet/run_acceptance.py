@@ -21,17 +21,20 @@ if __package__:
     from .acceptance_result import EXIT_CODES, atomic_final_result, validate_acceptance_result
     from .artifact_validation import ArtifactValidationError, validate_agent_artifacts
     from .compare_agent_result import compare_frontier, load_and_validate_oracle
+    from .runtime_receipt import RuntimeReceipt, receipt_digest
 else:  # Direct `python3 -I run_acceptance.py` execution.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from acceptance_result import EXIT_CODES, atomic_final_result, validate_acceptance_result
     from artifact_validation import ArtifactValidationError, validate_agent_artifacts
     from compare_agent_result import compare_frontier, load_and_validate_oracle
+    from runtime_receipt import RuntimeReceipt, receipt_digest
 
 
 HERE = Path(__file__).resolve().parent
 APP = HERE / "app"
 ORACLE = HERE / "oracle/surface-oracle.json"
 DEFECTS = HERE / "oracle/expected-defects.json"
+RECEIPT_EXPECTATIONS = HERE / "oracle/receipt-expectations.json"
 SKILL_NAMES = (
     "ship-readiness-orchestrator",
     "ship-deep-review",
@@ -66,8 +69,12 @@ def _wait_health(base_url: str, process: subprocess.Popen, timeout: float = 5.0)
     raise RuntimeError("fixture server health check timed out")
 
 
-def server_command(reset_token: str) -> list[str]:
-    return [sys.executable, "-I", str(APP / "server.py"), "--port", "0", f"--reset-token={reset_token}"]
+def server_command(reset_token: str, server_script: Path | None = None, receipt_path: Path | None = None, variant: str = "default") -> list[str]:
+    command = [sys.executable, "-I", str(server_script or APP / "server.py"), "--port", "0", f"--reset-token={reset_token}"]
+    if receipt_path is not None:
+        command.append(f"--receipt={receipt_path}")
+    command.append(f"--variant={variant}")
+    return command
 
 
 def prepare(args: argparse.Namespace) -> dict[str, Any]:
@@ -95,17 +102,26 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         skill_paths.append(str(destination / "SKILL.md"))
     workspace = controller / "workspace"
     workspace.mkdir()
+    agent_output = output / "agent-evidence"
+    agent_output.mkdir()
+    private = controller / "private"
+    private.mkdir()
+    receipt_path = private / "runtime-actions.json"
+    app_copy = controller / "fixture"
+    _safe_copy(APP, app_copy)
+    shutil.copy2(HERE / "runtime_receipt.py", app_copy / "runtime_receipt.py")
     product_copy = None
     if args.mode == "full-evidence":
         product_copy = controller / "product"
         _safe_copy(Path(args.product_source).resolve(), product_copy)
+        (product_copy / "variants.json").unlink(missing_ok=True)
     brief = controller / "brief.md"
     shutil.copy2(HERE / "prompts" / f"{args.mode}.md", brief)
 
     log = (output / "run.log").open("w", encoding="utf-8")
     process = subprocess.Popen(
-        server_command(reset_token),
-        cwd=APP, stdout=subprocess.PIPE, stderr=log, text=True, start_new_session=True,
+        server_command(reset_token, app_copy / "server.py", receipt_path, args.variant),
+        cwd=app_copy, stdout=subprocess.PIPE, stderr=log, text=True, start_new_session=True,
     )
     try:
         line = process.stdout.readline() if process.stdout else ""
@@ -122,7 +138,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         shutil.rmtree(controller, ignore_errors=True)
         raise
     log.close()
-    allowed = [*(str(Path(path).parent) for path in skill_paths), str(brief), str(workspace), str(output)]
+    allowed = [*(str(Path(path).parent) for path in skill_paths), str(brief), str(workspace), str(agent_output)]
     manifest: dict[str, Any] = {
         "schema_version": "shipworthy-gauntlet-run-v1",
         "mode": args.mode,
@@ -132,13 +148,14 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "skill_paths": skill_paths,
         "allowed_paths": allowed,
         "output": str(output),
+        "agent_output": str(agent_output),
         "base_url": server_data["base_url"],
         "accounts": {"member": "member@example.test", "admin": "admin@example.test"},
         "reset_token": reset_token,
         "reset_header": "X-Gauntlet-Reset",
         "reset_endpoint": "/api/reset",
         "server_pid": process.pid,
-        "server_script": str(APP / "server.py"),
+        "server_script": str(app_copy / "server.py"),
     }
     if product_copy:
         manifest["product_copy"] = str(product_copy)
@@ -213,8 +230,13 @@ def finalize(args: argparse.Namespace) -> dict[str, Any]:
     failure_code = ""
     if dispatch == "completed":
         evidence = Path(args.agent_output)
-        required = (evidence / "report-input.json", evidence / "readiness-ledger.json", evidence / "report.html")
-        if not all(path.is_file() and path.stat().st_size for path in required):
+        if evidence.resolve() != Path(manifest["agent_output"]).resolve():
+            status, failure_code, diagnostic = "FAIL", "invalid-agent-output-path", "agent output is outside the prepared evidence directory"
+        else:
+            required = (evidence / "report-input.json", evidence / "readiness-ledger.json", evidence / "report.html")
+        if failure_code == "invalid-agent-output-path":
+            pass
+        elif not all(path.is_file() and path.stat().st_size for path in required):
             status, failure_code, diagnostic = "FAIL", "invalid-agent-artifacts", "required agent artifacts are missing or empty"
         else:
             try:
@@ -224,7 +246,19 @@ def finalize(args: argparse.Namespace) -> dict[str, Any]:
                 diagnostic = str(error)[:MAX_DIAGNOSTIC]
             else:
                 oracle, defects = load_and_validate_oracle(ORACLE, DEFECTS)
-                packet = compare_frontier(report, oracle, defects, manifest["mode"])
+                receipt = RuntimeReceipt(Path(manifest["controller_root"]) / "private" / "runtime-actions.json").read()
+                expectation_document = json.loads(RECEIPT_EXPECTATIONS.read_text(encoding="utf-8"))
+                if expectation_document.get("schema_version") != "shipworthy-receipt-expectations-v1" or not isinstance(expectation_document.get("expectations"), dict):
+                    raise ValueError("invalid private receipt expectations")
+                packet = compare_frontier(
+                    report,
+                    oracle,
+                    defects,
+                    manifest["mode"],
+                    receipt_events=receipt["epochs"][-1]["events"],
+                    receipt_expectations=expectation_document["expectations"],
+                )
+                packet["receipt"] = {"digest": receipt_digest(receipt), "epoch_count": len(receipt["epochs"]), "event_count": len(receipt["epochs"][-1]["events"])}
                 _json_write(output / "comparison-packet.json", packet)
                 status = packet["status"]
                 if status != "PASS":
@@ -261,6 +295,7 @@ def parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--skills-source", required=True)
     prepare_parser.add_argument("--output", required=True)
     prepare_parser.add_argument("--product-source")
+    prepare_parser.add_argument("--variant", default="default")
     finalize_parser = commands.add_parser("finalize")
     finalize_parser.add_argument("--run-manifest", required=True)
     finalize_parser.add_argument("--native-dispatch-status", choices=("completed", "unavailable", "failed", "timeout"), required=True)

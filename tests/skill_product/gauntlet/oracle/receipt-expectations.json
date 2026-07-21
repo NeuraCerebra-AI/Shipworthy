@@ -1,0 +1,33 @@
+{
+  "schema_version": "shipworthy-receipt-expectations-v1",
+  "expectations": {
+    "CASE-AVATAR-SETTINGS": {"clauses": [{"event_types": ["surface_spawn"], "routes": ["/", "/dashboard"], "surfaces": ["avatar-menu"]}]},
+    "CASE-MOBILE-INVITE": {"clauses": [{"event_types": ["activation"], "routes": ["/team"], "roles": ["admin"], "viewports": ["mobile"], "control_identities": ["Invite member", "Invite"], "behaviors": ["invite"]}]},
+    "CASE-ADMIN-EXPORT": {"clauses": [{"event_types": ["activation"], "routes": ["/admin/data"], "roles": ["admin"], "control_identities": ["Export data"], "behaviors": ["export"]}]},
+    "CASE-CONTEXT-MENU": {"clauses": [{"event_types": ["activation"], "routes": ["/projects"], "input_mechanisms": ["secondary-pointer", "keyboard"], "behaviors": ["open-context-menu", "project-row", "project-actions"]}]},
+    "CASE-KEYBOARD-PALETTE": {"clauses": [{"event_types": ["activation"], "routes": ["/", "/dashboard"], "input_mechanisms": ["keyboard"], "control_identities": ["Quick actions", "Command palette"], "behaviors": ["meta-k"]}]},
+    "CASE-DEEP-IMPORT": {"clauses": [{"event_types": ["route_visit"], "routes": ["/projects/import"]}]},
+    "CASE-PREREQUISITE-PUBLISH": {"clauses": [
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["publish"], "outcomes": ["name-prerequisite"]},
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["publish"], "outcomes": ["ok"]}
+    ]},
+    "CASE-EMPTY-STATE": {"clauses": [{"event_types": ["activation"], "routes": ["/projects"], "control_identities": ["Create project"], "behaviors": ["create-first"]}]},
+    "CASE-INVALID-RECOVERY": {"clauses": [
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["projects"], "outcomes": ["name-required"]},
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["projects"], "outcomes": ["ok"]}
+    ]},
+    "CASE-STALE-SESSION": {"clauses": [
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["stale"], "outcomes": ["session-expired"]},
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["reauthenticate"], "outcomes": ["ok"]}
+    ]},
+    "CASE-DUPLICATE-SAVE": {"clauses": [{"event_types": ["activation"], "routes": ["/projects"], "control_identities": ["Save", "Save changes"], "behaviors": ["save-real"]}]},
+    "CASE-MISLEADING-SUCCESS": {"clauses": [{"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["save-failure"], "outcomes": ["success-without-persistence"]}]},
+    "CASE-RELOAD-LOSS": {"clauses": [
+      {"event_types": ["transition"], "routes": ["/projects"], "behaviors": ["save-failure"], "outcomes": ["success-without-persistence"]},
+      {"event_types": ["reload_reentry"], "routes": ["/projects"], "outcomes": ["page-loaded"]}
+    ]},
+    "CASE-AVOIDED-DELETE": {"clauses": [{"event_types": ["avoided"], "routes": ["/admin/data"], "roles": ["admin"], "control_identities": ["Delete all data", "Purge data"], "reasons": ["authorization-required"]}]},
+    "CASE-FALSE-AFFORDANCE": {"clauses": [{"event_types": ["route_visit"], "routes": ["/", "/dashboard"], "roles": ["member"]}]},
+    "CASE-DISABLED-CONTROL": {"clauses": [{"event_types": ["blocked"], "routes": ["/projects"], "roles": ["member"], "control_identities": ["Archive"], "reasons": ["disabled"]}]}
+  }
+}

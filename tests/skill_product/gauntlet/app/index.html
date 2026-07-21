@@ -10,60 +10,57 @@
   <header>
     <a class="brand" href="/dashboard">Northstar</a>
     <nav><a href="/projects">Projects</a><a href="/team">Team</a><a href="/admin/data">Data</a></nav>
-    <span role="group" aria-label="Synthetic audit role"><button data-supporting-control="role-member" data-expected-effect="bind-member-role" id="role-member">Member</button>
-    <button data-supporting-control="role-admin" data-expected-effect="bind-admin-role" id="role-admin">Admin</button></span>
+    <span role="group" aria-label="Synthetic audit role"><button id="role-member">Member</button>
+    <button id="role-admin">Admin</button></span>
     <span class="fixture-note">Synthetic fixture roles; not sign-in controls.</span>
-    <button id="avatar" data-case-id="avatar-settings" aria-haspopup="menu" aria-expanded="false" aria-controls="avatar-menu">WC</button>
+    <button id="avatar" aria-haspopup="menu" aria-expanded="false" aria-controls="avatar-menu">WC</button>
     <div id="avatar-menu" hidden><a href="/settings/profile">Profile settings</a></div>
   </header>
   <main>
     <section id="dashboard">
       <h1>Project dashboard</h1>
-      <p data-decoy="negative-control">Keyboard-friendly navigation</p>
-      <div class="upgrade-card" data-case-id="false-affordance"><strong>Upgrade now</strong><span>Unlock more capacity →</span></div>
-      <button data-case-id="keyboard-palette" id="palette-button" class="quiet" aria-expanded="false" aria-controls="palette">Quick actions</button>
+      <p>Keyboard-friendly navigation</p>
+      <div class="upgrade-card"><strong>Upgrade now</strong><span>Unlock more capacity →</span></div>
+      <button id="palette-button" class="quiet" aria-expanded="false" aria-controls="palette">Quick actions</button>
       <div id="palette" role="dialog" aria-label="Quick actions" hidden><a href="/projects/import">Import project</a></div>
     </section>
 
     <section id="projects">
       <h2>Projects</h2>
-      <article id="project-row" tabindex="0" data-case-id="context-menu"><strong>Alpha</strong><span>Open project actions</span><button id="project-actions" data-case-id="context-menu">Project actions</button></article>
+      <article id="project-row" tabindex="0"><strong>Alpha</strong><span>Open project actions</span><button id="project-actions">Project actions</button></article>
       <div id="project-list" aria-label="Project selection"></div>
-      <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate" data-supporting-control="duplicate-project" data-expected-effect="project-row-added">Duplicate</button></div>
+      <div id="context-menu" role="menu" hidden><button role="menuitem" id="duplicate">Duplicate</button></div>
       <p id="duplicate-status" aria-live="polite"></p>
-      <div class="empty"><p id="archived-status">No archived projects</p><button data-case-id="empty-state-action" id="create-first">Create project</button></div>
-      <form id="project-form" hidden><label>Name <input id="new-name" aria-describedby="form-error"></label><button data-supporting-control="create-submit" data-expected-effect="project-created">Create</button><button type="button" id="cancel-create" data-supporting-control="create-cancel" data-expected-effect="form-closed">Cancel</button><p id="form-error" role="alert" aria-live="polite"></p></form>
-      <a data-case-id="deep-import-route" href="/projects/import">Import from file</a>
+      <div class="empty"><p id="archived-status">No archived projects</p><button id="create-first">Create project</button></div>
+      <form id="project-form" hidden><label>Name <input id="new-name" aria-describedby="form-error"></label><button>Create</button><button type="button" id="cancel-create">Cancel</button><p id="form-error" role="alert" aria-live="polite"></p></form>
+      <a href="/projects/import">Import from file</a>
     </section>
 
     <section id="editor">
       <h2 id="editor-title">Edit Alpha</h2>
       <label>Name <input id="project-name" value="Alpha"></label>
-      <button data-case-id="duplicate-save-behavior" id="save-real">Save</button>
-      <button data-case-id="duplicate-save-behavior" id="save-visual">Save</button>
-      <button data-case-id="prerequisite-publish" id="publish">Publish</button>
-      <button data-case-id="unexplained-disabled-control" disabled title="Unavailable">Archive</button>
+      <button id="save-real">Save</button>
+      <button id="save-visual">Save</button>
+      <button id="publish">Publish</button>
+      <button disabled title="Unavailable">Archive</button>
       <p id="project-state"></p>
       <p id="toast" role="status" aria-live="polite"></p>
-      <div data-case-id="misleading-success" class="evidence-hook" aria-hidden="true"></div>
-      <div data-case-id="reload-loss" class="evidence-hook" aria-hidden="true"></div>
-      <div data-case-id="invalid-input-recovery" class="evidence-hook" aria-hidden="true"></div>
-      <button data-case-id="stale-session-recovery" id="stale">Simulate stale session</button>
+      <button id="stale">Simulate stale session</button>
     </section>
 
     <section id="team">
       <h2>Team</h2>
       <p id="invite-permission">Inviting requires the Admin fixture role.</p>
-      <button data-case-id="mobile-invite" id="invite" aria-describedby="invite-permission">Invite member</button>
+      <button id="invite" aria-describedby="invite-permission">Invite member</button>
       <p id="pending-invites" aria-live="polite"></p>
-      <dialog id="invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title"><p id="invite-title">Invite a teammate</p><label>Email <input id="invite-email" type="email" aria-describedby="invite-status"></label><button id="send-invite" data-supporting-control="send-invite" data-expected-effect="invitation-queued">Send invite</button><button id="close-invite" data-supporting-control="close-invite" data-expected-effect="dialog-closed">Close</button><p id="invite-status" role="alert" aria-live="polite"></p></dialog>
+      <dialog id="invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title"><p id="invite-title">Invite a teammate</p><label>Email <input id="invite-email" type="email" aria-describedby="invite-status"></label><button id="send-invite">Send invite</button><button id="close-invite">Close</button><p id="invite-status" role="alert" aria-live="polite"></p></dialog>
     </section>
 
     <section id="admin">
       <h2>Data administration</h2>
       <p id="admin-permission" hidden>Select the Admin fixture role to inspect workspace data controls.</p>
-      <div id="admin-controls"><button data-case-id="admin-export" id="export">Export data</button>
-      <button data-case-id="avoided-delete" class="danger">Delete all data</button></div>
+      <div id="admin-controls"><button id="export">Export data</button>
+      <button class="danger">Delete all data</button></div>
     </section>
 
     <section id="import">
@@ -71,10 +68,9 @@
       <p>Upload a JSON export to start an import.</p>
       <p id="import-guidance">Use a complete Northstar JSON export from Workspace data.</p>
       <label>Import file <input id="import-file" type="file" accept="application/json" aria-describedby="import-guidance import-status"></label>
-      <button type="button" id="clear-import" data-supporting-control="clear-import" data-expected-effect="file-selection-cleared">Clear selected file</button>
-      <button id="start-import" data-supporting-control="start-import" data-expected-effect="import-completed">Start import</button>
+      <button type="button" id="clear-import">Clear selected file</button>
+      <button id="start-import">Start import</button>
       <p id="import-status" role="alert" aria-live="polite"></p>
-      <div data-case-id="missing-cancellation" class="evidence-hook" aria-hidden="true"></div>
     </section>
 
     <section id="profile">
@@ -84,10 +80,11 @@
       <p>Profile identity details are shown here; changes are managed by the provider.</p>
     </section>
 
-    <section id="analytics" data-case-id="unavailable-feature-flag">
+    <section id="analytics">
       <h2>Advanced analytics</h2><p id="analytics-status">Feature not enabled for this workspace. Ask a workspace owner to enable it.</p>
     </section>
   </main>
+  <script src="/activity.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

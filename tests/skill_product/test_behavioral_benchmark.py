@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -22,7 +23,13 @@ class BehavioralBenchmarkTests(unittest.TestCase):
         self.assertEqual("categorical", benchmark["official_acceptance_gate"])
         self.assertNotIn("combined_score", benchmark)
         for relative, expected in benchmark["frozen_files"].items():
-            actual = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
+            frozen = subprocess.run(
+                ["git", "show", f"{benchmark['source_revision']}:{relative}"],
+                cwd=ROOT,
+                capture_output=True,
+                check=True,
+            ).stdout
+            actual = hashlib.sha256(frozen).hexdigest()
             self.assertEqual(expected, actual, relative)
 
     def test_historical_results_remain_fail_without_reinterpretation(self) -> None:

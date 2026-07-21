@@ -8,16 +8,24 @@ import copy
 import json
 import mimetypes
 import signal
+import sys
+import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT.parent))
+from runtime_receipt import ReceiptError, RuntimeReceipt
+
+
 SEED = json.loads((ROOT / "fixtures/seed.json").read_text(encoding="utf-8"))
+VARIANT_DOCUMENT = json.loads((ROOT / "variants.json").read_text(encoding="utf-8"))
+DEFAULT_BEHAVIORS = {"save_persists": False, "disabled_recovery": False, "keyboard_command": True, "truthful_failure": False}
 SPA_ROUTES = {"/", "/dashboard", "/projects", "/projects/import", "/settings/profile", "/admin/data", "/team"}
-STATIC_FILES = {"/app.js": ROOT / "app.js", "/styles.css": ROOT / "styles.css"}
+STATIC_FILES = {"/activity.js": ROOT / "activity.js", "/app.js": ROOT / "app.js", "/styles.css": ROOT / "styles.css"}
 
 
 class State:
@@ -39,10 +47,18 @@ class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address, handler, reset_token: str):
+    def __init__(self, address, handler, reset_token: str, receipt_path: Path, variant: str):
         super().__init__(address, handler)
         self.reset_token = reset_token
         self.state = State()
+        self.receipt = RuntimeReceipt(receipt_path)
+        if variant == "default":
+            selected = {}
+        else:
+            selected = VARIANT_DOCUMENT.get("variants", {}).get(variant)
+            if not isinstance(selected, dict):
+                raise ValueError("unknown fixture variant")
+        self.behaviors = {**DEFAULT_BEHAVIORS, **selected}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -94,7 +110,15 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _file(self, path: Path) -> None:
-        body = path.read_bytes()
+        if path == ROOT / "index.html" and self.server.behaviors["disabled_recovery"]:
+            source = path.read_text(encoding="utf-8")
+            marker = '<button disabled title="Unavailable">Archive</button>'
+            replacement = '<button disabled title="Unavailable. Ask a workspace owner to enable project archiving." aria-describedby="archive-guidance">Archive</button><p id="archive-guidance">Ask a workspace owner to enable project archiving.</p>'
+            body = source.replace(marker, replacement).encode()
+        elif path == ROOT / "app.js" and not self.server.behaviors["keyboard_command"]:
+            body = path.read_text(encoding="utf-8").replace("const keyboardCommandEnabled = true;", "const keyboardCommandEnabled = false;").encode()
+        else:
+            body = path.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
@@ -109,7 +133,17 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get("X-Gauntlet-Reset") != self.server.reset_token:
                 self._json(403, {"error": "reset-token-required"})
             else:
-                self._json(200, self.server.state.reset())
+                state = self.server.state.reset()
+                self.server.receipt.reset()
+                self._json(200, state)
+            return
+        if path == "/api/activity":
+            try:
+                self.server.receipt.append(body)
+            except ReceiptError as error:
+                self._json(400, {"error": str(error)[:160]})
+            else:
+                self._json(202, {"accepted": True})
             return
         if path == "/api/save":
             name = str(body.get("name", "")).strip()
@@ -121,7 +155,15 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "persisted": True})
             return
         if path == "/api/save-failure":
-            self._json(200, {"ok": True, "persisted": False, "effect": "success-without-persistence"})
+            if self.server.behaviors["save_persists"]:
+                name = str(body.get("name", "")).strip()
+                with self.server.state.lock:
+                    self.server.state.value["project"]["name"] = name
+                self._json(200, {"ok": True, "persisted": True, "effect": "success-with-persistence"})
+            elif self.server.behaviors["truthful_failure"]:
+                self._json(409, {"ok": False, "persisted": False, "effect": "failure-without-persistence"})
+            else:
+                self._json(200, {"ok": True, "persisted": False, "effect": "success-without-persistence"})
             return
         if path == "/api/projects":
             name = str(body.get("name", "")).strip()
@@ -209,8 +251,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--reset-token", required=True)
+    parser.add_argument("--receipt")
+    parser.add_argument("--variant", default="default")
     args = parser.parse_args()
-    server = Server(("127.0.0.1", args.port), Handler, args.reset_token)
+    temporary_receipt = None
+    if args.receipt:
+        receipt_path = Path(args.receipt)
+    else:
+        temporary_receipt = tempfile.TemporaryDirectory(prefix="shipworthy-fixture-receipt-")
+        receipt_path = Path(temporary_receipt.name) / "runtime-actions.json"
+    server = Server(("127.0.0.1", args.port), Handler, args.reset_token, receipt_path, args.variant)
     stop = threading.Event()
 
     def request_stop(*_args) -> None:
@@ -225,6 +275,8 @@ def main() -> int:
         server.serve_forever(poll_interval=0.05)
     finally:
         server.server_close()
+        if temporary_receipt is not None:
+            temporary_receipt.cleanup()
     return 0
 
 

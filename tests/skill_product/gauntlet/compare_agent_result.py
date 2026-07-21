@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+if __package__:
+    from .behavior_graph import BehaviorNode, match_behavior, node_from_receipt, normalize_route as graph_normalize_route, normalize_text, parse_semantic_key, verify_private_expectation
+else:
+    from behavior_graph import BehaviorNode, match_behavior, node_from_receipt, normalize_route as graph_normalize_route, normalize_text, parse_semantic_key, verify_private_expectation
+
 
 NORMALIZATION_VERSION = "shipworthy-semantic-v1"
 METHOD_VERSION = "shipworthy-methods-v1"
@@ -18,15 +23,11 @@ TERMINAL = frozenset({"covered", "avoided", "blocked", "missing", "unavailable"}
 
 
 def normalize_token(value: Any) -> str:
-    text = unicodedata.normalize("NFKC", str(value)).strip().casefold()
-    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+    return normalize_text(value)
 
 
 def normalize_route(value: Any) -> str:
-    text = unicodedata.normalize("NFKC", str(value)).strip()
-    parsed = urlsplit(text if "://" in text else "https://local.invalid/" + text.lstrip("/"))
-    path = re.sub(r"/+", "/", parsed.path or "/").casefold()
-    return path.rstrip("/") or "/"
+    return graph_normalize_route(value)
 
 
 def derive_semantic_key(item: dict[str, Any]) -> str:
@@ -184,8 +185,39 @@ def _row_route(row: dict[str, Any]) -> str | None:
     return match.group(1) if match else None
 
 
-def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dict[str, Any], mode: str) -> dict[str, Any]:
+def _extra_has_receipt(row: dict[str, Any], events: list[dict[str, Any]]) -> bool:
+    expected = parse_semantic_key(row.get("semantic_key", ""), evidence_links=row.get("evidence_refs", ()))
+    expected = BehaviorNode(
+        kind=expected.kind,
+        route=expected.route,
+        role=expected.role,
+        viewport=expected.viewport,
+        control_identity=expected.control_identity,
+        control_type=expected.control_type,
+        evidence_links=expected.evidence_links,
+    )
+    status = row.get("status")
+    types = {"blocked"} if status == "blocked" else {"avoided"} if status == "avoided" else (
+        {"route_visit", "surface_spawn"} if expected.kind == "surface" else
+        {"transition", "reload_reentry"} if expected.kind == "transition" else
+        {"activation", "input"}
+    )
+    candidates = [node_from_receipt(event) for event in events if event.get("event_type") in types]
+    return bool(expected.evidence_links) and match_behavior(expected, candidates).status in {"exact", "equivalent", "ambiguous"}
+
+
+def compare_frontier(
+    agent: dict[str, Any],
+    oracle: dict[str, Any],
+    defects: dict[str, Any],
+    mode: str,
+    *,
+    receipt_events: list[dict[str, Any]] | None = None,
+    receipt_expectations: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     reasons: list[str] = []
+    execution_failures: list[str] = []
+    comparator_problems: list[str] = []
     rows = agent.get("rows") if isinstance(agent.get("rows"), list) else []
     by_key: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
@@ -220,6 +252,13 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
             reasons.append(f"covered row lacks required evidence for {key}")
         if item["kind"] == "transition" and (not row.get("before_state") or not row.get("after_state")):
             reasons.append(f"transition lacks before/after evidence for {key}")
+        if receipt_events is not None and receipt_expectations is not None and item["kind"] in {"surface", "control", "transition"}:
+            expectation = receipt_expectations.get(item["id"])
+            if not isinstance(expectation, dict):
+                comparator_problems.append(item["id"])
+            elif verify_private_expectation(expectation, receipt_events).status != "supported":
+                execution_failures.append(key)
+                reasons.append(f"private receipt does not support execution claim for {key}")
     if missing:
         reasons.append(f"material oracle misses: {len(missing)}")
 
@@ -259,20 +298,22 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         if not any(matches(finding, defect) for defect in expected_defects)
     ]
 
-    known_routes = set(oracle.get("supporting_routes", []))
     known_features = set(oracle.get("supporting_features", []))
-    unexpected = [
-        row for index, row in enumerate(rows)
-        if index not in matched_rows
-        and row.get("kind") != "intent"
-        and row.get("material", True)
-        and _row_route(row) not in known_routes
-        and row.get("semantic_key") not in known_features
-        and ":not-found:" not in str(row.get("semantic_key", ""))
-    ]
+    known_routes = set(oracle.get("supporting_routes", []))
+    unmatched = [row for index, row in enumerate(rows) if index not in matched_rows and row.get("kind") != "intent" and row.get("material", True)]
+    valid_extras: list[dict[str, Any]] = []
+    unexpected: list[dict[str, Any]] = []
+    for row in unmatched:
+        key = row.get("semantic_key", "")
+        explicit_support = key in known_features or (row.get("kind") == "surface" and _row_route(row) in known_routes)
+        receipt_support = receipt_events is not None and _extra_has_receipt(row, receipt_events)
+        if explicit_support or receipt_support:
+            valid_extras.append(row)
+        else:
+            unexpected.append(row)
     if reasons:
         status = "FAIL"
-    elif unexpected or unexpected_findings:
+    elif comparator_problems or unexpected or unexpected_findings:
         status = "REVIEW_REQUIRED"
     else:
         status = "PASS"
@@ -288,5 +329,12 @@ def compare_frontier(agent: dict[str, Any], oracle: dict[str, Any], defects: dic
         "duplicate_semantic_keys": duplicates,
         "unexpected_rows": unexpected,
         "unexpected_findings": unexpected_findings,
+        "diagnostics": {
+            "A_material_discovery_miss": missing,
+            "B_execution_proof_lineage_failure": execution_failures,
+            "C_normalization_or_comparator_problem": comparator_problems,
+            "D_valid_extra": [row.get("semantic_key", "") for row in valid_extras],
+            "E_unsupported_or_false_positive": [row.get("semantic_key", "") for row in unexpected] + [finding.get("observed_effect_code", "") for finding in unexpected_findings],
+        },
         "counts": actual_counts,
     }

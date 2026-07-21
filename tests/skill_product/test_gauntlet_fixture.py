@@ -17,10 +17,10 @@ ORACLE = ROOT / "tests/skill_product/gauntlet/oracle/surface-oracle.json"
 
 
 class FixtureProcess:
-    def __init__(self, reset_token: str = "fixture-reset-token") -> None:
+    def __init__(self, reset_token: str = "fixture-reset-token", variant: str = "default") -> None:
         self.reset_token = reset_token
         self.process = subprocess.Popen(
-            ["python3", "-I", str(SERVER), "--port", "0", "--reset-token", reset_token],
+            ["python3", "-I", str(SERVER), "--port", "0", "--reset-token", reset_token, "--variant", variant],
             cwd=APP,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -129,35 +129,29 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn("text/html", raised.exception.headers.get("Content-Type", ""))
         self.assertIn("Page not found", raised.exception.read().decode())
 
-    def test_every_oracle_case_has_a_fixture_hook_and_decoys_are_noninteractive(self) -> None:
+    def test_oracle_identifiers_are_private_and_decoys_are_noninteractive(self) -> None:
         oracle = json.loads(ORACLE.read_text(encoding="utf-8"))
         source = "\n".join(
             path.read_text(encoding="utf-8")
             for path in (APP / "index.html", APP / "app.js", APP / "product-docs/README.md", APP / "product-tests/contract.md", APP / "fixtures/seed.json")
         )
         for item in oracle["items"]:
-            self.assertIn(item["case_id"], source, item["id"])
+            self.assertNotIn(item["id"], source, item["id"])
         html = (APP / "index.html").read_text(encoding="utf-8")
-        self.assertIn('data-decoy="negative-control"', html)
-        self.assertNotIn('data-decoy="negative-control" role="button"', html)
-        self.assertIn('data-case-id="false-affordance"', html)
-        false_fragment = html.split('data-case-id="false-affordance"', 1)[1].split("</div>", 1)[0]
+        self.assertNotIn("data-case-id", html)
+        self.assertNotIn("data-decoy", html)
+        self.assertNotIn("data-expected-effect", html)
+        false_fragment = html.split('<div class="upgrade-card">', 1)[1].split("</div>", 1)[0]
         self.assertNotIn("<button", false_fragment)
         self.assertNotIn("onclick", false_fragment)
 
     def test_material_fixture_controls_are_oracled_and_files_stay_bounded(self) -> None:
-        oracle = json.loads(ORACLE.read_text(encoding="utf-8"))
-        case_ids = {item["case_id"] for item in oracle["items"]}
         html = (APP / "index.html").read_text(encoding="utf-8")
-        import re
-        hooks = set(re.findall(r'data-case-id="([^"]+)"', html))
-        self.assertTrue(hooks.issubset(case_ids), hooks - case_ids)
-        for button in re.findall(r"<button\b[^>]*>", html):
-            self.assertTrue("data-case-id=" in button or "data-supporting-control=" in button, button)
-            if "data-supporting-control=" in button:
-                self.assertIn("data-expected-effect=", button, button)
+        self.assertNotIn("data-case-id", html)
+        self.assertNotIn("data-supporting-control", html)
+        self.assertNotIn("data-expected-effect", html)
         self.assertIn('id="profile"', html)
-        self.assertIn('data-supporting-control="role-admin"', html)
+        self.assertIn('id="role-admin"', html)
         self.assertIn('aria-label="Synthetic audit role"', html)
         self.assertIn('id="invite-permission"', html)
         self.assertIn('<output id="profile-name"', html)
@@ -205,7 +199,7 @@ class GauntletFixtureTests(unittest.TestCase):
         self.assertIn('$("#project-actions")?.addEventListener', script)
         self.assertNotIn("@media (max-width: 600px) { nav { display: none;", (APP / "styles.css").read_text(encoding="utf-8"))
         self.assertIn("#avatar { margin-left: 0; }", (APP / "styles.css").read_text(encoding="utf-8"))
-        for path in (SERVER, APP / "app.js"):
+        for path in (SERVER, APP / "app.js", APP / "activity.js"):
             logical = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")]
             self.assertLessEqual(len(logical), 300, path)
 
@@ -225,7 +219,7 @@ class GauntletFixtureTests(unittest.TestCase):
     def test_incidental_accessibility_and_touch_noise_is_not_part_of_the_gauntlet(self) -> None:
         html = (APP / "index.html").read_text(encoding="utf-8")
         script = (APP / "app.js").read_text(encoding="utf-8")
-        self.assertIn('id="avatar" data-case-id="avatar-settings" aria-haspopup="menu" aria-expanded="false" aria-controls="avatar-menu"', html)
+        self.assertIn('id="avatar" aria-haspopup="menu" aria-expanded="false" aria-controls="avatar-menu"', html)
         self.assertIn("function closeAvatarMenu()", script)
         self.assertIn("closeAvatarMenu();", script.split('event.key === "Escape"', 1)[1])
         self.assertNotIn("Right-click for actions", html)
