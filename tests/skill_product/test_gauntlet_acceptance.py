@@ -18,6 +18,7 @@ RUNNER = GAUNTLET / "run_acceptance.py"
 EXPORTER = GAUNTLET / "redact_evidence.py"
 SKILLS = ROOT / "plugins/shipworthy/skills"
 APP = GAUNTLET / "app"
+REVISION = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
 ORACLE, DEFECTS = load_and_validate_oracle(GAUNTLET / "oracle/surface-oracle.json", GAUNTLET / "oracle/expected-defects.json")
 
 
@@ -62,7 +63,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
     def prepare(self, mode: str, source: Path | None = None) -> tuple[Path, dict]:
         self.counter += 1
         output = self.root / f"{mode}-{self.counter}"
-        args: list[object] = ["prepare", "--mode", mode, "--skills-source", SKILLS, "--output", output]
+        args: list[object] = ["prepare", "--mode", mode, "--skills-source", SKILLS, "--skills-revision", REVISION, "--output", output]
         if source is not None:
             args.extend(("--product-source", source))
         result = self.command(*args)
@@ -125,10 +126,55 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertTrue(manifest["base_url"].startswith("http://127.0.0.1:"))
         self.assertEqual("X-Gauntlet-Reset", manifest["reset_header"])
         self.assertEqual(manifest["server_pid"], os.getpgid(manifest["server_pid"]))
+        fingerprints = manifest["evaluation_fingerprints"]
+        self.assertEqual(REVISION, fingerprints["revision"])
+        self.assertEqual(REVISION, fingerprints["subject_skills_revision"])
+        self.assertEqual(40, len(fingerprints["evaluation_revision"]))
+        self.assertEqual(64, len(fingerprints["skill_tree_sha256"]))
+        self.assertEqual(64, len(fingerprints["fixture_tree_sha256"]))
+        self.assertEqual(64, len(fingerprints["prompt_sha256"]))
+        self.assertEqual(64, len(fingerprints["comparator_sha256"]))
+        self.assertTrue(all(len(value) == 64 for value in fingerprints["oracle_sha256"].values()))
 
     def test_prepare_accepts_reset_token_that_begins_with_dash(self) -> None:
         command = server_command("-leading-token")
         self.assertIn("--reset-token=-leading-token", command)
+
+    def test_failed_prepare_removes_partial_output_and_private_controller(self) -> None:
+        output = self.root / "invalid-revision"
+        before = set(Path(tempfile.gettempdir()).glob("shipworthy-gauntlet-*"))
+        result = self.command(
+            "prepare", "--mode", "runtime-only", "--skills-source", SKILLS,
+            "--skills-revision", "not-a-revision", "--output", output,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertFalse(output.exists())
+        self.assertEqual(before, set(Path(tempfile.gettempdir()).glob("shipworthy-gauntlet-*")))
+
+    def test_finalize_detects_input_drift_and_cleans_controller(self) -> None:
+        output, manifest = self.prepare("runtime-only")
+        Path(manifest["brief"]).write_text("mutated after prepare\n", encoding="utf-8")
+        result = self.command(
+            "finalize", "--run-manifest", output / "run-manifest.json",
+            "--native-dispatch-status", "unavailable", "--agent-output", output / "agent-evidence",
+        )
+        self.assertEqual(1, result.returncode, result.stderr)
+        final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
+        self.assertEqual("evaluation-input-drift", final["failure_code"])
+        self.assertFalse(Path(manifest["controller_root"]).exists())
+
+    def test_finalize_corrupt_receipt_fails_atomically_and_cleans_controller(self) -> None:
+        output, manifest = self.prepare("runtime-only")
+        (Path(manifest["controller_root"]) / "private/runtime-actions.json").write_text("{broken", encoding="utf-8")
+        result = self.command(
+            "finalize", "--run-manifest", output / "run-manifest.json",
+            "--native-dispatch-status", "completed", "--agent-output", output / "agent-evidence",
+        )
+        self.assertEqual(1, result.returncode, result.stderr)
+        final = json.loads((output / "acceptance-result.json").read_text(encoding="utf-8"))
+        self.assertEqual("internal-finalize-error", final["failure_code"])
+        self.assertFalse(Path(manifest["controller_root"]).exists())
+        self.assertFalse((output / ".acceptance-result.json.tmp").exists())
 
     def test_prepare_enforces_mode_specific_product_source_and_sanitizes(self) -> None:
         bad_runtime = self.command("prepare", "--mode", "runtime-only", "--skills-source", SKILLS, "--output", self.root / "bad-runtime", "--product-source", APP)
@@ -151,6 +197,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertEqual("invalid-agent-artifacts", final["failure_code"])
         self.assertEqual("native-123", final["native_agent_id"])
         self.assertFalse(Path(manifest["controller_root"]).exists())
+        self.assertTrue((output / "controller-receipt.json").is_file())
         self.assertFalse((output / ".acceptance-result.json.tmp").exists())
         self.assertFalse((output / "comparison-packet.json").is_file())
 
@@ -218,6 +265,20 @@ class AcceptanceHarnessTests(unittest.TestCase):
         self.assertEqual("internal-invalid-result", result["failure_code"])
         validate_acceptance_result(result)
         self.assertEqual(result, json.loads((output / "acceptance-result.json").read_text(encoding="utf-8")))
+
+    def test_acceptance_schema_rejects_unknown_fields_and_malformed_fingerprints(self) -> None:
+        invalid = {
+            "schema_version": "shipworthy-gauntlet-acceptance-v1", "status": "FAIL", "mode": "runtime-only",
+            "native_dispatch_status": "failed", "native_agent_id": "", "failure_code": "subject-failed",
+            "diagnostic": "", "comparison_status": "NOT_RUN", "oracle_blindness": "PROCEDURAL_ONLY",
+            "filesystem_containment": "NOT_PROVEN", "artifacts": {}, "invented": True,
+        }
+        with self.assertRaises(ValueError):
+            validate_acceptance_result(invalid)
+        invalid.pop("invented")
+        invalid["artifacts"] = {"evaluation_fingerprints": {"revision": "short"}}
+        with self.assertRaises(ValueError):
+            validate_acceptance_result(invalid)
 
     def test_exporter_redacts_copies_validates_and_never_mutates_source(self) -> None:
         output, _ = self.prepare("runtime-only")

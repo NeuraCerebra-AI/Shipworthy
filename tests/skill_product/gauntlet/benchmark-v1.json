@@ -28,7 +28,7 @@
     "runtime_only": {
       "status": "FAIL",
       "acceptance_result_sha256": "d7858da18e4ac1bba5751b24502f1228add52994ea4632d267968b65496a678a",
-      "comparison_packet_sha256": "f636f79666fcebfef05a2a09880ca0b7f0c10caca58ec"
+      "comparison_packet_sha256": "f636f79666fcebfef05bf663fe213df5b46f05a2a09880ca0b7f0c10caca58ec"
     },
     "full_evidence": {
       "status": "FAIL",

@@ -12,6 +12,7 @@ from tests.skill_product.gauntlet.runtime_receipt import (
     ReceiptError,
     RuntimeReceipt,
     all_events,
+    attempt_count,
     receipt_digest,
 )
 
@@ -54,6 +55,7 @@ class RuntimeReceiptUnitTests(unittest.TestCase):
             [event["input_mechanism"] for event in all_events(after)],
         )
         self.assertEqual(receipt_digest(after), receipt_digest(second.read()))
+        self.assertEqual(2, attempt_count(all_events(after)))
         self.assertNotIn("timestamp", json.dumps(after).casefold())
 
         for index in range(MAX_EVENTS - 1):

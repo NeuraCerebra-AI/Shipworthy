@@ -305,7 +305,7 @@ class GauntletComparatorTests(unittest.TestCase):
         packet = self.compare(result)
         self.assertEqual("PASS", packet["status"], packet)
 
-    def test_matching_prefers_an_allowed_direct_row_over_a_sampled_alias(self) -> None:
+    def test_exact_key_precedes_an_allowed_alias(self) -> None:
         result = self.complete_result()
         key = "control:surface:/projects:editing:member:desktop:save:button:persist"
         sampled = next(row for row in result["rows"] if row["semantic_key"] == key)
@@ -320,7 +320,45 @@ class GauntletComparatorTests(unittest.TestCase):
         item = next(item for item in oracle["items"] if item["semantic_key"] == key)
         item.setdefault("accepted_semantic_keys", []).append(direct["semantic_key"])
         packet = compare_frontier(result, oracle, self.defects, result["mode"])
-        self.assertEqual("PASS", packet["status"], packet)
+        self.assertEqual("FAIL", packet["status"], packet)
+        self.assertTrue(any("invalid terminal disposition" in reason for reason in packet["reasons"]))
+
+    def test_multiple_equivalent_alias_rows_require_review(self) -> None:
+        result = self.complete_result()
+        key = "control:surface:/projects:editing:member:desktop:save:button:persist"
+        canonical = next(row for row in result["rows"] if row["semantic_key"] == key)
+        result["rows"].remove(canonical)
+        for alias in (
+            "control:surface:/projects:normal:member:desktop:save:button:server-backed",
+            "control:surface:/projects:editing:member:desktop:save:button:persist-attempt",
+        ):
+            row = copy.deepcopy(canonical)
+            row["semantic_key"] = alias
+            result["rows"].append(row)
+        result["summary"]["control"] += 1
+        packet = self.compare(result)
+        self.assertEqual("REVIEW_REQUIRED", packet["status"], packet)
+        self.assertIn(key, packet["diagnostics"]["C_normalization_or_comparator_problem"])
+
+    def test_one_combined_finding_cannot_satisfy_two_defect_classes(self) -> None:
+        result = self.complete_result()
+        defect_ids = {"DEFECT-MISLEADING-SUCCESS", "DEFECT-RELOAD-LOSS"}
+        target = [item for item in self.defects["defects"] if item["id"] in defect_ids]
+        target_keys = {key for item in target for key in item["affected_semantic_keys"]}
+        result["findings"] = [
+            finding for finding in result["findings"]
+            if not set(finding["affected_semantic_keys"]) <= target_keys
+        ]
+        result["findings"].append(
+            {
+                "affected_semantic_keys": sorted(target_keys),
+                "observed_effect_code": "save_false_success_not_persisted",
+                "evidence_refs": ["evidence/combined-save.json"],
+            }
+        )
+        packet = self.compare(result)
+        self.assertEqual("FAIL", packet["status"], packet)
+        self.assertEqual(1, len(defect_ids & set(packet["missed_defect_ids"])))
 
     def test_explicit_role_alternatives_and_observed_effect_aliases_match(self) -> None:
         result = self.complete_result()

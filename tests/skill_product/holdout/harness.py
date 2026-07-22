@@ -56,42 +56,54 @@ def prepare(repo: Path, output: Path, *, skills_revision: str) -> dict:
     repo, output = Path(repo).resolve(), Path(output).resolve()
     if output.exists() and any(output.iterdir()): raise ValueError("output must be absent or empty")
     output.mkdir(parents=True, exist_ok=True)
-    agent_output = output / "agent-evidence"; agent_output.mkdir()
     controller = Path(tempfile.mkdtemp(prefix="shipworthy-holdout-"))
-    skills = _materialize(repo, skills_revision, controller)
-    app = controller / "app"
-    shutil.copytree(repo / "tests/skill_product/holdout/app", app)
-    shutil.copy2(repo / "tests/skill_product/gauntlet/runtime_receipt.py", app / "runtime_receipt.py")
-    brief = controller / "brief.md"; shutil.copy2(repo / "tests/skill_product/holdout/prompt.md", brief)
-    workspace = controller / "workspace"; workspace.mkdir()
-    private = controller / "private"; private.mkdir()
-    token = secrets.token_urlsafe(24)
-    log = (output / "run.log").open("w", encoding="utf-8")
-    process = subprocess.Popen(
-        [sys.executable, "-I", str(app / "server.py"), "--port", "0", f"--reset-token={token}", f"--receipt={private / 'runtime-actions.json'}"],
-        cwd=app, stdout=subprocess.PIPE, stderr=log, text=True, start_new_session=True,
-    )
+    process: subprocess.Popen | None = None
+    log = None
     try:
+        agent_output = output / "agent-evidence"; agent_output.mkdir()
+        skills = _materialize(repo, skills_revision, controller)
+        app = controller / "app"
+        shutil.copytree(repo / "tests/skill_product/holdout/app", app)
+        shutil.copy2(repo / "tests/skill_product/gauntlet/runtime_receipt.py", app / "runtime_receipt.py")
+        brief = controller / "brief.md"; shutil.copy2(repo / "tests/skill_product/holdout/prompt.md", brief)
+        workspace = controller / "workspace"; workspace.mkdir()
+        private = controller / "private"; private.mkdir()
+        token = secrets.token_urlsafe(24)
+        log = (output / "run.log").open("w", encoding="utf-8")
+        process = subprocess.Popen(
+            [sys.executable, "-I", str(app / "server.py"), "--port", "0", f"--reset-token={token}", f"--receipt={private / 'runtime-actions.json'}"],
+            cwd=app, stdout=subprocess.PIPE, stderr=log, text=True, start_new_session=True,
+        )
         line = process.stdout.readline() if process.stdout else ""
         server = json.loads(line)
         if process.stdout: process.stdout.close()
         _wait(server["base_url"], process)
+        log.close(); log = None
+        _PROCESSES[process.pid] = process
+        paths = [str(skills / name / "SKILL.md") for name in SKILL_NAMES]
+        manifest = {
+            "schema_version": "shipworthy-holdout-run-v1", "controller_root": str(controller),
+            "base_url": server["base_url"], "server_pid": process.pid, "server_script": str(app / "server.py"),
+            "brief": str(brief), "workspace": str(workspace), "skill_paths": paths,
+            "agent_output": str(agent_output),
+            "allowed_paths": [*(str(Path(path).parent) for path in paths), str(brief), str(workspace), str(agent_output)],
+            "reset_header": "X-Holdout-Reset", "reset_token": token, "reset_endpoint": "/api/reset",
+            "skills_revision": skills_revision,
+        }
+        _write(output / "run-manifest.json", manifest)
+        return manifest
     except Exception:
-        process.terminate(); process.wait(timeout=3); log.close(); shutil.rmtree(controller, ignore_errors=True); raise
-    log.close()
-    _PROCESSES[process.pid] = process
-    paths = [str(skills / name / "SKILL.md") for name in SKILL_NAMES]
-    manifest = {
-        "schema_version": "shipworthy-holdout-run-v1", "controller_root": str(controller),
-        "base_url": server["base_url"], "server_pid": process.pid, "server_script": str(app / "server.py"),
-        "brief": str(brief), "workspace": str(workspace), "skill_paths": paths,
-        "agent_output": str(agent_output),
-        "allowed_paths": [*(str(Path(path).parent) for path in paths), str(brief), str(workspace), str(agent_output)],
-        "reset_header": "X-Holdout-Reset", "reset_token": token, "reset_endpoint": "/api/reset",
-        "skills_revision": skills_revision,
-    }
-    _write(output / "run-manifest.json", manifest)
-    return manifest
+        if process is not None:
+            if process.stdout: process.stdout.close()
+            if process.poll() is None:
+                process.terminate()
+                try: process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill(); process.wait(timeout=3)
+        if log is not None and not log.closed: log.close()
+        shutil.rmtree(controller, ignore_errors=True)
+        shutil.rmtree(output, ignore_errors=True)
+        raise
 
 
 def cleanup(manifest: dict) -> None:

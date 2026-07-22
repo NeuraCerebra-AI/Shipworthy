@@ -99,6 +99,24 @@ class DiagnosticClassificationTests(unittest.TestCase):
         self.assertEqual("missing", verify_execution_claim(item, row, [{**event, "behavior": "save-visual"}]).status)
         self.assertEqual("missing", verify_execution_claim(item, row, []).status)
 
+    def test_identical_receipt_retries_are_one_proof_but_distinct_candidates_are_ambiguous(self) -> None:
+        item = {
+            "kind": "control",
+            "semantic_key": "control:surface:/projects:editing:member:desktop:save:button:persist",
+            "identity": "Save",
+            "accepted_aliases": ["Save changes"],
+            "receipt_behavior_aliases": ["save-real"],
+        }
+        row = {"semantic_key": item["semantic_key"], "status": "covered", "evidence_refs": ["proof.json"]}
+        event = {
+            "event_type": "activation", "route": "/projects", "role": "member", "state": "editing",
+            "viewport_class": "desktop", "control": {"identity": "Save changes", "type": "button"},
+            "input_mechanism": "pointer", "behavior": "save-real",
+        }
+        self.assertEqual("supported", verify_execution_claim(item, row, [event, dict(event)]).status)
+        distinct = {**event, "control": {"identity": "Save", "type": "button"}}
+        self.assertEqual("ambiguous", verify_execution_claim(item, row, [event, distinct]).status)
+
     def test_blocked_and_avoided_claims_require_matching_inventory_safety_events(self) -> None:
         blocked_item = {
             "kind": "control", "semantic_key": "control:surface:/projects:editing:member:desktop:archive:button:disabled",

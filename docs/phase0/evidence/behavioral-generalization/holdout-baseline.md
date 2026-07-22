@@ -24,12 +24,13 @@ prior results were outside its allowlist.
 | Discovery | 8/9 (88.89%) | `HB-09`, the `Ctrl+Enter` path, was not named in the discovery artifacts. Text in `closure_honesty.not_tested` was excluded from discovery scoring. |
 | Execution | 8/9 (88.89%) | The 54-event private receipt contains no `Ctrl+Enter` activation. |
 | Defect detection | 3/4 (75%) | `HD-01`, `HD-02`, and `HD-04` had distinct findings. `HD-03`—the still-enabled submit after permission loss—was observed in a transition but did not receive its own finding. |
-| Evidence integrity | valid for the required canonical artifacts | The 57-row frontier is identical in the ledger and both report JSON artifacts; finding keys resolve; HTML closure is `incomplete`. The subject's auxiliary validation note misstated the HTML byte count (29,927 versus 30,002), so that prose note is not used as proof. |
+| Evidence integrity | NOT_PROVEN | The historical holdout validator compared duplicated top-level frontiers but did not validate the canonical report wrapper, readiness schemas, full frontier contract, or evidence references. The identical hashes for `report-input.json` and `readiness-report.json` are incompatible with treating one as independent wrapper proof. The subject's boolean and auxiliary validation note are not accepted as authority. |
 | Closure honesty | pass | `claimed_exhaustive` was `false`; seven untested boundaries were listed. False exhaustive closure: `false`. |
 
 The release-blocking seeded defect `HD-01` was found. The run still fails the
-strict official gate because discovery, execution, and distinct defect-lineage
-coverage were incomplete. No combined percentage is used.
+strict official gate because discovery, execution, distinct defect-lineage
+coverage, and artifact integrity were incomplete or NOT_PROVEN. No combined
+percentage is used.
 
 ## Finding classification
 

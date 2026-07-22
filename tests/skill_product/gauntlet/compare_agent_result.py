@@ -11,9 +11,9 @@ from typing import Any
 from urllib.parse import urlsplit
 
 if __package__:
-    from .behavior_graph import BehaviorNode, match_behavior, node_from_receipt, normalize_route as graph_normalize_route, normalize_text, parse_semantic_key, verify_private_expectation
+    from .behavior_graph import BehaviorNode, Match, match_behavior, normalize_route as graph_normalize_route, normalize_text, parse_semantic_key, unique_receipt_nodes, verify_execution_claim, verify_private_expectation
 else:
-    from behavior_graph import BehaviorNode, match_behavior, node_from_receipt, normalize_route as graph_normalize_route, normalize_text, parse_semantic_key, verify_private_expectation
+    from behavior_graph import BehaviorNode, Match, match_behavior, normalize_route as graph_normalize_route, normalize_text, parse_semantic_key, unique_receipt_nodes, verify_execution_claim, verify_private_expectation
 
 
 NORMALIZATION_VERSION = "shipworthy-semantic-v1"
@@ -180,6 +180,43 @@ def _matches_item(row: dict[str, Any], item: dict[str, Any]) -> bool:
     return False
 
 
+def _match_item_rows(item: dict[str, Any], rows: list[dict[str, Any]]) -> Match:
+    """Prefer one canonical key; require uniqueness for every fallback."""
+    canonical = _canonical_viewport_key(item["semantic_key"])
+    keys = [_canonical_viewport_key(str(row.get("semantic_key", ""))) for row in rows]
+    exact_indexes = [index for index, key in enumerate(keys) if key == canonical]
+    exact = match_behavior(
+        BehaviorNode(item["kind"], semantic_key=canonical),
+        [BehaviorNode(rows[index].get("kind", ""), semantic_key=keys[index]) for index in exact_indexes],
+    )
+    if exact.status == "exact":
+        return Match("exact", exact_indexes[exact.index])
+    if exact.status == "ambiguous":
+        return Match("ambiguous", candidate_indexes=tuple(exact_indexes[index] for index in exact.candidate_indexes))
+
+    accepted = {_canonical_viewport_key(key) for key in item.get("accepted_semantic_keys", [])}
+    accepted_indexes = [index for index, key in enumerate(keys) if key in accepted]
+    if accepted_indexes:
+        probe = match_behavior(
+            BehaviorNode(item["kind"]),
+            [BehaviorNode(rows[index].get("kind", "")) for index in accepted_indexes],
+        )
+        if probe.status == "equivalent":
+            return Match("equivalent", accepted_indexes[probe.index])
+        return Match("ambiguous", candidate_indexes=tuple(accepted_indexes[index] for index in probe.candidate_indexes))
+
+    structural_indexes = [index for index, row in enumerate(rows) if _matches_item(row, item)]
+    if not structural_indexes:
+        return Match("missing")
+    structural = match_behavior(
+        BehaviorNode(item["kind"]),
+        [BehaviorNode(rows[index].get("kind", "")) for index in structural_indexes],
+    )
+    if structural.status == "equivalent":
+        return Match("equivalent", structural_indexes[structural.index])
+    return Match("ambiguous", candidate_indexes=tuple(structural_indexes[index] for index in structural.candidate_indexes))
+
+
 def _row_route(row: dict[str, Any]) -> str | None:
     match = re.search(r"(?:^|:)surface:([^:]+):", str(row.get("semantic_key", "")))
     return match.group(1) if match else None
@@ -202,8 +239,8 @@ def _extra_has_receipt(row: dict[str, Any], events: list[dict[str, Any]]) -> boo
         {"transition", "reload_reentry"} if expected.kind == "transition" else
         {"activation", "input"}
     )
-    candidates = [node_from_receipt(event) for event in events if event.get("event_type") in types]
-    return bool(expected.evidence_links) and match_behavior(expected, candidates).status in {"exact", "equivalent", "ambiguous"}
+    candidates = unique_receipt_nodes(event for event in events if event.get("event_type") in types)
+    return bool(expected.evidence_links) and match_behavior(expected, candidates).status in {"exact", "equivalent"}
 
 
 def compare_frontier(
@@ -235,17 +272,20 @@ def compare_frontier(
     matched_rows: set[int] = set()
     matched_keys: dict[str, set[str]] = {}
     for key, item in required.items():
-        grouped = [(index, row) for index, row in enumerate(rows) if _matches_item(row, item)]
-        if not grouped:
+        match = _match_item_rows(item, rows)
+        if match.status in {"missing", "key_mismatch"}:
             missing.append(key)
             continue
-        matched_keys[key] = {candidate["semantic_key"] for _, candidate in grouped}
+        if match.status == "ambiguous":
+            comparator_problems.append(key)
+            matched_rows.update(match.candidate_indexes)
+            continue
+        index = match.index
+        assert index is not None
+        row = rows[index]
+        matched_keys[key] = {row["semantic_key"]}
         allowed = item["allowed_dispositions_by_mode"][mode]
-        index, row = next(
-            ((candidate_index, candidate) for candidate_index, candidate in grouped if candidate.get("status") in allowed),
-            grouped[0],
-        )
-        matched_rows.update(candidate_index for candidate_index, _ in grouped)
+        matched_rows.add(index)
         if row.get("status") not in allowed:
             reasons.append(f"invalid terminal disposition for {key}")
         if row.get("status") == "covered" and not row.get("evidence_refs"):
@@ -256,9 +296,14 @@ def compare_frontier(
             expectation = receipt_expectations.get(item["id"])
             if not isinstance(expectation, dict):
                 comparator_problems.append(item["id"])
-            elif verify_private_expectation(expectation, receipt_events).status != "supported":
-                execution_failures.append(key)
-                reasons.append(f"private receipt does not support execution claim for {key}")
+            else:
+                expectation_match = verify_private_expectation(expectation, receipt_events)
+                claim_match = verify_execution_claim(item, row, receipt_events)
+                if "ambiguous" in {expectation_match.status, claim_match.status}:
+                    comparator_problems.append(f"receipt:{key}")
+                elif expectation_match.status != "supported" or claim_match.status != "supported":
+                    execution_failures.append(key)
+                    reasons.append(f"private receipt does not support execution claim for {key}")
     if missing:
         reasons.append(f"material oracle misses: {len(missing)}")
 
@@ -287,15 +332,39 @@ def compare_frontier(
             and bool(finding.get("evidence_refs"))
         )
 
+    edges = {
+        defect_index: [
+            finding_index for finding_index, finding in enumerate(defect_findings)
+            if matches(finding, defect)
+        ]
+        for defect_index, defect in enumerate(expected_defects)
+    }
+    finding_owner: dict[int, int] = {}
+
+    def assign(defect_index: int, seen: set[int]) -> bool:
+        for finding_index in edges[defect_index]:
+            if finding_index in seen:
+                continue
+            seen.add(finding_index)
+            owner = finding_owner.get(finding_index)
+            if owner is None or assign(owner, seen):
+                finding_owner[finding_index] = defect_index
+                return True
+        return False
+
+    for defect_index in range(len(expected_defects)):
+        assign(defect_index, set())
+    assigned_defects = set(finding_owner.values())
+    assigned_findings = set(finding_owner)
     missed_defects = [
-        defect["id"] for defect in expected_defects
-        if not any(matches(finding, defect) for finding in defect_findings)
+        defect["id"] for index, defect in enumerate(expected_defects)
+        if index not in assigned_defects
     ]
     if missed_defects:
         reasons.append(f"expected defect misses: {len(missed_defects)}")
     unexpected_findings = [
-        finding for finding in defect_findings
-        if not any(matches(finding, defect) for defect in expected_defects)
+        finding for index, finding in enumerate(defect_findings)
+        if index not in assigned_findings
     ]
 
     known_features = set(oracle.get("supporting_features", []))

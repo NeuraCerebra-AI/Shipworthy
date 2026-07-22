@@ -25,6 +25,7 @@ EVENT_TYPES = frozenset({
     "blocked",
     "avoided",
 })
+ATTEMPT_EVENT_TYPES = frozenset({"activation", "input", "reload_reentry", "blocked", "avoided"})
 FIELDS = frozenset({
     "event_type",
     "route",
@@ -108,6 +109,11 @@ def all_events(receipt: dict[str, Any]) -> list[dict[str, Any]]:
             raise ReceiptError("receipt event limit exceeded")
         events.extend(validate_event(event) for event in epoch_events)
     return events
+
+
+def attempt_count(events: list[dict[str, Any]]) -> int:
+    """Count bounded user action attempts, excluding observations and outcomes."""
+    return sum(validate_event(event)["event_type"] in ATTEMPT_EVENT_TYPES for event in events)
 
 
 class RuntimeReceipt:

@@ -3,14 +3,26 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tests.skill_product.support.schema_subset import SchemaValidationError, validate
+
 
 EXIT_CODES = {"PASS": 0, "FAIL": 1, "NOT_PROVEN": 2, "REVIEW_REQUIRED": 3}
+SCHEMA = Path(__file__).with_name("acceptance-result.schema.json")
 
 
 def validate_acceptance_result(result: dict[str, Any]) -> None:
+    try:
+        validate(result, SCHEMA)
+    except SchemaValidationError as error:
+        raise ValueError(str(error)) from error
     required = {
         "schema_version", "status", "mode", "native_dispatch_status",
         "native_agent_id", "failure_code", "diagnostic", "comparison_status",

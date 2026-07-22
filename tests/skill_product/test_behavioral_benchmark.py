@@ -37,6 +37,12 @@ class BehavioralBenchmarkTests(unittest.TestCase):
         self.assertEqual("FAIL", benchmark["historical_results"]["runtime_only"]["status"])
         self.assertEqual("FAIL", benchmark["historical_results"]["full_evidence"]["status"])
         self.assertFalse(benchmark["historical_results"]["behavioral_acceptance_claimed"])
+        predecessor = (ROOT / "docs/phase0/evidence/gauntlet-post-fix-acceptance.md").read_text(encoding="utf-8")
+        for mode in ("runtime_only", "full_evidence"):
+            for field in ("acceptance_result_sha256", "comparison_packet_sha256"):
+                digest = benchmark["historical_results"][mode][field]
+                self.assertRegex(digest, r"^[0-9a-f]{64}$")
+                self.assertIn(digest, predecessor)
 
 
 if __name__ == "__main__":

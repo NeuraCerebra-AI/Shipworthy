@@ -4,17 +4,16 @@
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 from typing import Any
 
 from tests.skill_product.gauntlet.behavior_graph import normalize_text, verify_private_expectation
+from tests.skill_product.gauntlet.artifact_validation import ArtifactValidationError, validate_agent_artifacts
 
 
 MAX_ARTIFACT_BYTES = 16 * 1024 * 1024
 REQUIRED_ARTIFACTS = (
-    "holdout-observation.json", "readiness-ledger.json", "report-input.json",
-    "readiness-report.json", "readiness-report.html",
+    "holdout-observation.json", "readiness-ledger.json", "report-input.json", "report.html",
 )
 
 
@@ -66,24 +65,37 @@ def _metric(found: int, total: int) -> dict:
 
 
 def _assign_findings(expectations: list[dict], findings: list[dict]) -> tuple[list[dict], set[int]]:
-    """Match at most one finding to each defect class and vice versa."""
-    edges = []
+    """Find a deterministic maximum one-to-one defect/finding assignment."""
+    adjacency: dict[int, list[tuple[float, int]]] = {}
     for expectation_index, expectation in enumerate(expectations):
         for finding_index, finding in enumerate(findings):
             score = max((_semantic_score(finding, alias) for alias in expectation["aliases"]), default=0.0)
             if score:
-                edges.append((score, expectation_index, finding_index))
-    assigned_expectations: set[int] = set()
-    assigned_findings: set[int] = set()
-    for _score, expectation_index, finding_index in sorted(edges, key=lambda edge: (-edge[0], edge[1], edge[2])):
-        if expectation_index not in assigned_expectations and finding_index not in assigned_findings:
-            assigned_expectations.add(expectation_index)
-            assigned_findings.add(finding_index)
+                adjacency.setdefault(expectation_index, []).append((score, finding_index))
+    for edges in adjacency.values():
+        edges.sort(key=lambda edge: (-edge[0], edge[1]))
+    finding_owner: dict[int, int] = {}
+
+    def augment(expectation_index: int, visited: set[int]) -> bool:
+        for _score, finding_index in adjacency.get(expectation_index, []):
+            if finding_index in visited:
+                continue
+            visited.add(finding_index)
+            owner = finding_owner.get(finding_index)
+            if owner is None or augment(owner, visited):
+                finding_owner[finding_index] = expectation_index
+                return True
+        return False
+
+    for expectation_index in range(len(expectations)):
+        augment(expectation_index, set())
+    assigned_expectations = set(finding_owner.values())
+    assigned_findings = set(finding_owner)
     return [expectation for index, expectation in enumerate(expectations) if index in assigned_expectations], assigned_findings
 
 
 def validate_holdout_artifacts(root: Path | str) -> dict:
-    """Compute canonical integrity from bounded files; never trust the subject flag."""
+    """Compute integrity with the same canonical validator used by the Gauntlet."""
     root = Path(root).resolve()
     errors: list[str] = []
     values: dict[str, Any] = {}
@@ -95,44 +107,23 @@ def validate_holdout_artifacts(root: Path | str) -> dict:
         if path.stat().st_size > MAX_ARTIFACT_BYTES:
             errors.append(f"oversize:{name}")
             continue
-        if name.endswith(".json"):
+        if name == "holdout-observation.json":
             try:
                 values[name] = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, UnicodeError, json.JSONDecodeError):
                 errors.append(f"invalid-json:{name}")
-    ledger = values.get("readiness-ledger.json")
-    report_input = values.get("report-input.json")
-    report = values.get("readiness-report.json")
     observation = values.get("holdout-observation.json")
-    documents = (ledger, report_input, report)
-    frontiers = [value.get("path_frontier") if isinstance(value, dict) else None for value in documents]
-    frontier = frontiers[0]
-    if not isinstance(frontier, dict) or any(candidate != frontier for candidate in frontiers[1:]):
-        errors.append("frontier-divergence")
-    rows = frontier.get("rows", []) if isinstance(frontier, dict) else []
-    keys = {row.get("semantic_key") for row in rows if isinstance(row, dict) and row.get("semantic_key")}
-    if isinstance(ledger, dict):
-        for finding in ledger.get("findings", []):
-            if not isinstance(finding, dict):
-                errors.append("invalid-finding")
-                continue
-            affected = finding.get("affected_semantic_keys", [])
-            if not isinstance(affected, list) or any(key not in keys for key in affected):
-                errors.append("unresolved-finding-lineage")
-                break
-    closure = frontier.get("closure_state") if isinstance(frontier, dict) else None
-    html_path = root / "readiness-report.html"
-    if html_path.is_file() and not html_path.is_symlink() and html_path.stat().st_size <= MAX_ARTIFACT_BYTES:
+    rows = 0
+    if not errors:
         try:
-            match = re.search(r'data-closure-state=["\']([^"\']+)["\']', html_path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError):
-            match = None
-        if not match or match.group(1) != closure:
-            errors.append("html-closure-mismatch")
-    if not isinstance(observation, dict) or observation.get("artifact_integrity") is not True:
-        errors.append("subject-integrity-claim-missing")
+            canonical = validate_agent_artifacts(root)
+            rows = len(canonical["rows"])
+        except ArtifactValidationError as error:
+            errors.extend(f"canonical:{diagnostic}" for diagnostic in error.diagnostics)
+    if not isinstance(observation, dict):
+        errors.append("invalid-observation")
     errors = list(dict.fromkeys(errors))
-    return {"valid": not errors, "errors": errors, "frontier_rows": len(rows) if isinstance(rows, list) else 0}
+    return {"valid": not errors, "errors": errors, "frontier_rows": rows}
 
 
 def compare_holdout(observation: dict, receipt_events: list[dict], oracle: dict, *, artifact_integrity: bool = False) -> dict:
@@ -161,7 +152,7 @@ def compare_holdout(observation: dict, receipt_events: list[dict], oracle: dict,
         "discovery": _metric(len(discovered), len(material)),
         "execution": _metric(len(executed), len(material)),
         "defect_detection": _metric(len(detected), len(defects)),
-        "evidence_integrity": {"valid": artifact_integrity and observation.get("artifact_integrity") is True},
+        "evidence_integrity": {"valid": artifact_integrity},
     }
     closure = observation.get("closure_honesty") if isinstance(observation.get("closure_honesty"), dict) else {}
     false_closure = bool(closure.get("claimed_exhaustive")) and (

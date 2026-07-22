@@ -55,6 +55,13 @@ code and CSS, while the installed byte and word footprint both shrink. Recount
 after review repairs before the final report; the final gate remains no larger
 than 457,813 bytes unless an evidenced safety requirement is documented.
 
+## Final installed footprint
+
+The final review repairs touched repository-only evaluation code and evidence,
+not the four production skill trees. The final footprint is therefore 8,908
+lines, 55,187 words, and 457,759 bytes: 54 bytes and 288 words below the frozen
+pre-ablation ceiling, with the same installed file set.
+
 ## HTML readability
 
 Focused renderer tests verify canonical derivation, bounded content, escaping,

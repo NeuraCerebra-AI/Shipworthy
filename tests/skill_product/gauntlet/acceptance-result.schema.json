@@ -3,17 +3,71 @@
   "$id": "shipworthy://gauntlet/acceptance-result-v1",
   "type": "object",
   "required": ["schema_version", "status", "mode", "native_dispatch_status", "native_agent_id", "failure_code", "diagnostic", "comparison_status", "oracle_blindness", "filesystem_containment", "artifacts"],
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "fingerprints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "subject_skills_revision", "evaluation_revision", "skill_tree_sha256", "fixture_tree_sha256", "prompt_sha256", "comparator_sha256", "oracle_sha256"],
+      "properties": {
+        "revision": {"$ref": "#/$defs/revision"},
+        "subject_skills_revision": {"$ref": "#/$defs/revision"},
+        "evaluation_revision": {"$ref": "#/$defs/revision"},
+        "skill_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "fixture_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "prompt_sha256": {"$ref": "#/$defs/sha256"},
+        "comparator_sha256": {"$ref": "#/$defs/sha256"},
+        "product_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "oracle_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["surface", "defects", "receipt_expectations"],
+          "properties": {
+            "surface": {"$ref": "#/$defs/sha256"},
+            "defects": {"$ref": "#/$defs/sha256"},
+            "receipt_expectations": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      }
+    }
+  },
   "properties": {
     "schema_version": {"const": "shipworthy-gauntlet-acceptance-v1"},
     "status": {"enum": ["PASS", "FAIL", "NOT_PROVEN", "REVIEW_REQUIRED"]},
-    "mode": {"type": "string"},
+    "mode": {"enum": ["runtime-only", "full-evidence", "internal"]},
     "native_dispatch_status": {"enum": ["completed", "unavailable", "failed", "timeout", "internal"]},
-    "native_agent_id": {"type": "string"},
-    "failure_code": {"type": "string"},
+    "native_agent_id": {"type": "string", "maxLength": 256},
+    "failure_code": {"type": "string", "maxLength": 256},
     "diagnostic": {"type": "string", "maxLength": 2000},
-    "comparison_status": {"type": "string"},
+    "comparison_status": {"enum": ["PASS", "FAIL", "NOT_RUN", "REVIEW_REQUIRED"]},
     "oracle_blindness": {"const": "PROCEDURAL_ONLY"},
     "filesystem_containment": {"const": "NOT_PROVEN"},
-    "artifacts": {"type": "object"}
-  }
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_manifest": {"type": "string", "maxLength": 4096},
+        "agent_output": {"type": "string", "maxLength": 4096},
+        "comparison_packet": {"type": "string", "maxLength": 4096},
+        "controller_receipt": {"type": "string", "maxLength": 4096},
+        "controller_receipt_sha256": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+        "evaluation_fingerprints": {"$ref": "#/$defs/fingerprints"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"type": "object", "properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+      "then": {
+        "type": "object",
+        "properties": {
+          "failure_code": {"const": ""},
+          "comparison_status": {"const": "PASS"},
+          "native_dispatch_status": {"const": "completed"}
+        }
+      }
+    }
+  ]
 }

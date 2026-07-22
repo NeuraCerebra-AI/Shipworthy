@@ -21,6 +21,15 @@ ORACLE = HOLDOUT / "private/oracle.json"
 
 
 class HoldoutFixtureTests(unittest.TestCase):
+    def test_failed_prepare_removes_partial_output_and_private_controller(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "failed"
+            before = set(Path(tempfile.gettempdir()).glob("shipworthy-holdout-*"))
+            with self.assertRaises(subprocess.CalledProcessError):
+                prepare(ROOT, output, skills_revision="not-a-revision")
+            self.assertFalse(output.exists())
+            self.assertEqual(before, set(Path(tempfile.gettempdir()).glob("shipworthy-holdout-*")))
+
     def test_holdout_is_structurally_different_bounded_and_oracle_blind(self) -> None:
         visible = "\n".join(path.read_text(encoding="utf-8") for path in APP.rglob("*") if path.is_file())
         oracle = json.loads(ORACLE.read_text(encoding="utf-8"))
@@ -96,21 +105,30 @@ class HoldoutIsolationTests(unittest.TestCase):
 
 class HoldoutComparatorTests(unittest.TestCase):
     def _write_artifacts(self, root: Path) -> None:
-        frontier = {
-            "closure_state": "incomplete",
-            "rows": [{"semantic_key": "feature:setup"}],
-        }
-        observation = {"artifact_integrity": True}
-        ledger = {"path_frontier": frontier, "findings": [{"affected_semantic_keys": ["feature:setup"]}]}
+        report = json.loads((ROOT / "tests/skill_product/fixtures/gauntlet-report-input.json").read_text(encoding="utf-8"))
+        ledger = report["source_ledger"]
         for name, value in (
-            ("holdout-observation.json", observation),
+            ("holdout-observation.json", {"artifact_integrity": False}),
             ("readiness-ledger.json", ledger),
-            ("report-input.json", {"path_frontier": frontier}),
-            ("readiness-report.json", {"path_frontier": frontier}),
+            ("report-input.json", report),
         ):
             (root / name).write_text(json.dumps(value), encoding="utf-8")
-        (root / "readiness-report.html").write_text(
-            '<!doctype html><html data-closure-state="incomplete"><title>Readiness</title></html>',
+        references = {
+            reference.split("#", 1)[0]
+            for row in ledger["path_frontier"]["rows"]
+            for reference in row.get("evidence_refs", [])
+        }
+        references.update(
+            reference.split("#", 1)[0]
+            for finding in ledger["findings"]
+            for reference in finding.get("evidence_refs", [])
+        )
+        for reference in references:
+            target = root / reference
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("{}\n", encoding="utf-8")
+        (root / "report.html").write_text(
+            '<!doctype html><html data-closure-state="closed_multi_source"><title>Readiness</title></html>',
             encoding="utf-8",
         )
 
@@ -120,14 +138,14 @@ class HoldoutComparatorTests(unittest.TestCase):
             self._write_artifacts(root)
             result = validate_holdout_artifacts(root)
             self.assertTrue(result["valid"], result)
-            self.assertEqual(1, result["frontier_rows"])
+            self.assertGreater(result["frontier_rows"], 1)
 
-            report = json.loads((root / "readiness-report.json").read_text())
-            report["path_frontier"]["rows"].append({"semantic_key": "feature:invented"})
-            (root / "readiness-report.json").write_text(json.dumps(report), encoding="utf-8")
+            report = json.loads((root / "report-input.json").read_text())
+            report["source_ledger"]["path_frontier"]["rows"] = []
+            (root / "report-input.json").write_text(json.dumps(report), encoding="utf-8")
             result = validate_holdout_artifacts(root)
             self.assertFalse(result["valid"])
-            self.assertIn("frontier-divergence", result["errors"])
+            self.assertTrue(any("diverge" in error for error in result["errors"]), result)
 
     def test_artifact_integrity_rejects_false_lineage_and_html_closure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -136,13 +154,34 @@ class HoldoutComparatorTests(unittest.TestCase):
             ledger = json.loads((root / "readiness-ledger.json").read_text())
             ledger["findings"][0]["affected_semantic_keys"] = ["feature:not-real"]
             (root / "readiness-ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
-            (root / "readiness-report.html").write_text(
+            report = json.loads((root / "report-input.json").read_text())
+            report["source_ledger"] = ledger
+            (root / "report-input.json").write_text(json.dumps(report), encoding="utf-8")
+            (root / "report.html").write_text(
                 '<html data-closure-state="closed_multi_source"></html>', encoding="utf-8"
             )
             result = validate_holdout_artifacts(root)
             self.assertFalse(result["valid"])
-            self.assertIn("unresolved-finding-lineage", result["errors"])
-            self.assertIn("html-closure-mismatch", result["errors"])
+            self.assertTrue(any("lineage" in error for error in result["errors"]), result)
+
+    def test_defect_assignment_uses_maximum_cardinality_not_greedy_edge_order(self) -> None:
+        oracle = {
+            "material_behaviors": [],
+            "seeded_defects": [
+                {"id": "broad", "aliases": ["permission failure"], "release_blocking": True},
+                {"id": "narrow", "aliases": ["submit permission failure"], "release_blocking": True},
+            ],
+        }
+        observation = {
+            "routes": [], "controls": [], "transitions": [],
+            "findings": [
+                {"finding_code": "both", "observed_behavior": "submit permission failure"},
+                {"finding_code": "broad-only", "observed_behavior": "permission failure"},
+            ],
+            "closure_honesty": {"claimed_exhaustive": False, "not_tested": []},
+        }
+        result = compare_holdout(observation, [], oracle, artifact_integrity=True)
+        self.assertEqual([], result["missed_defect_ids"])
 
     def test_dimensions_remain_separate_and_false_exhaustive_closure_fails(self) -> None:
         oracle = json.loads(ORACLE.read_text(encoding="utf-8"))

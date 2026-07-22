@@ -150,3 +150,14 @@ Evidence:
 - [ ] Run the final suite once: all focused new tests; full `tests/skill_product` discovery; direct legacy 139/174/22/17 suites; compile; parity/four-skill/stdlib; frontier validation; `git diff --check`; forbidden-behavior scans; cache/build-noise cleanup.
 - [ ] Record exact production and repository-only files, installed size before/after, removed/compressed blocks, all five runs and median/worst metrics, false closure, release-blocker recall, twins, holdout baseline/final, artifact integrity, D/E classifications, HTML readability, review findings/repairs, proof and NOT_PROVEN boundaries, stop reason, and four-skill/no-core confirmation.
 - [ ] Commit final verified evidence locally. Do not push. Mark the goal complete only after the requested stop condition is reached; a completed process must not be mislabeled as passing acceptance.
+
+## Completion record
+
+All planned tasks, the single permitted generalized repair cycle, one
+independent specification review, one independent quality review, and the one
+final verification pass were executed. Deterministic contracts are green, but
+behavioral release acceptance is **FAIL**: the retained five repaired runs had
+47.06% median and 5.88% worst material discovery recall, 0% canonical defect
+recall, and 5/5 false exhaustive closures. Corrected execution recall and
+machine-bound same-revision identity for those historical retained runs are
+NOT_PROVEN. Work stops here by design rather than opening another tuning loop.

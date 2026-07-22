@@ -4,7 +4,7 @@ Use the supplied Shipworthy skills to audit this unfamiliar bounded product at t
 
 Do not inspect any path outside the supplied allowlist. Do not inspect controller files, process arguments, tests, repository history, or hidden evaluation material.
 
-Write `holdout-observation.json` to the supplied evidence directory with these fields:
+Write the normal canonical Shipworthy artifacts to the supplied evidence directory: `readiness-ledger.json`, the `shipworthy/readiness-report-input` 1.0 wrapper as `report-input.json`, and self-contained `report.html`. Evidence references must resolve to existing non-empty relative files under that directory. Also write `holdout-observation.json` with these fields:
 
 - `routes`: observed route strings;
 - `controls`: objects with `route`, `identity`, `type`, `input_mechanism`, and `surface`;

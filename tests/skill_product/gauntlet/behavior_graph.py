@@ -213,6 +213,18 @@ def node_from_receipt(event: dict) -> BehaviorNode:
     )
 
 
+def unique_receipt_nodes(events: Iterable[dict]) -> list[BehaviorNode]:
+    """Collapse repeated telemetry without hiding genuinely distinct candidates."""
+    unique: list[BehaviorNode] = []
+    seen: set[BehaviorNode] = set()
+    for event in events:
+        node = _normalized(node_from_receipt(event))
+        if node not in seen:
+            seen.add(node)
+            unique.append(node)
+    return unique
+
+
 def verify_execution_claim(item: dict, row: dict, events: Iterable[dict]) -> Match:
     """Require private action support for one terminal report claim."""
     status = row.get("status", "")
@@ -231,7 +243,7 @@ def verify_execution_claim(item: dict, row: dict, events: Iterable[dict]) -> Mat
     else:
         return Match("not_required")
     selected_events = [event for event in events if event.get("event_type") in allowed_event_types]
-    candidates = [node_from_receipt(event) for event in selected_events]
+    candidates = unique_receipt_nodes(selected_events)
     expected = parse_semantic_key(row.get("semantic_key") or item["semantic_key"])
     expected = replace(
         expected,
