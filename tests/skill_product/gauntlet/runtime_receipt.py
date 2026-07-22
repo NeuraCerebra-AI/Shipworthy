@@ -92,6 +92,24 @@ def receipt_digest(receipt: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def all_events(receipt: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return validated events from every reset epoch in execution order."""
+    if not isinstance(receipt, dict) or receipt.get("schema_version") != SCHEMA_VERSION:
+        raise ReceiptError("invalid receipt schema version")
+    epochs = receipt.get("epochs")
+    if not isinstance(epochs, list) or not epochs:
+        raise ReceiptError("receipt requires at least one epoch")
+    events: list[dict[str, Any]] = []
+    for expected_id, epoch in enumerate(epochs, 1):
+        if not isinstance(epoch, dict) or set(epoch) != {"id", "events"} or epoch.get("id") != expected_id:
+            raise ReceiptError("receipt epoch sequence is invalid")
+        epoch_events = epoch.get("events")
+        if not isinstance(epoch_events, list) or len(epoch_events) > MAX_EVENTS:
+            raise ReceiptError("receipt event limit exceeded")
+        events.extend(validate_event(event) for event in epoch_events)
+    return events
+
+
 class RuntimeReceipt:
     """Atomic JSON receipt with deterministic epochs and no wall-clock fields."""
 

@@ -72,9 +72,10 @@ Before claiming closure:
 
 - exercise every safe control once per materially different behavior and record `before_state`, `after_state`, and evidence; give unsafe controls a blocked or avoided reason;
 - re-census each spawned surface and each state-changing action across the supplied material variants;
-- inventory discoverable keyboard handlers and probe context-conventional alternatives for primary submit, command/open, dismiss, activate, and context menu with relevant platform modifiers; record positive and negative attempts because omission does not prove absence;
+- inventory discoverable keyboard handlers and probe context-conventional alternatives, including Control/Command+Enter for primary submit, plus command/open, dismiss, activate, and context menu; record positive and negative attempts because omission does not prove absence;
+- after input, test Cancel, Back, Close, or navigation after input for loss, warning, and recovery behavior;
 - keep one control per distinct input mechanism, distinct invalid → corrected → success boundaries, and separate reload/re-entry proof for persistence;
-- create one finding, semantic effect code, and exact frontier lineage per independently fixable defect, even when one action or artifact exposes several defects;
+- split combined observations into distinct findings before verification: one finding, semantic effect code, and exact frontier lineage per independently fixable defect, even when one action or artifact exposes several defects;
 - treat unexplained disabled controls as findings, unavailable capabilities as feature rows, and false affordances as surface rows; and
 - reconcile every raw observation to its control, spawned surface, transition, evidence, and finding before approval. Prose or screenshots cannot replace a missing row.
 

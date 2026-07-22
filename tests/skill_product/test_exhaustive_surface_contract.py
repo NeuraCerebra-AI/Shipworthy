@@ -127,7 +127,10 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         for phrase in (
             "inventory discoverable keyboard handlers",
             "context-conventional alternatives",
+            "Control/Command+Enter",
             "positive and negative attempts because omission does not prove absence",
+            "Cancel, Back, Close, or navigation after input",
+            "split combined observations into distinct findings before verification",
             "reconcile every raw observation",
         ):
             self.assertIn(phrase, self.product)
@@ -206,14 +209,18 @@ class ExhaustiveSurfaceContractTests(unittest.TestCase):
         combined = self.orchestrator + self.prompts
         for phrase in (
             "final readiness-ledger.json and report-input.json",
-            "top-level `path_frontier`",
-            "Schema-valid legacy compatibility is not sufficient",
+            "readiness-ledger.json contains the canonical top-level `path_frontier`",
+            "report-input.json is exactly the `shipworthy/readiness-report-input` 1.0 wrapper",
+            "`source_ledger` must be structurally identical",
+            "safe relative paths to existing non-empty files under the evidence output",
+            "correct immediate parent",
             "Re-open both final JSON files from disk",
             "affected_semantic_keys",
             "observed_effect_code",
             "evidence_refs",
         ):
             self.assertIn(phrase, combined)
+        self.assertNotIn("must each contain the same top-level `path_frontier`", combined)
 
     def test_current_full_run_rejects_legacy_frontier_shape_and_alias_lineage(self) -> None:
         combined = self.orchestrator + self.prompts

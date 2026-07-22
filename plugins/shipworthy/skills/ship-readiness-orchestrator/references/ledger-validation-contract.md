@@ -13,12 +13,21 @@ reference. Apply every declared constraint; do not add permissive defaults or
 silently discard extra fields. Version `1.0` is the supported structured ledger
 and report-input version.
 
+Final shapes differ: `readiness-ledger.json` is the canonical ledger with
+top-level `path_frontier`; `report-input.json` is the closed 1.0 wrapper whose
+`source_ledger` is structurally identical. Do not add sibling frontier or
+checkpoint fields to that wrapper.
+
 After structural validation, check identity uniqueness and every cross-reference:
 finding artifact IDs must resolve, lineage source IDs must name declared inputs,
 and the gate, completion status, evidence debt, and readiness disposition must
 agree. Preserve the declared producer and lineage through projection. Missing,
 external, or unverifiable material stays evidence debt and cannot raise the
 proof ceiling, confidence, verifier status, or readiness disposition.
+Every evidence reference is a safe relative path to an existing non-empty file
+under the evidence output, with only an optional fragment suffix. Each non-intent
+frontier row names the correct immediate parent, and its semantic key is derived
+mechanically from that parent under `shipworthy-semantic-v1`.
 
 Render only the validated post-transform ledger/report input. On failure, retain
 the source unchanged, report a bounded field path and reason, and request a

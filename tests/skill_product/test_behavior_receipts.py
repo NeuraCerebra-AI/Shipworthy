@@ -11,6 +11,7 @@ from tests.skill_product.gauntlet.runtime_receipt import (
     MAX_EVENTS,
     ReceiptError,
     RuntimeReceipt,
+    all_events,
     receipt_digest,
 )
 
@@ -48,6 +49,10 @@ class RuntimeReceiptUnitTests(unittest.TestCase):
 
         self.assertEqual(2, len(after["epochs"]))
         self.assertEqual(before["epochs"][0], after["epochs"][0])
+        self.assertEqual(
+            ["pointer", "keyboard"],
+            [event["input_mechanism"] for event in all_events(after)],
+        )
         self.assertEqual(receipt_digest(after), receipt_digest(second.read()))
         self.assertNotIn("timestamp", json.dumps(after).casefold())
 
@@ -159,6 +164,7 @@ class PreparedReceiptIntegrationTests(unittest.TestCase):
         self.assertEqual(2, len(controller_receipt.read()["epochs"]))
         self.assertEqual(1, len(controller_receipt.read()["epochs"][0]["events"]))
         self.assertEqual([], controller_receipt.current_events())
+        self.assertEqual(1, len(all_events(controller_receipt.read())))
 
     def test_fixture_content_does_not_expose_oracle_or_controller_paths(self) -> None:
         _output, manifest = self.harness.prepare("runtime-only")

@@ -25,10 +25,10 @@ rows for each observed input mechanism, each invalid/corrected/success boundary,
 and each reload/re-entry control and transition. Require unavailable capabilities
 as feature rows, false affordances as surface rows, and one finding and semantic effect code per defect class. Do not let prose or a combined finding substitute for a row.
 
-The final readiness-ledger.json and report-input.json must each contain the
-identical top-level `path_frontier`; re-open both files from disk and verify it.
-Schema-valid legacy compatibility is not sufficient for this current full run.
-Each Fix finding requires affected semantic keys, an effect code, and evidence.
+The final readiness-ledger.json and report-input.json use different closed shapes:
+readiness-ledger.json contains the canonical top-level `path_frontier`.
+report-input.json is exactly the `shipworthy/readiness-report-input` 1.0 wrapper,
+and its `source_ledger` must be structurally identical to readiness-ledger.json. Re-open both files, validate their exact bundled schemas, require every non-intent row's correct immediate parent, and require Fix finding lineage. Evidence references must be safe relative paths to existing non-empty files under the evidence output.
 
 Write a canonical readiness ledger (`readiness-ledger.json`), report input with
 the canonical path frontier (`report-input.json`), and mandatory self-contained HTML

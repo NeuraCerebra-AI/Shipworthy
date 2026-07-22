@@ -21,13 +21,13 @@ if __package__:
     from .acceptance_result import EXIT_CODES, atomic_final_result, validate_acceptance_result
     from .artifact_validation import ArtifactValidationError, validate_agent_artifacts
     from .compare_agent_result import compare_frontier, load_and_validate_oracle
-    from .runtime_receipt import RuntimeReceipt, receipt_digest
+    from .runtime_receipt import RuntimeReceipt, all_events, receipt_digest
 else:  # Direct `python3 -I run_acceptance.py` execution.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from acceptance_result import EXIT_CODES, atomic_final_result, validate_acceptance_result
     from artifact_validation import ArtifactValidationError, validate_agent_artifacts
     from compare_agent_result import compare_frontier, load_and_validate_oracle
-    from runtime_receipt import RuntimeReceipt, receipt_digest
+    from runtime_receipt import RuntimeReceipt, all_events, receipt_digest
 
 
 HERE = Path(__file__).resolve().parent
@@ -250,15 +250,16 @@ def finalize(args: argparse.Namespace) -> dict[str, Any]:
                 expectation_document = json.loads(RECEIPT_EXPECTATIONS.read_text(encoding="utf-8"))
                 if expectation_document.get("schema_version") != "shipworthy-receipt-expectations-v1" or not isinstance(expectation_document.get("expectations"), dict):
                     raise ValueError("invalid private receipt expectations")
+                receipt_events = all_events(receipt)
                 packet = compare_frontier(
                     report,
                     oracle,
                     defects,
                     manifest["mode"],
-                    receipt_events=receipt["epochs"][-1]["events"],
+                    receipt_events=receipt_events,
                     receipt_expectations=expectation_document["expectations"],
                 )
-                packet["receipt"] = {"digest": receipt_digest(receipt), "epoch_count": len(receipt["epochs"]), "event_count": len(receipt["epochs"][-1]["events"])}
+                packet["receipt"] = {"digest": receipt_digest(receipt), "epoch_count": len(receipt["epochs"]), "event_count": len(receipt_events)}
                 _json_write(output / "comparison-packet.json", packet)
                 status = packet["status"]
                 if status != "PASS":
