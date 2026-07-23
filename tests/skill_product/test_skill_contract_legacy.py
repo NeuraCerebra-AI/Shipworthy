@@ -180,9 +180,17 @@ ck("G1 goal mode persistence gate exists", "## Goal Mode Persistence Gate" in sk
 ck("G2 goal gate has policy caveat", "do not imply that shipworthy instructions override platform goal-mode policy" in skill.lower())
 ck("G3 combined yes wording", "recommended: reply yes to authorize persistent goal mode and parallel subagents for this shipworthy run" in skill.lower())
 ck("G4 goal status recorded", "goal_mode_status" in all_text and "goal-equivalent resumable ledger" in all_text.lower())
-ck("G5 README recommends slash-goal prompt", "/goal are we shipworthy?" in readme.lower())
-ck("G6 README says answer yes", "answer `yes`" in readme.lower() and "parallel subagents" in readme.lower())
-ck("G7 Claude goal-equivalent ledger", "claude code" in readme.lower() and "goal-equivalent" in readme.lower())
+# The root README intentionally uses a plain-language prompt. Platform-specific
+# goal policy remains covered by the orchestrator skill contract above.
+ck("G5 README uses plain shipworthy prompt", "Are we shipworthy?" in readme)
+ck("G6 README omits legacy slash-goal prompt", "/goal are we shipworthy?" not in readme.lower())
+legacy_goal_copy = [
+    "goal helps shipworthy keep going across a long audit",
+    "answer `yes` for the best results",
+    "claude code does not have the same codex `/goal` barrier",
+    "goal-equivalent resumable ledger when native goal mode is unavailable",
+]
+ck("G7 README omits legacy goal-mode notice", not any(phrase in readme.lower() for phrase in legacy_goal_copy))
 ck("G8 follow-up yes authorizes both gates", "If the previous assistant message asked the combined authorization question" in skill and "treat that as explicit authorization for both persistent goal mode and parallel subagents" in skill)
 ck("G9 follow-up yes activates goal before lanes", "create or continue the persistent Shipworthy goal before lane dispatch" in skill)
 ck("G10 pressure test covers yes handoff", "Scenario 0H: User Says Yes To Combined Authorization" in pressure and "Turn 2: `yes`" in pressure and "starts or continues a persistent Shipworthy goal before lane dispatch" in pressure)

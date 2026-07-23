@@ -128,8 +128,8 @@ timestamped backups, and restores the exact prior skill state after failure.
 It never touches audit evidence, and it does not automate uninstall.
 
 Legacy comparison, installed parity, and rollback assurance are repository test
-behaviors, not additional installed machinery. Legacy retirement remains governed
-by `docs/phase0/legacy-transform-retirement.md`.
+behaviors, not additional installed machinery. Legacy retirement is a repository
+history concern, not installed machinery.
 
 ## Lean host-native evidence flow
 

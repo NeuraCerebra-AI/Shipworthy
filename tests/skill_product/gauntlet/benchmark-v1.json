@@ -18,10 +18,7 @@
     "tests/skill_product/gauntlet/app/product-docs/README.md": "706f4a247cbea41c022e2504ae45247dca0aef646750311bc5f14dcd92e59c9e",
     "tests/skill_product/gauntlet/app/product-tests/contract.md": "abaa74d16605f353241f4bb3ca72269b878bd908199193c26c466cd5f298403e",
     "tests/skill_product/gauntlet/oracle/surface-oracle.json": "7521f44979cf7618f8f4098252c911412481c52df9233ba5c7bac09ed5718a46",
-    "tests/skill_product/gauntlet/oracle/expected-defects.json": "7f58bde65795f7ce1913192f774da3159371b7a1e2ced8823e3821fb381c07a5",
-    "docs/phase0/evidence/gauntlet-post-fix-acceptance.md": "8e1a21897645c6bd84916c883e55daef1c78280a1b2b352c97398975d9ef1285",
-    "docs/phase0/evidence/gauntlet-final-spec-review.md": "167dac8a97bcdf7f4ba6fff980b88184520ea85c87410b5cdc28e717ca5d646a",
-    "docs/phase0/evidence/gauntlet-final-quality-review.md": "c9f211e2f485b8cc59e5ffaa28570275a0df1867076130b575150456111f5aba"
+    "tests/skill_product/gauntlet/oracle/expected-defects.json": "7f58bde65795f7ce1913192f774da3159371b7a1e2ced8823e3821fb381c07a5"
   },
   "historical_results": {
     "behavioral_acceptance_claimed": false,

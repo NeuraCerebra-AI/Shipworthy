@@ -99,7 +99,7 @@ directory. Each skill also works independently.
 
 <div align="center"><img src="assets/sample-report.svg" alt="Illustrative readiness report: NOT READY with Clear Before Ship, Fix Next, Not Proven / Not Tested, and Passed / Keep sections, a coverage map over 34 paths, and an orchestration checkpoint whose independent verifier is APPROVED" width="100%"></div>
 
-<sub>*Illustrative — the report format is real; the contents are a sample, not a live run. A recorded asciinema/GIF walkthrough → `docs/demo.gif`; PRs welcome.*</sub>
+<sub>*Illustrative — the report format is real; the contents are a sample, not a live run. PRs welcome.*</sub>
 
 > Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, evidence-reconciliation summary, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
 
@@ -206,7 +206,7 @@ environment. It reports the smallest useful fix and an exact verification step
 
 **Claude Code only?** It's built on the open `SKILL.md` standard, so it also runs in Codex and other SKILL.md-compatible agents. `./install.sh` covers the manual path.
 
-**Why "Shipworthy"?** Because the tool tells you whether your product is *worthy* of shipping — an earned, evidence-backed verdict, not a naked score. The full naming story (and the eight names that were already taken) is in **[docs/naming.md](docs/naming.md)**.
+**Why "Shipworthy"?** Because the tool tells you whether your product is *worthy* of shipping — an earned, evidence-backed verdict, not a naked score.
 
 ## 🤝 Contributing
 
@@ -221,8 +221,6 @@ If Shipworthy caught something before your users did, a star helps other teams f
 ## 📚 Docs
 
 - **[Architecture](ARCHITECTURE.md)** — the control stack: who owns evidence, wave barriers, verifier gates.
-- **[Naming](docs/naming.md)** — how the names were chosen (and the 8 that were taken) + the GitHub SEO kit.
-- **[Launch playbook](docs/launch.md)** — where to list it, how to launch it, the exact About + Topics.
 
 ## 📄 License
 

@@ -53,10 +53,9 @@ class LedgerContractTest(unittest.TestCase):
             self.assertNotIn(forbidden, combined)
         evidence_import = references[-1].read_text().lower()
         self.assertNotRegex(evidence_import, r"\bretir(?:e|ed|ement|ing)\b")
-        retirement_authority = (
-            ROOT / "docs" / "phase0" / "legacy-transform-retirement.md"
-        ).read_text().lower()
-        self.assertIn("legacy transform retirement criteria", retirement_authority)
+        self.assertIn("legacy/readiness-v0", evidence_import)
+        self.assertIn("evidence debt", evidence_import)
+        self.assertIn("must pass", evidence_import)
 
     def test_schema_subset_accepts_all_direct_schema_golden_fixtures(self) -> None:
         from tests.skill_product.support.schema_subset import validate
@@ -128,9 +127,6 @@ class LedgerContractTest(unittest.TestCase):
             destination = _payload(SCHEMA_DESTINATION / name)
             self.assertTrue(destination["$id"].startswith("https://shipworthy.local/schemas/v1/"))
             self.assertEqual([], semantic_diff(destination, deepcopy(destination)))
-        ledger = (ROOT / "docs" / "phase0" / "schema-relocation-ledger.md").read_text()
-        self.assertIn("remain v1", ledger)
-        self.assertIn("Semantic diff: none", ledger)
 
     def test_legacy_and_playwright_are_bounded_pre_transform_inputs(self) -> None:
         contract = (ORCHESTRATOR / "references" / "evidence-import-contract.md").read_text()

@@ -10,6 +10,13 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
 
 # Node
 node_modules/
@@ -26,13 +33,18 @@ npm-debug.log*
 evidence/
 !tests/skill_product/fixtures/evidence/
 !tests/skill_product/fixtures/evidence/*.json
-!docs/phase0/evidence/
-!docs/phase0/evidence/lean-host-native-red-green-ledger.md
 outputs/
 
 # Demo capture artifacts (record locally; don't commit large casts by default)
 docs/demo.cast
 docs/demo.gif
+
+# Local browser/MCP captures and generated reports
+/.playwright-mcp/
+/docs/examples/
+/*.png
+/new-sonnet-report-snapshot.md
+*.log
 
 # generated visual reports
 readiness-report.html

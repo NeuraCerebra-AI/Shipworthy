@@ -1,4 +1,3 @@
-# Byte-preserved migration evidence and golden fixtures intentionally retain
-# their original whitespace. Do not rewrite them during linting or checkout.
-docs/phase0/evidence/preimplementation-snapshot/tracked-dirty.patch -whitespace
+# Golden JSON fixtures intentionally retain their original whitespace. Do not
+# rewrite them during linting or checkout.
 tests/skill_product/fixtures/**/*.json -whitespace

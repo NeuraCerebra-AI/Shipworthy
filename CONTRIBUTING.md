@@ -4,7 +4,7 @@ Thanks for helping make product-readiness auditing honest. A few disciplines kee
 
 ## The prime directive: one truth layer
 
-Shipworthy is one orchestrator + three lanes that feed **a single evidence ledger**. The fastest way to break it is to add a second source of truth. Before adding logic to a lane, read [`docs/architecture.md`](docs/architecture.md). Lanes return evidence *packets*; only `ship-readiness-orchestrator` promotes claims and issues a readiness verdict, and only after `ship-deep-review`'s verifier gate.
+Shipworthy is one orchestrator + three lanes that feed **a single evidence ledger**. The fastest way to break it is to add a second source of truth. Before adding logic to a lane, read [`ARCHITECTURE.md`](ARCHITECTURE.md). Lanes return evidence *packets*; only `ship-readiness-orchestrator` promotes claims and issues a readiness verdict, and only after `ship-deep-review`'s verifier gate.
 
 ## Preserve the safety and evidence rules verbatim
 
@@ -23,7 +23,7 @@ Each skill auto-activates based on its `name:` and `description:` frontmatter. *
 
 ## Renames are atomic
 
-If you rename a skill, update **all** of: the folder, the `name:` frontmatter, the H1 title, every `$name` reference, every backtick `` `name` `` reference in prose, the orchestrator's "Required Sub-Skills" and "Sub-Skill Load Gate" resolution steps, and any name/path references inside `agents/*.yaml`, templates, and JSON (`coverage-map.json` has a `"skill"` field). Then re-grep every old name — the only permitted remaining hit is a labeled migration note. See [`docs/naming.md`](docs/naming.md) for how the current names were derived.
+If you rename a skill, update **all** of: the folder, the `name:` frontmatter, the H1 title, every `$name` reference, every backtick `` `name` `` reference in prose, the orchestrator's "Required Sub-Skills" and "Sub-Skill Load Gate" resolution steps, and any name/path references inside `agents/*.yaml`, templates, and JSON (`coverage-map.json` has a `"skill"` field). Then re-grep every old name — the only permitted remaining hit is a labeled migration note.
 
 ## Local checks before a PR
 
