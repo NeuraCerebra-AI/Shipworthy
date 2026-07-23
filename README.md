@@ -55,14 +55,8 @@ manual fallback below is the only locally rehearsed install path.
 Then ask:
 
 ```text
-/goal are we shipworthy?
+Are we shipworthy?
 ```
-
-⛴️ In Codex, `/goal` helps Shipworthy keep going across a long audit. It will
-ask whether to authorize persistent goal mode and parallel subagents; answer `yes`
-for the best results. Claude Code does not have the same Codex `/goal` barrier,
-but Shipworthy still uses a goal-equivalent resumable ledger when native goal
-mode is unavailable.
 
 That phrase is the flagship trigger: Shipworthy runs the full readiness
 orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
