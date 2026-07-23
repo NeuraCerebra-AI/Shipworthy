@@ -432,6 +432,29 @@ class RemediationLedgerContractTests(unittest.TestCase):
             (root / "orchestration-checkpoint.json").write_text(json.dumps(broken), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "line anchor"):
                 render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
+            broken = deepcopy(checkpoint)
+            broken["omitted"] = ["Wave 3 reconciliation"]
+            (root / "orchestration-checkpoint.json").write_text(json.dumps(broken), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "omitted gate"):
+                render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
+            for reference in checkpoint["wave_certificate_paths"]:
+                (root / reference).write_text(json.dumps({
+                    "wave_id": "W1", "decision": "approved", "verifier_id": "verifier-1",
+                    "citation_refs": ["evidence/citation.json"], "raw_output_ref": "evidence/raw-verifier.json",
+                }), encoding="utf-8")
+            (root / "orchestration-checkpoint.json").write_text(json.dumps(checkpoint), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "one-to-one wave certificate"):
+                render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
+            for reference in checkpoint["wave_certificate_paths"]:
+                wave_id = Path(reference).stem.upper()
+                (root / reference).write_text(json.dumps({
+                    "wave_id": wave_id, "decision": "approved", "verifier_id": "verifier-1",
+                    "citation_refs": ["evidence/citation.json"], "raw_output_ref": "evidence/raw-verifier.json",
+                }), encoding="utf-8")
+            for reference in checkpoint["raw_lane_output_paths"] + checkpoint["raw_verifier_output_paths"]:
+                (root / reference).write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "raw operational packets do not reconcile"):
+                render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
 
 
 if __name__ == "__main__":

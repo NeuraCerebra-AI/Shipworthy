@@ -1130,6 +1130,8 @@ def load_orchestration_checkpoint(input_path, data):
         for reference in checkpoint.get(field, []):
             _checkpoint_file(reference, root, label, errors)
     if audit_status == "complete":
+        if checkpoint.get("omitted"):
+            errors.append("audit_status complete cannot retain an omitted gate")
         if strict_full_run:
             certificate_paths = checkpoint.get("wave_certificate_paths")
             if not isinstance(certificate_paths, list) or len(certificate_paths) != len(checkpoint.get("verified_wave_ids", [])):
@@ -1141,23 +1143,27 @@ def load_orchestration_checkpoint(input_path, data):
             for index, reference in enumerate(checkpoint.get("raw_lane_output_paths", []) + checkpoint.get("raw_verifier_output_paths", [])):
                 packet = _checkpoint_json(reference, root, f"raw operational packet[{index}]", errors)
                 if isinstance(packet, dict):
-                    candidates = packet.get("raw_discoveries", packet.get("discoveries", []))
+                    candidates = packet.get("raw_discoveries", packet.get("discoveries"))
                     if isinstance(candidates, list):
                         raw_packet_discoveries.extend(candidates)
-                    elif candidates:
+                    else:
                         errors.append(f"raw operational packet[{index}] discoveries must be an array")
-            ledger_raw = {
-                item.get("observation_id")
+            ledger_raw = [
+                (item.get("observation_id"), item.get("semantic_key"))
                 for item in (ledger.get("raw_discoveries") or [])
                 if isinstance(item, dict) and item.get("observation_id")
-            }
-            packet_ids = {
-                item.get("observation_id")
+            ]
+            packet_raw = [
+                (item.get("observation_id"), item.get("semantic_key"))
                 for item in raw_packet_discoveries
                 if isinstance(item, dict) and item.get("observation_id")
-            }
-            if raw_packet_discoveries and not packet_ids.issubset(ledger_raw):
-                errors.append("raw operational packet observation disappeared before final reconciliation")
+            ]
+            if (
+                not raw_packet_discoveries
+                or len(ledger_raw) != len(set(ledger_raw))
+                or set(packet_raw) != set(ledger_raw)
+            ):
+                errors.append("raw operational packets do not reconcile one-to-one with ledger discoveries")
             retained_receipt_refs = set(
                 reference.split("#", 1)[0]
                 for field in (
@@ -1176,9 +1182,11 @@ def load_orchestration_checkpoint(input_path, data):
                     _checkpoint_file(receipt_ref, root, "closure receipt", errors)
             for citation in checkpoint.get("verifier_citation_refs", []):
                 _checkpoint_citation(citation, root, "verifier citation", errors)
+        certified_wave_ids = []
         for index, reference in enumerate(checkpoint.get("wave_certificate_paths", [])):
             certificate = _checkpoint_json(reference, root, f"wave certificate[{index}]", errors)
             if isinstance(certificate, dict):
+                certified_wave_ids.append(certificate.get("wave_id"))
                 if certificate.get("wave_id") not in checkpoint.get("verified_wave_ids", []):
                     errors.append(f"wave certificate[{index}] does not resolve to a verified wave")
                 if certificate.get("decision") != "approved" or not certificate.get("verifier_id"):
@@ -1190,6 +1198,11 @@ def load_orchestration_checkpoint(input_path, data):
                 for citation in certificate.get("citation_refs", []):
                     _checkpoint_citation(citation, root, f"wave certificate[{index}] citation", errors)
                 _checkpoint_file(certificate.get("raw_output_ref"), root, f"wave certificate[{index}] raw output", errors)
+        if strict_full_run and (
+            len(certified_wave_ids) != len(set(certified_wave_ids))
+            or set(certified_wave_ids) != set(checkpoint.get("verified_wave_ids", []))
+        ):
+            errors.append("full audit requires one-to-one wave certificate coverage")
         for index, reference in enumerate(checkpoint.get("apparent_affordance_census_paths", [])):
             census = _checkpoint_json(reference, root, f"apparent affordance census[{index}]", errors)
             if isinstance(census, dict):
