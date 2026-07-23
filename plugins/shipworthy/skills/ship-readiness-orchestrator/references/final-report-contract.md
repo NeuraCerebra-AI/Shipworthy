@@ -24,10 +24,12 @@ Before writing the final report, assemble:
 - ledger path/artifact location or inline ledger snapshot;
 - lane roster with launched, sequential, skipped, collapsed, or blocked lanes;
 - goal_mode_status, persistent goal objective if active, or goal-equivalent resumable ledger status if goal mode was unavailable/not authorized;
+- `audit_status` and `goal_completion_status`, kept separate from goal availability;
 - multi-agent authorization status, agent/tool execution status, and any platform limits that affected the run;
 - frontend path-walk status: whether actual frontend path-walking occurred, the frontend tool used, runtime target, path-walk status, and downgrade reason if absent or partial;
 - confirmation that `browser-evidence-routing.md` was read, plus browser evidence mode and selection reason, observed step boundary, artifact references, limitations, and not-proven statements; a screenshot proves only the state visible at capture time and does not prove an entire workflow;
-- report generation status, readiness-report HTML path, readiness-report JSON or ledger path, and evidence locations;
+- report generation status, readiness-report HTML path, canonical ledger/report-input paths, and evidence locations;
+- for canonical frontier reports, the separate `orchestration-checkpoint.json` beside `report-input.json` (do not add it to the closed wrapper);
 - final claim ledger;
 - final coverage matrix;
 - canonical path_frontier: derived closure state/reason, exact feature/surface/control/transition counts, role and discovery-family summaries, reconciliation differences, and manifest artifact; caller totals must reconcile exactly with canonical rows;
@@ -35,6 +37,8 @@ Before writing the final report, assemble:
 - verified wave summaries and certificates, or for rapid/narrow/static runs, one verified checkpoint plus a list of omitted full-run gates;
 - raw lane outputs or artifact references;
 - independent verifier output;
+- resolved `raw_lane_output_paths`, `raw_verifier_output_paths`, and `control_census_paths`;
+- `zero_yield_pass_ids`, `evidence_debt_actions`, recovery status/attempts/receipts, browser failover status, and any `browser_failover_receipt_paths`;
 - fix-cascade notes for major recommendations;
 - final drift check.
 
@@ -47,13 +51,18 @@ Store artifact references or redacted snippets by default. Do not include secret
 Before any final answer for an operational Shipworthy invocation, assert:
 
 - final ledger exists or an inline ledger snapshot exists;
-- `readiness-report.json` exists unless artifact writes are blocked;
+- `readiness-ledger.json` and `report-input.json` exist unless artifact writes are blocked; `readiness-report.json` is not a required redundant alias;
 - `readiness-report.html` exists unless artifact writes are blocked;
 - `readiness-report.html` was rendered from the final ledger/report JSON;
 - final answer includes the absolute HTML report path, ledger path or inline-ledger marker, and evidence locations;
 - if any item is missing, the final answer leads with `HTML report: MISSING/BLOCKED`, explains why, and records missing artifacts as deliverable debt.
 
 Every Shipworthy final answer must include: verdict, report HTML path, ledger path, evidence path(s), omitted gates, downgrade reason when applicable, goal_mode_status, multi-agent authorization status, frontend path-walk status, frontier burn-down, exhaustion status, and report generation status. If `readiness-report.html` is missing, do not imply the Shipworthy run is complete.
+
+The report may honestly finalize an `active`, `blocked`, or `user_stopped`
+checkpoint, but it must say closure was not achieved. It must not mark the
+persistent goal complete until the fail-closed renderer accepts
+`audit_status: complete` and the matching `goal_completion_status`.
 
 ## Final Fix Handoff
 
@@ -70,15 +79,19 @@ Shipworthy final answer with this concise next-step ask:
    - For rapid, narrow, or static constrained runs, state the omitted gates and downgrade readiness language accordingly.
 
 2. **Orchestration Checkpoint**
+   - Near the beginning, show recovery as `Not needed`, `In progress`, `Recovered`, `Blocked`, or `User stopped`, with affected path count and remaining debt.
+   - Keep attempt-by-attempt `recovery_status`, `recovery_attempts`, and recovery receipt detail inside collapsed native `<details>` HTML. Findings and actions remain primary; unavailable proof remains `NOT_PROVEN`.
    - Skill bodies read, references read, target fingerprint, safe-test boundary.
    - Ledger location or inline snapshot, including claim, coverage, evidence-debt, and fix-cascade ID ranges.
    - Goal mode status: Codex `/goal` active/authorized, unavailable, not authorized, or goal-equivalent resumable ledger.
+   - Audit status and goal completion status; do not conflate either with goal-mode availability.
    - Multi-agent authorization status: explicitly authorized, denied, unavailable, not received, or not required for this constrained pass.
    - Frontend path-walk status: performed or not performed, frontend tool, runtime target, path-walk status, and downgrade reason.
    - Report generation status: rendered, blocked, failed, or intentionally not generated because the user forbade file creation; include HTML report path, JSON/ledger path, and evidence locations.
    - Frontier burn-down: `frontier_total`, `frontier_covered`, `frontier_sampled`, `frontier_blocked`, `frontier_missing`, `frontier_evidence_debt`, `frontier_unattempted`, `new_paths_last_wave`, `new_paths_previous_wave`, and exhaustion status.
    - Lane roster table with columns: lane, scope, required skill/reference, execution status, output/evidence location, skipped/collapsed/blocking reason.
    - Actual agent/tool execution mode, verifier status, raw output/evidence locations, omitted gates, and evidence debt created by unavailable agents, missing authorization, or runtime limits.
+   - Control-census reconciliation, qualifying zero-yield pass IDs, active evidence-debt actions, and browser failover receipts/status.
    - If subagent dispatch was skipped because authorization was absent, denied, unavailable, or not received, state: `sequential fallback because multi-agent authorization was not granted`.
    - If no actual frontend path-walking occurred, state the downgrade reason and do not call the report a full Shipworthy run.
 

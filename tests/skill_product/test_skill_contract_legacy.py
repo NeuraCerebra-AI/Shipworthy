@@ -211,7 +211,7 @@ ck("D7 installer explains ask-and-stop gate", "ask for authorization and stop" i
 ck("D8 pressure test catches missing HTML report", "are we shipready?" in pressure.lower() and "readiness-report.html" in pressure and "html report: missing/blocked" in pressure.lower())
 ck("D9 TraceFlow live regression exists", "TraceFlow Shipready HTML Report Miss" in live and "/goal are we shipready?" in live)
 ck("D10 live regression preserves failure anatomy", all(x in live for x in ["## What went right", "## What went wrong", "## Root cause", "## Required future behavior", "## Regression assertion"]))
-ck("D11 live regression requires JSON and HTML outputs", "readiness-report.json" in live and "readiness-report.html" in live)
+ck("D11 live regression requires canonical JSON and HTML outputs", all(x in live for x in ("readiness-ledger.json", "report-input.json", "readiness-report.html")))
 ck("D12 live regression requires absolute HTML path", "absolute HTML path" in live)
 ck("D13 live regression blocks missing-report completion", "HTML report: MISSING/BLOCKED" in live and "must not imply completion" in live)
 ck("D14 live regression forbids substituting target artifacts", "does not substitute target-owned HTML" in live and "Markdown ledgers" in live and "screenshots" in live and "chat summaries" in live)

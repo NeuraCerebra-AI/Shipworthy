@@ -136,7 +136,7 @@ Expected behavior:
 - If the target is not obvious, still triggers the orchestrator and asks for or infers the target as the first Start Gate item.
 - Runs the Sub-Skill Load Gate before target analysis or dispatch.
 - Runs the Multi-Agent Authorization Gate after the Sub-Skill Load Gate. For this plain trigger, asks: `Shipworthy full blast is designed to use parallel subagents for independent product, clarity, release, accessibility, state, and verifier lanes. Do you authorize parallel subagents / delegation / multi-agent work for this Shipworthy run?`
-- If Codex goal mode also needs explicit authorization, asks the combined question instead: `Shipworthy full blast is a long-running audit. Recommended: reply yes to authorize persistent goal mode and parallel subagents for this Shipworthy run.`
+- If Codex goal mode also needs explicit authorization, emits the complete canonical authorization block from `SKILL.md` verbatim as one message.
 - For the response where it asks that question, stops there. It does not proceed to target analysis, tool work, repo reading, lane planning, or sequential fallback in the same response.
 - If the user later says no or fails to answer after the gate was asked, continues sequentially and records `sequential fallback because multi-agent authorization was not granted` as evidence debt / orchestration debt.
 - After authorization is resolved, runs the Flagship Frontend Path-Walk Gate and commits to actual frontend path-walking when a runnable UI/app surface is available.
@@ -264,7 +264,7 @@ are we shipworthy?
 Expected behavior for turn 1:
 
 - Routes to `ship-readiness-orchestrator` full blast and reads the required sub-skill bodies.
-- If Codex goal mode and subagent authorization both need explicit authorization, asks exactly: `Shipworthy full blast is a long-running audit. Recommended: reply yes to authorize persistent goal mode and parallel subagents for this Shipworthy run.`
+- If Codex goal mode and subagent authorization both need explicit authorization, emits the complete canonical authorization block from `SKILL.md` verbatim as one message.
 - Stops after the question and does not perform target analysis, lane dispatch, repo reading, or sequential fallback in that same response.
 
 Turn 2: `yes`

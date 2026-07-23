@@ -7,9 +7,12 @@ Usage:
     python3 make_bundle.py [ledger.json] [out.zip] [--include PATH ...] [--no-report] [--no-sarif]
 
 Bundle contents:
-    ledger.json            the canonical readiness ledger (source of truth)
+    readiness-ledger.json  the canonical readiness ledger (source of truth)
+    report-input.json      the canonical report wrapper when supplied
+    ledger.json            the legacy transport name for legacy input
     readiness-report.html  human-readable report        (unless --no-report)
     readiness.sarif        machine-readable findings     (unless --no-sarif)
+    orchestration-checkpoint.json and its validated raw operational evidence
     manifest.json          verdict, counts, and a SHA-256 + byte count per file
     README.txt             what this bundle is
     <extras>               anything passed with --include (files or directories)
@@ -22,12 +25,22 @@ sys.dont_write_bytecode = True
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 MAX_INCLUDE_BYTES = 64 * 1024 * 1024
 MAX_INCLUDE_FILES = 1024
+RESERVED_BUNDLE_NAMES = {
+    "ledger.json",
+    "readiness-report.html",
+    "readiness.sarif",
+    "manifest.json",
+    "README.txt",
+}
 
 README_BYTES = (b"Shipworthy evidence bundle\n"
                 b"==========================\n\n"
-                b"ledger.json      - canonical readiness ledger (source of truth)\n"
+                b"readiness-ledger.json - canonical ledger when supplied\n"
+                b"report-input.json - canonical report wrapper when supplied\n"
+                b"ledger.json      - legacy transport name for legacy input\n"
                 b"readiness-report.html - human-readable report\n"
                 b"readiness.sarif  - machine-readable findings (SARIF 2.1.0)\n"
+                b"orchestration-checkpoint.json + evidence/ - validated operational proof\n"
                 b"manifest.json    - verdict, counts, and a SHA-256 per file (tamper-evidence)\n\n"
                 b"Verify integrity: recompute SHA-256 of each file and compare to manifest.json.\n"
                 b"Generated locally; read-only audit -- no fixes were applied.\n")
@@ -57,10 +70,10 @@ def load_sibling(name):
     spec.loader.exec_module(module)
     return module
 
-def try_render_html(data):
+def try_render_html(data, checkpoint=None):
     try:
         render_report = load_sibling("render_report")
-        return render_report.render(data).encode("utf-8")
+        return render_report.render(data, orchestration_checkpoint=checkpoint).encode("utf-8")
     except Exception as e:
         print(f"  note: report not generated ({type(e).__name__}); continuing", file=sys.stderr)
         return None
@@ -138,6 +151,42 @@ def add_includes(files, includes):
         else:
             print(f"  note: --include path not found, skipped: {path}", file=sys.stderr)
 
+def add_operational_evidence(files, checkpoint, input_path, render_report):
+    """Retain the validated checkpoint and its raw operational proof by default."""
+    root = os.path.dirname(os.path.abspath(input_path))
+    references = [checkpoint["ledger_path"]]
+    for field in (
+        "raw_lane_output_paths", "raw_verifier_output_paths",
+        "control_census_paths", "recovery_receipt_paths",
+        "browser_failover_receipt_paths", "wave_certificate_paths",
+        "apparent_affordance_census_paths",
+    ):
+        references.extend(checkpoint.get(field, []))
+    checkpoint_path = os.path.join(root, "orchestration-checkpoint.json")
+    entries = [("orchestration-checkpoint.json", checkpoint_path)]
+    entries.extend((reference.split("#", 1)[0].replace("\\", "/"), render_report._evidence_path(reference, root)) for reference in references)
+    total = 0
+    for name, path in entries:
+        if name in files:
+            continue
+        if name in RESERVED_BUNDLE_NAMES:
+            raise ValueError(
+                f"operational evidence uses reserved bundle name: {name}; place it under evidence/"
+            )
+        if path is None or not os.path.isfile(path) or os.path.islink(path):
+            raise ValueError(f"operational evidence is not a regular file: {name}")
+        size = os.path.getsize(path)
+        total += size
+        if len(entries) > MAX_INCLUDE_FILES:
+            raise ValueError(f"too many operational evidence files (limit {MAX_INCLUDE_FILES})")
+        if total > MAX_INCLUDE_BYTES:
+            raise ValueError(f"operational evidence too large (limit {MAX_INCLUDE_BYTES} bytes)")
+        with open(path, "rb") as handle:
+            content = handle.read(MAX_INCLUDE_BYTES + 1)
+        if len(content) != size:
+            raise ValueError(f"operational evidence changed while reading: {name}")
+        add(files, name, content)
+
 def zip_datetime(generated_at):
     """Normalize an ISO timestamp to the legal, two-second ZIP time range."""
     try:
@@ -205,10 +254,30 @@ def main():
     except json.JSONDecodeError as e:
         print(f"error: {inp} is not valid JSON ({e})", file=sys.stderr); sys.exit(2)
 
+    render_report = load_sibling("render_report")
+    try:
+        render_report.validate_canonical_input(data, evidence_root=os.path.dirname(os.path.abspath(inp)))
+        checkpoint = render_report.load_orchestration_checkpoint(inp, data)
+        if checkpoint:
+            checkpoint["report_generation_status"] = "rendered"
+            checkpoint["report_path"] = "readiness-report.html (inside this bundle)"
+    except ValueError as error:
+        print(f"error: canonical report input is invalid ({error})", file=sys.stderr); sys.exit(2)
+
     files = {}
-    add(files, "ledger.json", raw.encode("utf-8"))
+    canonical_name = (
+        "report-input.json" if data.get("schema_name") == "shipworthy/readiness-report-input"
+        else "readiness-ledger.json" if data.get("schema_name") == "shipworthy/readiness-ledger"
+        else "ledger.json"
+    )
+    add(files, canonical_name, raw.encode("utf-8"))
+    if checkpoint:
+        try:
+            add_operational_evidence(files, checkpoint, inp, render_report)
+        except (OSError, ValueError) as error:
+            print(f"error: {error}", file=sys.stderr); sys.exit(2)
     if not no_report:
-        h = try_render_html(data)
+        h = try_render_html(data, checkpoint=checkpoint)
         if h: add(files, "readiness-report.html", h)
     if not no_sarif:
         s = try_render_sarif(data)

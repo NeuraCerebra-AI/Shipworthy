@@ -68,8 +68,8 @@ fidelity). Sketch:
 permissions: { contents: read, security-events: write }
 steps:
   - uses: actions/checkout@v4
-  - run: <produce ledger.json from a Shipworthy run>          # your invocation
-  - run: python3 to_sarif.py ledger.json readiness.sarif --gate # gate on confirmed blockers
+  - run: <produce readiness-ledger.json from a Shipworthy run>          # your invocation
+  - run: python3 to_sarif.py readiness-ledger.json readiness.sarif --gate # gate on confirmed blockers
     if: always()
   - uses: github/codeql-action/upload-sarif@v3
     if: always()

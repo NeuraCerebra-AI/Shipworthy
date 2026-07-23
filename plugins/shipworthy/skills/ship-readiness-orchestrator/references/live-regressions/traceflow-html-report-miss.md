@@ -22,7 +22,7 @@ The agent interpreted "not a full flagship run" as weakening the HTML report req
 
 ## Required future behavior
 
-Every operational Shipworthy invocation must generate `readiness-report.json` and `readiness-report.html` from the final ledger unless the user explicitly forbids artifact creation or file writes are impossible. The final answer must include the absolute HTML path. If the HTML file is missing, the final answer must lead with `HTML report: MISSING/BLOCKED` and must not imply completion.
+Every operational Shipworthy invocation must generate `readiness-ledger.json`, `report-input.json`, and `readiness-report.html` unless the user explicitly forbids artifact creation or file writes are impossible. The final answer must include the absolute HTML path. If the HTML file is missing, the final answer must lead with `HTML report: MISSING/BLOCKED` and must not imply completion. A redundant `readiness-report.json` is not required.
 
 ## Regression assertion
 

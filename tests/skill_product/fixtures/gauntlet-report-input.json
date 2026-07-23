@@ -33,8 +33,8 @@
       "closure_reason": "All material rows reconciled; two independent discovery passes reached zero yield.",
       "closure_state": "closed_multi_source",
       "discovery_passes": [
-        {"ending_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "fixture": "seed", "id": "PASS-1", "method_family": "runtime_human_interaction", "method_taxonomy_version": "shipworthy-methods-v1", "new_semantic_keys": [], "role": "member", "starting_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "viewport": "desktop"},
-        {"ending_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "fixture": "seed", "id": "PASS-2", "method_family": "runtime_structural_inventory", "method_taxonomy_version": "shipworthy-methods-v1", "new_semantic_keys": [], "role": "admin", "starting_frontier_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "viewport": "mobile"}
+        {"ending_frontier_digest": "f5adb88b824355059e2a86a7db2c4d22cefbb03b48790470b4e33d5f8c8a6b16", "fixture": "seed", "id": "PASS-1", "method_family": "runtime_human_interaction", "method_taxonomy_version": "shipworthy-methods-v1", "new_semantic_keys": [], "role": "member", "starting_frontier_digest": "f5adb88b824355059e2a86a7db2c4d22cefbb03b48790470b4e33d5f8c8a6b16", "viewport": "desktop"},
+        {"ending_frontier_digest": "f5adb88b824355059e2a86a7db2c4d22cefbb03b48790470b4e33d5f8c8a6b16", "fixture": "seed", "id": "PASS-2", "method_family": "runtime_structural_inventory", "method_taxonomy_version": "shipworthy-methods-v1", "new_semantic_keys": [], "role": "admin", "starting_frontier_digest": "f5adb88b824355059e2a86a7db2c4d22cefbb03b48790470b4e33d5f8c8a6b16", "viewport": "mobile"}
       ],
       "manifest_artifact": "evidence/path-frontier.json",
       "method_taxonomy_version": "shipworthy-methods-v1",

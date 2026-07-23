@@ -7,12 +7,169 @@ Usage:
 
 Produces ONE self-contained file: inline CSS, system fonts, and no network calls.
 Default output has no JavaScript; --interactive adds inline no-network controls.
-Every text field is HTML-escaped; the renderer degrades gracefully on partial or
-degenerate data instead of crashing.
+Every text field is HTML-escaped. Legacy input degrades gracefully; canonical
+frontier input fails closed on broken lineage, evidence, digest, or checkpoint data.
 """
-import sys, json, html, datetime, re, os, tempfile
+import sys, json, html, datetime, re, os, tempfile, hashlib
 sys.dont_write_bytecode = True
 MAX_INPUT_BYTES = 16 * 1024 * 1024
+MAX_CHECKPOINT_BYTES = 256 * 1024
+CHECKPOINT_REQUIRED = {
+    "target_name", "lanes", "mode", "multi_agent_authorization", "frontend_path_walk_performed",
+    "frontend_tool", "runtime_target", "path_walk_status", "verifier", "omitted",
+    "ledger_path", "evidence_locations", "exhaustion_status",
+    "audit_status", "goal_mode_status", "goal_completion_status",
+    "raw_lane_output_paths", "raw_verifier_output_paths", "control_census_paths",
+    "zero_yield_pass_ids", "evidence_debt_actions",
+    "recovery_status", "recovery_attempts", "recovery_receipt_paths",
+    "browser_failover_status", "browser_failover_receipt_paths",
+}
+AUDIT_STATUSES = {"active", "complete", "blocked", "user_stopped"}
+GOAL_COMPLETION_STATUSES = {"active", "complete", "blocked", "user_stopped", "not_applicable"}
+BROWSER_FAILOVER_STATUSES = {"not_needed", "active", "succeeded", "blocked", "user_stopped"}
+RECOVERY_STATUSES = {"not_needed", "active", "succeeded", "blocked", "user_stopped"}
+CONTROL_CENSUS_METHODS = {"runtime_structural_inventory", "static_implementation_inventory"}
+
+
+def recovery_projection(declared_status, attempts):
+    """Validate bounded recovery attempts and derive the human report projection."""
+    if declared_status not in RECOVERY_STATUSES:
+        raise ValueError("recovery_status is not canonical")
+    if not isinstance(attempts, list) or not all(isinstance(item, dict) for item in attempts):
+        raise ValueError("recovery_attempts must be an array of objects")
+    if declared_status == "not_needed" and attempts:
+        raise ValueError("recovery_status not_needed cannot retain attempts")
+    latest_by_recovery = {}
+    candidate_keys = set()
+    recovered_paths = set()
+    for index, attempt in enumerate(attempts):
+        required = {
+            "recovery_id", "status", "failed_binding_id", "method_family", "binding_id",
+            "authorized", "available", "applicable", "safe", "attempt_count", "result",
+            "continuity_before_attempt", "continuity_before_resumption",
+            "resumed_path_keys", "remaining_debt_ids", "evidence_refs",
+            "cleanup_result", "transient_retry_performed", "path_outcomes",
+            "inventory_refresh", "new_available_method_ids",
+            "controller_id", "verifier_id", "verifier_debt",
+            "driven_semantic_keys", "assertion_ids", "assertion_evidence_refs",
+            "independence_debt_ids",
+        }
+        if not required.issubset(attempt):
+            raise ValueError(f"recovery attempt[{index}] is incomplete")
+        status = attempt.get("status")
+        if status not in RECOVERY_STATUSES - {"not_needed"}:
+            raise ValueError(f"recovery attempt[{index}] status is not canonical")
+        recovery_id = attempt.get("recovery_id")
+        if not isinstance(recovery_id, str) or not recovery_id.strip():
+            raise ValueError(f"recovery attempt[{index}] recovery_id is invalid")
+        latest_by_recovery[recovery_id] = attempt
+        candidate_key = (recovery_id, attempt.get("method_family"), attempt.get("binding_id"))
+        if candidate_key in candidate_keys:
+            raise ValueError(f"recovery attempt[{index}] duplicates a method/binding candidate")
+        candidate_keys.add(candidate_key)
+        for field in ("authorized", "available", "applicable", "safe",
+                      "continuity_before_attempt", "continuity_before_resumption",
+                      "transient_retry_performed", "inventory_refresh", "verifier_debt"):
+            if not isinstance(attempt.get(field), bool):
+                raise ValueError(f"recovery attempt[{index}] {field} must be boolean")
+        count = attempt.get("attempt_count")
+        if not isinstance(count, int) or count < 0 or count > 1:
+            raise ValueError(f"recovery attempt[{index}] exceeds the one-attempt budget")
+        if (
+            attempt["authorized"] and attempt["available"]
+            and attempt["applicable"] and attempt["safe"]
+            and count == 0 and declared_status == "blocked"
+        ):
+            raise ValueError("recovery must remain active while an applicable safe authorized method is unattempted")
+        if not isinstance(attempt.get("cleanup_result"), str) or not attempt["cleanup_result"].strip():
+            raise ValueError(f"recovery attempt[{index}] cleanup_result is invalid")
+        path_outcomes = attempt.get("path_outcomes")
+        if (
+            not isinstance(path_outcomes, list) or not path_outcomes
+            or not all(
+                isinstance(item, dict)
+                and isinstance(item.get("semantic_key"), str)
+                and item.get("status") == status
+                for item in path_outcomes
+            )
+        ):
+            raise ValueError(f"recovery attempt[{index}] path outcomes are missing or heterogeneous")
+        new_methods = attempt.get("new_available_method_ids")
+        if not isinstance(new_methods, list) or not all(
+            isinstance(item, str) and item.strip() for item in new_methods
+        ):
+            raise ValueError(f"recovery attempt[{index}] inventory delta is invalid")
+        if new_methods and declared_status != "active":
+            raise ValueError("newly available recovery methods require recovery to remain active")
+        if status == "blocked" and not attempt.get("inventory_refresh"):
+            raise ValueError("blocked recovery requires a final inventory refresh")
+        result = attempt.get("result")
+        if result == "recovered":
+            if attempt.get("method_family") == "supporting_evidence":
+                raise ValueError("supporting evidence cannot recover required frontend execution")
+            if attempt.get("binding_id") == attempt.get("failed_binding_id"):
+                raise ValueError("recovered frontend execution requires an independent binding")
+            if not attempt.get("continuity_before_attempt") or not attempt.get("continuity_before_resumption"):
+                raise ValueError("recovery requires continuity before the attempt and resumption")
+            resumed = attempt.get("resumed_path_keys")
+            if not isinstance(resumed, list) or not resumed:
+                raise ValueError("successful recovery requires resumed paths")
+            if attempt.get("remaining_debt_ids"):
+                raise ValueError("successful recovery cannot retain affected recovery debt")
+            if (
+                not isinstance(attempt.get("controller_id"), str)
+                or not isinstance(attempt.get("verifier_id"), str)
+                or not attempt["verifier_id"].strip()
+                or attempt["verifier_id"] == attempt["controller_id"]
+                or attempt.get("verifier_debt")
+            ):
+                raise ValueError("successful recovery requires a fresh independent verifier")
+            if attempt.get("method_family") == "target_owned_e2e" and not (
+                attempt.get("driven_semantic_keys")
+                and attempt.get("assertion_ids")
+                and attempt.get("assertion_evidence_refs")
+                and set(attempt["driven_semantic_keys"]).issubset(set(resumed))
+            ):
+                raise ValueError("target-owned E2E recovery requires driven semantic paths and assertion evidence")
+            if attempt.get("method_family") in {
+                "reassigned_frontend_driver", "sequential_frontend_driver"
+            } and not attempt.get("independence_debt_ids"):
+                raise ValueError("reassigned or sequential recovery must record independence debt")
+            recovered_paths.update(resumed)
+        for field in (
+            "resumed_path_keys", "remaining_debt_ids", "evidence_refs",
+            "driven_semantic_keys", "assertion_ids", "assertion_evidence_refs",
+            "independence_debt_ids",
+        ):
+            if not isinstance(attempt.get(field), list) or not all(
+                isinstance(item, str) and item.strip() for item in attempt[field]
+            ):
+                raise ValueError(f"recovery attempt[{index}] {field} is invalid")
+    terminal = list(latest_by_recovery.values())
+    terminal_statuses = [item.get("status") for item in terminal]
+    derived = (
+        "user_stopped" if "user_stopped" in terminal_statuses
+        else "active" if "active" in terminal_statuses
+        else "blocked" if any(
+            item.get("status") == "blocked" or item.get("remaining_debt_ids")
+            for item in terminal
+        )
+        else "succeeded" if terminal and all(
+            item.get("result") == "recovered" for item in terminal
+        )
+        else "blocked" if terminal
+        else "not_needed"
+    )
+    if declared_status != derived:
+        raise ValueError(f"recovery_status {declared_status} does not match derived {derived}")
+    return {
+        "status": derived,
+        "attempt_count": sum(item.get("attempt_count", 0) for item in attempts),
+        "recovered_paths": len(recovered_paths),
+        "remaining_debt": len({
+            debt for item in terminal for debt in item.get("remaining_debt_ids", [])
+        }),
+    }
 
 def atomic_write_text(path, value):
     destination = os.path.abspath(path)
@@ -133,6 +290,1134 @@ V1_VERDICT = {
     "not_ready": "NOT READY", "cannot_determine": "NOT READY",
 }
 CLOSURE_STATES = {"closed_multi_source", "incomplete", "single_source", "blocked", "static_only"}
+PARENT_KIND = {"feature": "intent", "surface": "feature", "control": "surface", "transition": "control"}
+
+def _semantic_digest(keys):
+    keys = sorted(key for key in keys if isinstance(key, str))
+    return hashlib.sha256(json.dumps(keys, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+def _frontier_digest(rows):
+    return _semantic_digest(row.get("semantic_key") for row in rows if isinstance(row, dict))
+
+
+AFFORDANCE_CLASSES = {
+    "functional", "informational", "unavailable", "false_affordance", "rejected_with_proof", "out_of_scope",
+}
+CANONICAL_ARTIFACT_NAMES = frozenset({
+    "readiness-ledger.json", "report-input.json", "orchestration-checkpoint.json", "readiness-report.html",
+})
+
+
+def validate_wave_contract(checkpoint):
+    """Require the minimum independent verified waves for a current full run."""
+    if not isinstance(checkpoint, dict) or checkpoint.get("run_scope") != "full":
+        return {"required": False}
+    wave_ids = checkpoint.get("verified_wave_ids")
+    certificates = checkpoint.get("wave_certificate_paths")
+    if not isinstance(wave_ids, list) or len(wave_ids) < 3 or len(set(wave_ids)) != len(wave_ids):
+        raise ValueError("full Shipworthy runs require three verified waves with distinct wave IDs")
+    if not isinstance(certificates, list) or len(certificates) != len(wave_ids):
+        raise ValueError("three verified waves require one verifier certificate per wave")
+    if not all(isinstance(item, str) and item.strip() for item in certificates):
+        raise ValueError("three verified waves require retained verifier certificate paths")
+    return {"required": True, "wave_ids": tuple(wave_ids), "certificate_paths": tuple(certificates)}
+
+
+def validate_input_mode(data):
+    """Distinguish explicit historical legacy import from a current full run."""
+    if not isinstance(data, dict):
+        return "unknown"
+    source = data.get("source_ledger") if isinstance(data.get("source_ledger"), dict) else data
+    input_format = str(data.get("input_format") or source.get("input_format") or "").strip().lower()
+    run_scope = data.get("run_scope") or source.get("run_scope")
+    if input_format.startswith("legacy/"):
+        if run_scope == "full" and data.get("import_mode") != "historical" and source.get("import_mode") != "historical":
+            raise ValueError("legacy input is only valid through an explicit historical import")
+        return "historical_import" if data.get("import_mode") == "historical" or source.get("import_mode") == "historical" else "legacy"
+    return "canonical" if data.get("schema_name", "").startswith("shipworthy/") else "unknown"
+
+
+def validate_discovery_exhaustion(frontier):
+    """Reject closure while discovery still yields material paths."""
+    if not isinstance(frontier, dict):
+        raise ValueError("frontier must be an object")
+    passes = frontier.get("discovery_passes") or []
+    if frontier.get("closure_state") == "closed_multi_source":
+        # Earlier passes may legitimately grow the frontier.  Only the final
+        # closure attempt is incompatible with a positive yield.
+        if any(item.get("new_semantic_keys") for item in passes[-2:] if isinstance(item, dict)):
+            raise ValueError("positive discovery yield keeps the frontier open")
+        quiet = [
+            item for item in passes[-2:]
+            if isinstance(item, dict) and item.get("new_semantic_keys") == []
+        ]
+        if len(quiet) < 2 or len({item.get("method_family") for item in quiet}) < 2:
+            raise ValueError("closed discovery requires two distinct zero-yield method families")
+    return frontier.get("closure_state")
+
+
+def reconcile_raw_discoveries(ledger):
+    """Ensure every material raw discovery has a retained canonical disposition."""
+    if not isinstance(ledger, dict):
+        raise ValueError("raw observation reconciliation requires a ledger object")
+    frontier = ledger.get("path_frontier") or {}
+    row_keys = {
+        row.get("semantic_key") for row in frontier.get("rows", [])
+        if isinstance(row, dict) and isinstance(row.get("semantic_key"), str)
+    }
+    finding_keys = {
+        key for finding in ledger.get("findings", []) if isinstance(finding, dict)
+        for key in (finding.get("affected_semantic_keys") or [])
+        if isinstance(key, str)
+    }
+    dispositions = {
+        item.get("semantic_key") for item in (
+            ledger.get("rejected_discoveries", [])
+            + ledger.get("out_of_scope_discoveries", [])
+            + ledger.get("evidence_debt_discoveries", [])
+        ) if isinstance(item, dict) and isinstance(item.get("semantic_key"), str)
+    }
+    unresolved = []
+    for item in ledger.get("raw_discoveries", []) or []:
+        if not isinstance(item, dict) or not item.get("observation_id"):
+            unresolved.append("unnamed raw observation")
+            continue
+        key = item.get("semantic_key")
+        if key not in row_keys and key not in finding_keys and key not in dispositions:
+            unresolved.append(str(item.get("observation_id")))
+    if unresolved:
+        raise ValueError("raw observation reconciliation dropped: " + ", ".join(unresolved[:8]))
+    return True
+
+
+def validate_affordance_census(census):
+    """Classify action-signalling surfaces, including non-control false affordances."""
+    entries = census.get("entries") if isinstance(census, dict) else None
+    if not isinstance(entries, list):
+        raise ValueError("apparent affordance census requires entries")
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict) or not entry.get("affordance_id"):
+            raise ValueError(f"apparent affordance census entry[{index}] is incomplete")
+        if entry.get("classification") not in AFFORDANCE_CLASSES:
+            raise ValueError(f"apparent affordance entry[{index}] requires a disposition")
+        if entry.get("action_signaling") is True and not entry.get("evidence_refs"):
+            raise ValueError(f"apparent affordance entry[{index}] requires evidence")
+        if entry.get("classification") == "rejected_with_proof" and not entry.get("reason"):
+            raise ValueError(f"apparent affordance entry[{index}] rejection requires a reason")
+    return True
+
+
+def _receipt_identity(key):
+    parts = str(key or "").split(":")
+    if len(parts) >= 9 and parts[0] == "control" and parts[1] == "surface":
+        return {
+            "kind": "control", "route": parts[2], "state": parts[3], "role": parts[4],
+            "viewport": parts[5], "name": parts[6], "type": parts[7], "behavior": parts[8],
+        }
+    if len(parts) >= 12 and parts[0] == "transition" and parts[2:4] == ["control", "surface"]:
+        return {
+            "kind": "transition", "before_state": parts[1], "route": parts[4],
+            "state": parts[5], "role": parts[6], "viewport": parts[7],
+            "name": parts[8], "type": parts[9], "behavior": parts[10], "after_state": parts[11],
+        }
+    return None
+
+
+def validate_execution_receipt(row, event, expected_control=None):
+    """Return true only for a visible exact route/variant/before-after receipt."""
+    if not isinstance(row, dict) or not isinstance(event, dict):
+        return False
+    identity = _receipt_identity(row.get("semantic_key"))
+    if not identity or event.get("semantic_key") != row.get("semantic_key"):
+        return False
+    if event.get("route") != identity["route"] or event.get("role") != identity["role"]:
+        return False
+    if event.get("state") != identity["state"] or event.get("viewport") != identity["viewport"]:
+        return False
+    control = event.get("control") if isinstance(event.get("control"), dict) else {}
+    expected = expected_control if isinstance(expected_control, dict) else (
+        row.get("control_identity") if isinstance(row.get("control_identity"), dict) else {}
+    )
+    if control.get("identity") != expected.get("name") or control.get("type") != expected.get("control_type"):
+        return False
+    if event.get("visible") is not True or event.get("enabled") is not True:
+        return False
+    if event.get("off_route") is True or event.get("instrumentation") is True:
+        return False
+    if not isinstance(event.get("surface"), str) or not event["surface"].strip():
+        return False
+    if row.get("surface_identity") and event.get("surface") != row.get("surface_identity"):
+        return False
+    if not isinstance(event.get("input_mechanism"), str) or not event["input_mechanism"].strip():
+        return False
+    if row.get("input_mechanism") and event.get("input_mechanism") != row.get("input_mechanism"):
+        return False
+    if not isinstance(event.get("before_state"), str) or not event["before_state"].strip():
+        return False
+    if not isinstance(event.get("after_state"), str) or not event["after_state"].strip():
+        return False
+    if identity.get("kind") == "transition":
+        if event.get("before_state") != identity["before_state"] or event.get("after_state") != identity["after_state"]:
+            return False
+    elif row.get("before_state") and event.get("before_state") != row.get("before_state"):
+        return False
+    if row.get("after_state") and event.get("after_state") != row.get("after_state"):
+        return False
+    return isinstance(event.get("evidence_refs"), list) and bool(event["evidence_refs"])
+
+
+def validate_execution_receipt_set(rows, events, strict=False):
+    """Require covered rows to have exact proof when the full-run contract applies."""
+    for row in rows:
+        if not isinstance(row, dict) or row.get("status") != "covered":
+            continue
+        references = row.get("execution_receipt_refs")
+        material_path = row.get("material", True) and row.get("kind") in {"control", "transition"}
+        if strict and material_path and (
+            not row.get("surface_identity") or not row.get("input_mechanism")
+            or not row.get("before_state") or not row.get("after_state")
+        ):
+            raise ValueError("covered path lacks exact execution binding fields")
+        parent_control = next(
+            (candidate for candidate in rows if isinstance(candidate, dict) and candidate.get("id") == row.get("parent_id")),
+            None,
+        )
+        candidates = [
+            event for event in events
+            if not references or event.get("receipt_id") in references
+        ]
+        if (references or (strict and material_path)) and not any(
+            validate_execution_receipt(row, event, parent_control.get("control_identity") if parent_control else None)
+            for event in candidates
+        ):
+            raise ValueError("covered path lacks a matching execution receipt")
+    return True
+
+
+def classify_missing_path(proof):
+    if not isinstance(proof, dict):
+        return "evidence_debt"
+    if (
+        proof.get("promised") is True
+        and proof.get("entry_points") == 0
+        and proof.get("pending_state") is False
+        and proof.get("cancellation_primitive") is False
+    ):
+        return "missing"
+    return "evidence_debt"
+
+
+def validate_derived_closure(frontier):
+    if not isinstance(frontier, dict):
+        raise ValueError("derived closure requires frontier state")
+    if frontier.get("closure_state") == "closed_multi_source":
+        receipts = frontier.get("closure_receipts")
+        if not isinstance(receipts, list) or not receipts:
+            raise ValueError("closure requires retained source receipts")
+        if not all(isinstance(item, dict) and item.get("source") and item.get("receipt_ref") for item in receipts):
+            raise ValueError("closure requires retained source receipts")
+    return True
+
+
+def validate_behavioral_identity(finding):
+    identity = finding.get("behavioral_identity") if isinstance(finding, dict) else None
+    affected = finding.get("affected_semantic_keys") if isinstance(finding, dict) else None
+    if not isinstance(affected, list) or not affected:
+        raise ValueError("behavioral lineage is required")
+    if not isinstance(identity, dict) or identity.get("semantic_key") not in affected:
+        raise ValueError("behavioral lineage must resolve to an affected frontier row")
+    effect = str(finding.get("observed_effect_code") or "")
+    if re.fullmatch(r"(?:effect|issue)[-_]?\d+", effect) or effect.startswith("report-only:"):
+        raise ValueError("report-only identity cannot replace behavioral lineage")
+    return True
+
+
+def validate_visual_finding(finding):
+    if not isinstance(finding, dict) or finding.get("finding_kind") != "visual":
+        return True
+    proof = finding.get("visual_proof") if isinstance(finding.get("visual_proof"), dict) else {}
+    required = {"viewport", "target_state", "reproduction_steps", "screenshot_or_geometry_ref", "observed_symptom", "source_mechanism", "fresh_disconfirmation"}
+    if (
+        not required.issubset(proof)
+        or not finding.get("evidence_refs")
+        or any(not isinstance(proof.get(field), str) or not proof.get(field).strip() for field in required)
+    ):
+        raise ValueError("visual proof requires viewport, reproduction, retained artifact, symptom, mechanism, and disconfirmation")
+    if proof.get("fresh_disconfirmation") in {"contradicted", "rejected"}:
+        raise ValueError("visual proof is contradicted by fresh disconfirmation")
+    return True
+
+
+def validate_verifier_provenance(verifier):
+    if not isinstance(verifier, dict) or not verifier.get("verifier_output") or not verifier.get("citations"):
+        raise ValueError("verifier provenance is unsupported without retained output and citations")
+    if verifier.get("verifier") == "approved" and verifier.get("verifier_id") == verifier.get("controller_id"):
+        raise ValueError("verifier approval requires an independent verifier")
+    if verifier.get("replacement_for_rejected") and verifier.get("verifier_id") == verifier.get("controller_id"):
+        raise ValueError("controller cannot self-repair verifier failure; use an independent verifier")
+    if verifier.get("verifier") == "approved" and verifier.get("citation_status") in {"missing", "fabricated", "unsafe", "unresolved"}:
+        raise ValueError("verifier provenance is unsupported")
+    return True
+
+
+def validate_recovery_inventory(recovery):
+    if not isinstance(recovery, dict):
+        raise ValueError("recovery inventory is required")
+    if recovery.get("status") == "blocked":
+        for item in recovery.get("alternatives", []):
+            if item.get("available") and not item.get("attempted"):
+                raise ValueError("recovery remains active while a safe alternative is available")
+    return True
+
+
+def derive_record_counts(ledger):
+    findings = [item for item in (ledger.get("findings") or []) if isinstance(item, dict)]
+    frontier_rows = [item for item in ((ledger.get("path_frontier") or {}).get("rows") or []) if isinstance(item, dict)]
+    return {
+        "actionable": sum(item.get("action") in {"Fix", "Decide", "Prove"} and item.get("section") != "passed_keep" for item in findings),
+        "evidence_debt": len([item for item in (ledger.get("evidence_debt") or []) if isinstance(item, dict)]),
+        "passed_keep": sum(item.get("section") == "passed_keep" or item.get("action") == "Keep" for item in findings),
+        "avoided": sum(item.get("action") == "Skip" and item.get("section") != "passed_keep" for item in findings)
+        + sum(item.get("status") == "avoided" for item in frontier_rows),
+        "scoped_out": sum(item.get("section") == "scoped_out" for item in findings)
+        + sum(item.get("status") == "out_of_scope" for item in frontier_rows)
+        + sum(item.get("status") == "scoped-out" for item in (ledger.get("evidence_debt") or []) if isinstance(item, dict)),
+    }
+
+
+def validate_record_count_projection(ledger, projection):
+    """Reject caller-authored visible counts that drift from canonical records."""
+    expected = derive_record_counts(ledger)
+    if not isinstance(projection, dict) or projection.get("record_counts") != expected:
+        raise ValueError("record-class counts do not reconcile with canonical records")
+    summary = projection.get("summary") if isinstance(projection.get("summary"), dict) else {}
+    expected_summary = {
+        "clear_before_ship": sum(item.get("section") == "clear_before_ship" for item in ledger.get("findings", []) if isinstance(item, dict)),
+        "fix_next": sum(item.get("section") == "fix_next" for item in ledger.get("findings", []) if isinstance(item, dict)),
+        "not_proven_not_tested": sum(item.get("section") == "not_proven_not_tested" for item in ledger.get("findings", []) if isinstance(item, dict)) + expected["evidence_debt"],
+        "passed_keep": expected["passed_keep"],
+    }
+    if summary != expected_summary:
+        raise ValueError("visible action summary does not reconcile with canonical record classes")
+    return True
+
+
+def validate_record_language(record):
+    section = record.get("section") if isinstance(record, dict) else None
+    action = record.get("action") if isinstance(record, dict) else None
+    fix = str(record.get("fix") or "").strip() if isinstance(record, dict) else ""
+    verify = str(record.get("verify") or "").strip() if isinstance(record, dict) else ""
+    if section == "passed_keep" or action == "Keep":
+        if re.search(r"\b(correct|fix|change|remove|replace)\b", (fix + " " + verify).lower()):
+            raise ValueError("Passed / Keep records cannot receive corrective language")
+        return True
+    if action in {"Fix", "Decide", "Prove"}:
+        if (
+            len(fix.split()) < 4
+            or len(verify.split()) < 4
+            or re.fullmatch(r"correct .* so .* no longer occurs", fix, re.I)
+            or re.fullmatch(r"(?:verify|test|check)\s+(?:it|the fix|the behavior)\.?", verify, re.I)
+        ):
+            raise ValueError("actionable records require concrete, non-tautological fix and verification text")
+    return True
+
+
+def canonical_artifact_names():
+    return set(CANONICAL_ARTIFACT_NAMES)
+
+
+def calibrate_target_severity(context):
+    target_intent = str((context or {}).get("target_intent") or "").lower()
+    finding = str((context or {}).get("finding") or "").lower()
+    if "ci" in finding or "deployment" in finding:
+        return "scope_limitation" if target_intent in {"benchmark_fixture", "fixture", "prototype", "internal_tool", "library"} else "release_gate"
+    return "normal"
+
+def _evidence_path(reference, root):
+    if not isinstance(reference, str) or not reference:
+        return None
+    relative = reference.split("#", 1)[0]
+    if not relative or os.path.isabs(relative) or ".." in relative.replace("\\", "/").split("/"):
+        return None
+    candidate = os.path.realpath(os.path.join(root, relative))
+    root = os.path.realpath(root)
+    if os.path.commonpath((root, candidate)) != root:
+        return None
+    return candidate
+
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+def _checkpoint_file(reference, root, label, errors):
+    relative = reference.split("#", 1)[0] if isinstance(reference, str) else ""
+    cursor = os.path.realpath(root)
+    for part in relative.replace("\\", "/").split("/"):
+        if not part:
+            continue
+        cursor = os.path.join(cursor, part)
+        if os.path.islink(cursor):
+            errors.append(f"{label} must not use a symlink")
+            return None
+    path = _evidence_path(reference, root)
+    if path is None or not os.path.isfile(path) or os.path.getsize(path) == 0:
+        errors.append(f"{label} does not resolve to a safe non-empty file")
+        return None
+    return path
+
+def _checkpoint_json(reference, root, label, errors):
+    path = _checkpoint_file(reference, root, label, errors)
+    if path is None:
+        return None
+    if os.path.getsize(path) > MAX_CHECKPOINT_BYTES:
+        errors.append(f"{label} exceeds {MAX_CHECKPOINT_BYTES} bytes")
+        return None
+    try:
+        with open(path, encoding="utf-8") as handle:
+            value = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        errors.append(f"{label} is not readable JSON")
+        return None
+    if not isinstance(value, dict):
+        errors.append(f"{label} must contain an object")
+        return None
+    return value
+
+
+def _checkpoint_citation(reference, root, label, errors):
+    """Resolve a retained citation and validate an optional line anchor."""
+    path = _checkpoint_file(reference, root, label, errors)
+    if path is None:
+        return None
+    fragment = reference.split("#", 1)[1] if isinstance(reference, str) and "#" in reference else ""
+    if not fragment:
+        return path
+    match = re.fullmatch(r"L(\d+)(?:-L(\d+))?", fragment)
+    if not match:
+        errors.append(f"{label} has an invalid line anchor")
+        return path
+    start = int(match.group(1))
+    end = int(match.group(2) or match.group(1))
+    try:
+        with open(path, encoding="utf-8") as handle:
+            line_count = sum(1 for _ in handle)
+    except OSError:
+        errors.append(f"{label} cannot be read for line-anchor validation")
+        return path
+    if start < 1 or end < start or end > line_count:
+        errors.append(f"{label} line anchor is outside the retained artifact")
+    return path
+
+def validate_canonical_input(data, evidence_root=None):
+    """Fail closed on cross-field defects before projecting a canonical v1 report."""
+    if not isinstance(data, dict):
+        return
+    # Reject a current full run before the legacy fallback renderer can see it.
+    # Historical imports remain readable only when explicitly identified as
+    # historical by the caller.
+    if data.get("run_scope") == "full" or (
+        isinstance(data.get("source_ledger"), dict)
+        and data["source_ledger"].get("run_scope") == "full"
+    ):
+        try:
+            validate_input_mode(data)
+        except ValueError:
+            raise
+    schema_name = data.get("schema_name")
+    full_scope = data.get("run_scope") == "full" or (
+        isinstance(data.get("source_ledger"), dict)
+        and data["source_ledger"].get("run_scope") == "full"
+    )
+    if full_scope and schema_name not in {"shipworthy/readiness-report-input", "shipworthy/readiness-ledger"}:
+        raise ValueError("current full runs require canonical ledger/report-input artifacts")
+    if not isinstance(schema_name, str) or not schema_name.startswith("shipworthy/"):
+        return
+    if schema_name not in {"shipworthy/readiness-report-input", "shipworthy/readiness-ledger"}:
+        raise ValueError(f"unknown Shipworthy schema name: {schema_name}")
+    if data.get("schema_version") != "1.0":
+        raise ValueError("unsupported Shipworthy schema version; expected 1.0")
+    wrapper = data if schema_name == "shipworthy/readiness-report-input" else None
+    ledger = data.get("source_ledger") if wrapper else data
+    if wrapper and (
+        not isinstance(ledger, dict)
+        or ledger.get("schema_name") != "shipworthy/readiness-ledger"
+        or ledger.get("schema_version") != "1.0"
+    ):
+        raise ValueError(
+            "shipworthy/readiness-report-input source_ledger must be a Shipworthy readiness-ledger 1.0 object"
+        )
+    errors = []
+    strict_run = data.get("run_scope") == "full" or ledger.get("run_scope") == "full"
+    try:
+        validate_input_mode(data)
+    except ValueError as error:
+        errors.append(str(error))
+    frontier = ledger.get("path_frontier")
+    if frontier is None:
+        return
+    if not isinstance(frontier, dict):
+        raise ValueError("path_frontier must be an object when present")
+    rows = frontier.get("rows")
+    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+        errors.append("path_frontier rows must be objects")
+        rows = []
+    by_id = {}
+    semantic_keys = set()
+    for index, row in enumerate(rows):
+        row_id = row.get("id")
+        key = row.get("semantic_key")
+        if not isinstance(row_id, str) or row_id in by_id:
+            errors.append("path_frontier row ids must be present and unique")
+        else:
+            by_id[row_id] = row
+        if not isinstance(key, str) or key in semantic_keys:
+            errors.append("path_frontier semantic keys must be present and unique")
+        else:
+            semantic_keys.add(key)
+    for index, row in enumerate(rows):
+        kind = row.get("kind")
+        key = row.get("semantic_key")
+        if kind == "intent":
+            if row.get("parent_id") is not None:
+                errors.append("intent cannot have a parent")
+            continue
+        expected = PARENT_KIND.get(kind)
+        parent = by_id.get(row.get("parent_id"))
+        if expected and (not parent or parent.get("kind") != expected):
+            errors.append(f"{kind} parent must be {expected}")
+        if (
+            kind == "control"
+            and parent
+            and not str(key).startswith("control:" + str(parent.get("semantic_key")) + ":")
+        ):
+            errors.append("control semantic key must derive from its parent surface")
+        if kind == "transition" and parent:
+            expected_key = (
+                f"transition:{row.get('before_state')}:{parent.get('semantic_key')}:"
+                f"{row.get('after_state')}"
+            )
+            if key != expected_key:
+                errors.append("transition semantic key must embed its parent control")
+        if (
+            row.get("material", True)
+            and row.get("status") == "covered"
+            and kind in {"control", "transition"}
+            and (
+                not isinstance(row.get("attempt_count"), int)
+                or row.get("attempt_count", 0) < 1
+                or not isinstance(row.get("evidence_refs"), list)
+                or not row.get("evidence_refs")
+            )
+        ):
+            errors.append(f"covered material {kind} requires an attempt and evidence")
+        if (
+            kind == "control"
+            and row.get("material", True)
+            and row.get("status") == "sampled_with_justification"
+        ):
+            errors.append("safe material control requires direct proof and cannot be sampled")
+        missing_proof = row.get("missing_path_proof")
+        if strict_run and isinstance(missing_proof, dict):
+            expected_status = classify_missing_path(missing_proof)
+            if row.get("status") != expected_status:
+                errors.append(f"{kind} missing-path classification does not reconcile with its absence proof")
+    expected_summary = {kind: sum(row.get("kind") == kind for row in rows) for kind in ("intent", "feature", "surface", "control", "transition")}
+    if frontier.get("summary") != expected_summary:
+        errors.append("path_frontier summary does not reconcile with rows")
+
+    artifacts = [artifact for artifact in ledger.get("artifacts", []) if isinstance(artifact, dict)]
+    artifact_ids = [artifact.get("artifact_id") for artifact in artifacts]
+    if len(artifact_ids) != len(set(artifact_ids)):
+        errors.append("artifact ids must be unique")
+    finding_ids = [
+        finding.get("finding_id")
+        for finding in ledger.get("findings", [])
+        if isinstance(finding, dict)
+    ]
+    debt_ids = [
+        debt.get("debt_id")
+        for debt in ledger.get("evidence_debt", [])
+        if isinstance(debt, dict)
+    ]
+    if len(finding_ids) != len(set(finding_ids)):
+        errors.append("finding ids must be unique")
+    if len(debt_ids) != len(set(debt_ids)):
+        errors.append("debt ids must be unique")
+    if ledger.get("completion_status") == "complete":
+        unavailable = [
+            artifact.get("artifact_id")
+            for artifact in artifacts
+            if artifact.get("availability") in {"missing", "corrupt", "externally_linked"}
+        ]
+        if unavailable:
+            errors.append("complete ledger contains missing, corrupt, or externally linked artifact")
+    declared_artifacts = set(artifact_ids)
+    for index, finding in enumerate(ledger.get("findings", [])):
+        if isinstance(finding, dict):
+            validators = (validate_record_language, validate_visual_finding) if strict_run else (
+                (validate_visual_finding,) if finding.get("finding_kind") == "visual" else ()
+            )
+            for validator in validators:
+                try:
+                    validator(finding)
+                except ValueError as error:
+                    errors.append(f"findings[{index}] {error}")
+            if finding.get("behavioral_identity") is not None or (
+                strict_run and finding.get("action") in {"Fix", "Decide", "Prove"}
+            ):
+                try:
+                    validate_behavioral_identity(finding)
+                except ValueError as error:
+                    errors.append(f"findings[{index}] {error}")
+            if strict_run and finding.get("action") in {"Fix", "Decide", "Prove"} and finding.get("behavioral_identity") is None:
+                errors.append(f"findings[{index}] behavioral lineage is required for an actionable record")
+        finding_artifacts = finding.get("artifact_ids", []) if isinstance(finding, dict) else []
+        if not isinstance(finding_artifacts, list) or any(artifact_id not in declared_artifacts for artifact_id in finding_artifacts):
+            errors.append(f"findings[{index}] artifact_ids do not resolve")
+        if not isinstance(finding, dict) or (
+            finding.get("action") != "Fix"
+            and not (strict_run and finding.get("action") in {"Decide", "Prove"})
+        ):
+            continue
+        affected = finding.get("affected_semantic_keys")
+        if not isinstance(affected, list) or not affected or any(key not in semantic_keys for key in affected):
+            errors.append(f"findings[{index}] Fix lineage does not resolve to exact frontier rows")
+        references = finding.get("evidence_refs")
+        if not isinstance(references, list) or not references:
+            errors.append(f"findings[{index}] Fix requires evidence_refs")
+    for index, finding in enumerate(ledger.get("findings", [])):
+        if not isinstance(finding, dict) or finding.get("proof") != "Confirmed":
+            continue
+        if (
+            finding.get("confidence") != "Confirmed"
+            or finding.get("verifier_status") != "approved"
+            or not finding.get("artifact_ids")
+        ):
+            errors.append(
+                f"Confirmed finding[{index}] requires Confirmed confidence, approved verifier, and artifact proof"
+            )
+
+    passes = frontier.get("discovery_passes", [])
+    if not isinstance(passes, list):
+        errors.append("discovery_passes must be an array")
+        passes = []
+    digest_pattern = r"^[a-f0-9]{64}$"
+    for index, item in enumerate(passes):
+        if not isinstance(item, dict):
+            errors.append(f"discovery_passes[{index}] must be an object")
+            continue
+        for field in ("starting_frontier_digest", "ending_frontier_digest"):
+            digest = item.get(field)
+            if not isinstance(digest, str) or not re.fullmatch(digest_pattern, digest) or len(set(digest)) == 1:
+                errors.append(f"discovery_passes[{index}] {field} is not a computed digest")
+        if index and isinstance(passes[index - 1], dict) and passes[index - 1].get("ending_frontier_digest") != item.get("starting_frontier_digest"):
+            errors.append(f"discovery_passes[{index}] digest chain does not reconcile")
+        if item.get("new_semantic_keys") and item.get("starting_frontier_digest") == item.get("ending_frontier_digest"):
+            errors.append(f"discovery_passes[{index}] claims new semantic keys without changing digest")
+    if frontier.get("closure_state") == "closed_multi_source":
+        final_digest = _frontier_digest(rows)
+        qualifying = [item for item in passes[-2:] if isinstance(item, dict) and item.get("new_semantic_keys") == [] and item.get("starting_frontier_digest") == item.get("ending_frontier_digest") == final_digest]
+        if len(qualifying) != 2:
+            errors.append("closed_multi_source requires two final zero-yield passes with the computed frontier digest")
+        elif len({item.get("method_family") for item in qualifying}) != 2:
+            errors.append("closed_multi_source requires final zero-yield passes from distinct method families")
+        unresolved = [
+            row.get("semantic_key")
+            for row in rows
+            if row.get("material", True)
+            and row.get("status") in {"unattempted", "unknown", "maybe", "evidence_debt", "blocked", "missing"}
+        ]
+        if unresolved:
+            errors.append("closed_multi_source contains unresolved material frontier rows")
+        if frontier.get("reconciliation_differences"):
+            errors.append("closed_multi_source contains unresolved reconciliation differences")
+        if strict_run:
+            try:
+                validate_discovery_exhaustion(frontier)
+                validate_derived_closure(frontier)
+            except ValueError as error:
+                errors.append(str(error))
+
+    if strict_run and ledger.get("completion_status") == "complete" and frontier:
+        if not isinstance(ledger.get("raw_discoveries"), list):
+            errors.append("complete canonical runs require raw discoveries for raw-to-final reconciliation")
+        else:
+            try:
+                reconcile_raw_discoveries(ledger)
+            except ValueError as error:
+                errors.append(str(error))
+        try:
+            validate_execution_receipt_set(
+                frontier.get("rows", []), ledger.get("execution_receipts", []), strict=True
+            )
+        except ValueError as error:
+            errors.append(str(error))
+
+    if evidence_root is not None:
+        references = []
+        references.extend(row.get("evidence_refs", []) for row in rows if isinstance(row.get("evidence_refs"), list))
+        references.extend(
+            observation.get("evidence_refs", [])
+            for row in rows
+            for observation in row.get("observations", [])
+            if isinstance(observation, dict) and isinstance(observation.get("evidence_refs"), list)
+        )
+        references.extend(finding.get("evidence_refs", []) for finding in ledger.get("findings", []) if isinstance(finding, dict) and isinstance(finding.get("evidence_refs"), list))
+        references.extend(
+            [finding.get("visual_proof", {}).get("screenshot_or_geometry_ref")]
+            for finding in ledger.get("findings", [])
+            if isinstance(finding, dict)
+            and isinstance(finding.get("visual_proof"), dict)
+            and finding.get("visual_proof", {}).get("screenshot_or_geometry_ref")
+        )
+        manifest = frontier.get("manifest_artifact")
+        if manifest:
+            references.append([manifest])
+        for group in references:
+            for reference in group:
+                path = _evidence_path(reference, evidence_root)
+                if path is None or not os.path.isfile(path) or os.path.getsize(path) == 0:
+                    errors.append(f"evidence reference does not resolve to a non-empty file: {reference}")
+        for artifact in ledger.get("artifacts", []):
+            if not isinstance(artifact, dict) or artifact.get("availability") != "available":
+                continue
+            descriptor = artifact.get("descriptor") if isinstance(artifact.get("descriptor"), dict) else {}
+            reference = descriptor.get("relative_path")
+            path = _evidence_path(reference, evidence_root)
+            if path is None or not os.path.isfile(path) or os.path.getsize(path) == 0:
+                errors.append(f"available artifact does not resolve to a non-empty file: {reference}")
+                continue
+            if descriptor.get("byte_size") != os.path.getsize(path) or descriptor.get("digest") != _sha256_file(path):
+                errors.append(f"available artifact integrity mismatch: {reference}")
+    if errors:
+        raise ValueError("; ".join(errors[:20]))
+
+def load_orchestration_checkpoint(input_path, data):
+    """Load the schema-external operational checkpoint for canonical frontier reports."""
+    if not isinstance(data, dict):
+        return {}
+    ledger = data.get("source_ledger") if data.get("schema_name") == "shipworthy/readiness-report-input" else data
+    if not isinstance(ledger, dict) or ledger.get("schema_name") != "shipworthy/readiness-ledger":
+        return {}
+    frontier = ledger.get("path_frontier")
+    if frontier is None:
+        return {}
+    if not isinstance(frontier, dict):
+        raise ValueError("path_frontier must be an object when present")
+    root = os.path.dirname(os.path.abspath(input_path))
+    path = os.path.join(os.path.dirname(os.path.abspath(input_path)), "orchestration-checkpoint.json")
+    if not os.path.isfile(path):
+        raise ValueError("orchestration-checkpoint.json is required beside canonical frontier report input")
+    if os.path.getsize(path) > MAX_CHECKPOINT_BYTES:
+        raise ValueError(f"orchestration-checkpoint.json exceeds {MAX_CHECKPOINT_BYTES} bytes")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            checkpoint = json.load(handle)
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"orchestration-checkpoint.json is unreadable ({error})")
+    if not isinstance(checkpoint, dict):
+        raise ValueError("orchestration-checkpoint.json must contain an object")
+    missing = sorted(CHECKPOINT_REQUIRED - set(checkpoint))
+    if missing:
+        raise ValueError("orchestration-checkpoint.json missing: " + ", ".join(missing))
+    if not isinstance(checkpoint.get("lanes"), list) or not all(isinstance(item, str) and item.strip() for item in checkpoint["lanes"]):
+        raise ValueError("orchestration-checkpoint.json lanes must be a string array")
+    for field in (
+        "omitted", "evidence_locations", "raw_lane_output_paths",
+        "raw_verifier_output_paths", "control_census_paths",
+        "zero_yield_pass_ids", "recovery_receipt_paths", "browser_failover_receipt_paths",
+    ):
+        if not isinstance(checkpoint.get(field), list) or not all(isinstance(item, str) for item in checkpoint[field]):
+            raise ValueError(f"orchestration-checkpoint.json {field} must be a string array")
+    if not checkpoint["evidence_locations"]:
+        raise ValueError("orchestration-checkpoint.json evidence_locations must not be empty")
+    if not isinstance(checkpoint.get("frontend_path_walk_performed"), bool):
+        raise ValueError("orchestration-checkpoint.json frontend_path_walk_performed must be boolean")
+    string_fields = CHECKPOINT_REQUIRED - {
+        "lanes", "omitted", "evidence_locations", "raw_lane_output_paths",
+        "raw_verifier_output_paths", "control_census_paths", "zero_yield_pass_ids",
+        "evidence_debt_actions", "recovery_attempts", "recovery_receipt_paths",
+        "browser_failover_receipt_paths",
+        "frontend_path_walk_performed",
+    }
+    if any(not isinstance(checkpoint.get(field), str) or not checkpoint[field].strip() for field in string_fields):
+        raise ValueError("orchestration-checkpoint.json required text fields must be non-empty strings")
+
+    errors = []
+    audit_status = checkpoint.get("audit_status")
+    goal_completion_status = checkpoint.get("goal_completion_status")
+    browser_status = checkpoint.get("browser_failover_status")
+    recovery_status = checkpoint.get("recovery_status")
+    if audit_status not in AUDIT_STATUSES:
+        errors.append("audit_status is not canonical")
+    if goal_completion_status not in GOAL_COMPLETION_STATUSES:
+        errors.append("goal_completion_status is not canonical")
+    if browser_status not in BROWSER_FAILOVER_STATUSES:
+        errors.append("browser_failover_status is not canonical")
+    # The v1 checkpoint remains readable for historical/older operational
+    # records.  A current full run opts into the non-waivable contract by
+    # declaring run_scope=full; that declaration is then validated strictly.
+    strict_full_run = checkpoint.get("run_scope") == "full"
+    if audit_status == "complete" and strict_full_run:
+        strict_checkpoint = dict(checkpoint)
+        try:
+            validate_wave_contract(strict_checkpoint)
+        except ValueError as error:
+            errors.append(str(error))
+        for field in (
+            "host_orchestration_requirement", "host_orchestration_actual",
+            "host_orchestration_compatibility", "host_orchestration_fallback_reason",
+            "apparent_affordance_census_paths", "controller_id", "verifier_id",
+            "target_intent", "target_calibration", "target_calibration_reason",
+            "verifier_citation_refs", "verifier_citation_status",
+        ):
+            if not isinstance(checkpoint.get(field), (str, list)) or not checkpoint.get(field):
+                errors.append(f"audit_status complete requires {field}")
+        for field in ("apparent_affordance_census_paths", "verifier_citation_refs"):
+            if not isinstance(checkpoint.get(field), list) or not all(
+                isinstance(item, str) and item.strip() for item in checkpoint.get(field, [])
+            ):
+                errors.append(f"audit_status complete requires {field} as a string array")
+        if checkpoint.get("host_orchestration_requirement") == "structured" and checkpoint.get("host_orchestration_actual") != "structured" and not checkpoint.get("host_orchestration_fallback_reason"):
+            errors.append("host orchestration fallback reason is required")
+        if checkpoint.get("target_calibration") not in {"scope_limitation", "release_gate", "normal"}:
+            errors.append("target calibration is not canonical")
+        if checkpoint.get("target_intent") in {"benchmark_fixture", "fixture", "prototype", "internal_tool", "library"}:
+            if checkpoint.get("target_calibration") == "release_gate":
+                errors.append("fixture target cannot inherit production release severity")
+        try:
+            validate_verifier_provenance({
+                "verifier": checkpoint.get("verifier"),
+                "verifier_output": checkpoint.get("raw_verifier_output_paths"),
+                "citations": checkpoint.get("verifier_citation_refs"),
+                "controller_id": checkpoint.get("controller_id"),
+                "verifier_id": checkpoint.get("verifier_id"),
+                "citation_status": checkpoint.get("verifier_citation_status"),
+            })
+        except ValueError as error:
+            errors.append(str(error))
+    try:
+        checkpoint["_recovery_summary"] = recovery_projection(
+            recovery_status, checkpoint.get("recovery_attempts")
+        )
+    except ValueError as error:
+        errors.append(str(error))
+    if goal_completion_status == "complete" and audit_status != "complete":
+        errors.append("persistent goal cannot be complete while audit is not complete")
+    if checkpoint.get("exhaustion_status") != frontier.get("closure_state"):
+        errors.append("exhaustion_status does not match path_frontier closure_state")
+    if audit_status in {"active", "blocked", "user_stopped"} and (
+        ledger.get("completion_status") == "complete"
+        or ledger.get("readiness_disposition") != "cannot_determine"
+        or frontier.get("closure_state") == "closed_multi_source"
+    ):
+        errors.append(
+            "non-complete audit_status requires an incomplete ledger, cannot_determine readiness, "
+            "and a non-closed frontier"
+        )
+
+    ledger_document = _checkpoint_json(checkpoint.get("ledger_path"), root, "ledger_path", errors)
+    if ledger_document is not None and ledger_document != ledger:
+        errors.append("ledger_path does not match report-input source_ledger")
+
+    for field, label in (
+        ("raw_lane_output_paths", "raw lane output"),
+        ("raw_verifier_output_paths", "raw verifier output"),
+    ):
+        for reference in checkpoint.get(field, []):
+            _checkpoint_file(reference, root, label, errors)
+    if audit_status == "complete":
+        if strict_full_run:
+            certificate_paths = checkpoint.get("wave_certificate_paths")
+            if not isinstance(certificate_paths, list) or len(certificate_paths) != len(checkpoint.get("verified_wave_ids", [])):
+                errors.append("full audit requires one wave certificate per verified wave")
+            # Current full runs retain machine-readable raw packets.  A plain
+            # narrative can be retained as evidence, but cannot be shadow-read
+            # for raw-to-final reconciliation.
+            raw_packet_discoveries = []
+            for index, reference in enumerate(checkpoint.get("raw_lane_output_paths", []) + checkpoint.get("raw_verifier_output_paths", [])):
+                packet = _checkpoint_json(reference, root, f"raw operational packet[{index}]", errors)
+                if isinstance(packet, dict):
+                    candidates = packet.get("raw_discoveries", packet.get("discoveries", []))
+                    if isinstance(candidates, list):
+                        raw_packet_discoveries.extend(candidates)
+                    elif candidates:
+                        errors.append(f"raw operational packet[{index}] discoveries must be an array")
+            ledger_raw = {
+                item.get("observation_id")
+                for item in (ledger.get("raw_discoveries") or [])
+                if isinstance(item, dict) and item.get("observation_id")
+            }
+            packet_ids = {
+                item.get("observation_id")
+                for item in raw_packet_discoveries
+                if isinstance(item, dict) and item.get("observation_id")
+            }
+            if raw_packet_discoveries and not packet_ids.issubset(ledger_raw):
+                errors.append("raw operational packet observation disappeared before final reconciliation")
+            retained_receipt_refs = set(
+                reference.split("#", 1)[0]
+                for field in (
+                    "raw_lane_output_paths", "raw_verifier_output_paths", "wave_certificate_paths",
+                    "control_census_paths", "apparent_affordance_census_paths",
+                    "recovery_receipt_paths", "browser_failover_receipt_paths",
+                )
+                for reference in checkpoint.get(field, [])
+                if isinstance(reference, str)
+            )
+            for receipt in (frontier.get("closure_receipts") or []):
+                if isinstance(receipt, dict):
+                    receipt_ref = receipt.get("receipt_ref")
+                    if receipt_ref not in retained_receipt_refs:
+                        errors.append("closure receipt is not retained in an operational source packet")
+                    _checkpoint_file(receipt_ref, root, "closure receipt", errors)
+            for citation in checkpoint.get("verifier_citation_refs", []):
+                _checkpoint_citation(citation, root, "verifier citation", errors)
+        for index, reference in enumerate(checkpoint.get("wave_certificate_paths", [])):
+            certificate = _checkpoint_json(reference, root, f"wave certificate[{index}]", errors)
+            if isinstance(certificate, dict):
+                if certificate.get("wave_id") not in checkpoint.get("verified_wave_ids", []):
+                    errors.append(f"wave certificate[{index}] does not resolve to a verified wave")
+                if certificate.get("decision") != "approved" or not certificate.get("verifier_id"):
+                    errors.append(f"wave certificate[{index}] lacks independent approval provenance")
+                if certificate.get("verifier_id") == checkpoint.get("controller_id"):
+                    errors.append(f"wave certificate[{index}] verifier is not independent")
+                if not certificate.get("citation_refs") or not certificate.get("raw_output_ref"):
+                    errors.append(f"wave certificate[{index}] lacks retained citation provenance")
+                for citation in certificate.get("citation_refs", []):
+                    _checkpoint_citation(citation, root, f"wave certificate[{index}] citation", errors)
+                _checkpoint_file(certificate.get("raw_output_ref"), root, f"wave certificate[{index}] raw output", errors)
+        for index, reference in enumerate(checkpoint.get("apparent_affordance_census_paths", [])):
+            census = _checkpoint_json(reference, root, f"apparent affordance census[{index}]", errors)
+            if isinstance(census, dict):
+                try:
+                    validate_affordance_census(census)
+                except ValueError as error:
+                    errors.append(str(error))
+
+    rows = frontier.get("rows") if isinstance(frontier.get("rows"), list) else []
+    frontier_digest = _frontier_digest(rows)
+    frontier_controls = {
+        row.get("semantic_key")
+        for row in rows
+        if isinstance(row, dict) and row.get("kind") == "control" and isinstance(row.get("semantic_key"), str)
+    }
+    census_controls = set()
+    census_methods = set()
+    census_unmatched = []
+    for index, reference in enumerate(checkpoint.get("control_census_paths", [])):
+        census = _checkpoint_json(reference, root, f"control census[{index}]", errors)
+        if census is None:
+            continue
+        required = {"method_family", "semantic_keys", "digest", "frontier_digest", "unmatched_controls"}
+        if not required.issubset(census):
+            errors.append(f"control census[{index}] is incomplete")
+            continue
+        keys = census.get("semantic_keys")
+        unmatched = census.get("unmatched_controls")
+        if (
+            not isinstance(keys, list)
+            or not all(isinstance(item, str) and item.startswith("control:") for item in keys)
+            or len(keys) != len(set(keys))
+        ):
+            errors.append(f"control census[{index}] semantic_keys are invalid")
+            continue
+        if not isinstance(unmatched, list) or not all(isinstance(item, str) and item.strip() for item in unmatched):
+            errors.append(f"control census[{index}] unmatched_controls are invalid")
+            continue
+        if census.get("digest") != _semantic_digest(keys):
+            errors.append(f"control census[{index}] digest does not reconcile")
+        if census.get("frontier_digest") != frontier_digest:
+            errors.append(f"control census[{index}] frontier digest does not reconcile")
+        method = census.get("method_family")
+        if not isinstance(method, str) or not method:
+            errors.append(f"control census[{index}] method_family is invalid")
+        else:
+            census_methods.add(method)
+        census_controls.update(keys)
+        census_unmatched.extend(unmatched)
+
+    passes = frontier.get("discovery_passes") if isinstance(frontier.get("discovery_passes"), list) else []
+    pass_ids = [item.get("id") for item in passes if isinstance(item, dict)]
+    zero_yield_ids = checkpoint.get("zero_yield_pass_ids", [])
+    if len(zero_yield_ids) != len(set(zero_yield_ids)) or any(item not in pass_ids for item in zero_yield_ids):
+        errors.append("zero-yield pass IDs do not resolve uniquely")
+
+    unresolved = [
+        row.get("semantic_key")
+        for row in rows
+        if isinstance(row, dict)
+        and row.get("material", True)
+        and row.get("status") in {"unattempted", "unknown", "maybe", "evidence_debt", "blocked", "missing"}
+    ]
+    if audit_status == "complete":
+        if not rows:
+            errors.append("audit_status complete requires a non-empty frontier")
+        if not any(
+            isinstance(row, dict) and row.get("kind") == "surface"
+            for row in rows
+        ):
+            errors.append("audit_status complete requires at least one discovered frontend surface")
+        if not checkpoint["lanes"]:
+            errors.append("audit_status complete requires at least one recorded lane")
+        for field in ("raw_lane_output_paths", "raw_verifier_output_paths", "control_census_paths"):
+            if not checkpoint[field]:
+                errors.append(f"audit_status complete requires {field}")
+        if ledger.get("completion_status") != "complete":
+            errors.append("audit_status complete requires ledger completion_status complete")
+        if frontier.get("closure_state") != "closed_multi_source":
+            errors.append("audit_status complete requires closed_multi_source frontier")
+        if unresolved:
+            errors.append("audit_status complete has unresolved material frontier rows")
+        if frontier.get("reconciliation_differences"):
+            errors.append("audit_status complete has unresolved frontier reconciliation differences")
+        if checkpoint.get("frontend_path_walk_performed") is not True or checkpoint.get("path_walk_status") != "full":
+            errors.append("audit_status complete requires a full frontend path-walk")
+        if checkpoint.get("verifier") != "approved":
+            errors.append("audit_status complete requires approved verifier")
+        if len(passes) < 2 or zero_yield_ids != pass_ids[-2:]:
+            errors.append("audit_status complete requires the final two zero-yield pass IDs")
+        elif any(item.get("new_semantic_keys") != [] for item in passes[-2:] if isinstance(item, dict)):
+            errors.append("audit_status complete names a non-zero-yield discovery pass")
+        elif len({item.get("method_family") for item in passes[-2:] if isinstance(item, dict)}) != 2:
+            errors.append("audit_status complete requires zero-yield passes from distinct method families")
+        if census_controls != frontier_controls:
+            errors.append("control census does not reconcile with frontier controls")
+        if not CONTROL_CENSUS_METHODS.issubset(census_methods):
+            errors.append("control census lacks runtime and static method families")
+        if census_unmatched:
+            errors.append("control census contains unmatched controls")
+        if browser_status not in {"not_needed", "succeeded"}:
+            errors.append("audit_status complete cannot retain active, blocked, or user-stopped browser failover")
+        if recovery_status not in {"not_needed", "succeeded"}:
+            errors.append("audit_status complete cannot retain active or blocked recovery")
+
+    for index, reference in enumerate(checkpoint.get("recovery_receipt_paths", [])):
+        _checkpoint_json(reference, root, f"recovery receipt[{index}]", errors)
+
+    ledger_debts = {
+        item.get("debt_id"): item
+        for item in ledger.get("evidence_debt", [])
+        if isinstance(item, dict) and isinstance(item.get("debt_id"), str)
+    }
+    actions = checkpoint.get("evidence_debt_actions")
+    if not isinstance(actions, list):
+        errors.append("evidence_debt_actions must be an array")
+        actions = []
+    action_by_id = {}
+    for index, action in enumerate(actions):
+        required = {"debt_id", "next_action", "alternate_method", "attempt_count", "last_blocker", "disposition"}
+        if not isinstance(action, dict) or not required.issubset(action):
+            errors.append(f"evidence debt action[{index}] is incomplete")
+            continue
+        debt_id = action.get("debt_id")
+        if not isinstance(debt_id, str) or debt_id in action_by_id:
+            errors.append(f"evidence debt action[{index}] debt_id is invalid or duplicated")
+            continue
+        action_by_id[debt_id] = action
+        if (
+            not isinstance(action.get("next_action"), str) or not action["next_action"].strip()
+            or not isinstance(action.get("alternate_method"), str) or not action["alternate_method"].strip()
+            or not isinstance(action.get("attempt_count"), int) or action["attempt_count"] < 0
+            or not isinstance(action.get("last_blocker"), str)
+            or action.get("disposition") not in {"active", "blocked", "scoped_out", "resolved"}
+        ):
+            errors.append(f"evidence debt action[{index}] fields are invalid")
+        if action.get("disposition") == "blocked" and (
+            action.get("attempt_count", 0) < 1 or not action.get("last_blocker", "").strip()
+        ):
+            errors.append(f"evidence debt action[{index}] final blocker lacks attempts or blocker detail")
+    if set(action_by_id) != set(ledger_debts):
+        errors.append("evidence debt actions do not reconcile with canonical evidence debt")
+    for debt_id, debt in ledger_debts.items():
+        action = action_by_id.get(debt_id, {})
+        expected = {"needs-proof": "active", "blocked": "blocked", "scoped-out": "scoped_out"}.get(debt.get("status"))
+        if expected and action.get("disposition") != expected:
+            errors.append(f"evidence debt action for {debt_id} has inconsistent disposition")
+
+    receipt_paths = checkpoint.get("browser_failover_receipt_paths", [])
+    if browser_status == "not_needed" and receipt_paths:
+        errors.append("browser failover receipts exist while status is not_needed")
+    if browser_status in {"active", "succeeded", "blocked", "user_stopped"} and not receipt_paths:
+        errors.append("browser failover receipt is required")
+    receipt_results = []
+    for index, reference in enumerate(receipt_paths):
+        receipt = _checkpoint_json(reference, root, f"browser failover receipt[{index}]", errors)
+        if receipt is None:
+            continue
+        required = {
+            "native_error", "cleanup_result", "fallback_kind", "process_or_context_id",
+            "isolation_proof", "fallback_result", "remaining_evidence_debt",
+        }
+        if not required.issubset(receipt):
+            errors.append(f"browser failover receipt[{index}] is incomplete")
+            continue
+        if not isinstance(receipt.get("native_error"), str) or not receipt["native_error"].strip():
+            errors.append(f"browser failover receipt[{index}] lacks native error")
+        if not isinstance(receipt.get("cleanup_result"), str) or not receipt["cleanup_result"].strip():
+            errors.append(f"browser failover receipt[{index}] lacks cleanup result")
+        remaining = receipt.get("remaining_evidence_debt")
+        if not isinstance(remaining, list) or not all(isinstance(item, str) and item.strip() for item in remaining):
+            errors.append(f"browser failover receipt[{index}] remaining evidence debt is invalid")
+        result = receipt.get("fallback_result")
+        receipt_results.append(result)
+        if result == "recovered":
+            recovered_kinds = {
+                "independent_playwright", "chrome", "computer_use",
+                "target_owned_e2e", "reassigned_frontend_driver",
+                "sequential_frontend_driver",
+            }
+            if receipt.get("fallback_kind") not in recovered_kinds:
+                errors.append(f"browser failover receipt[{index}] did not use an allowed independent Playwright or frontend fallback")
+            process_id = str(receipt.get("process_or_context_id") or "").strip().casefold()
+            isolation = str(receipt.get("isolation_proof") or "").strip().casefold()
+            same_binding_markers = (
+                "same browser", "same locked", "same native", "shared browser",
+                "reused browser", "attached browser", "native-browser binding",
+                "native browser binding",
+            )
+            if (
+                not process_id
+                or process_id == "tab.playwright"
+                or not isolation
+                or not any(marker in isolation for marker in ("separate", "independent", "isolated"))
+                or any(marker in isolation for marker in same_binding_markers)
+            ):
+                errors.append(
+                    f"browser failover receipt[{index}] does not prove isolation from the same locked browser binding"
+                )
+            if remaining:
+                errors.append(f"browser failover receipt[{index}] recovered but retains evidence debt")
+        elif result in {"blocked", "failed"}:
+            if receipt.get("fallback_kind") not in {
+                "independent_playwright", "independent_playwright_unavailable",
+                "independent_playwright_forbidden",
+            }:
+                errors.append(f"browser failover receipt[{index}] did not attempt or bound independent Playwright")
+            if not remaining:
+                errors.append(f"browser failover receipt[{index}] does not preserve blocked evidence debt")
+        else:
+            errors.append(f"browser failover receipt[{index}] fallback_result is not canonical")
+    if browser_status == "succeeded" and (
+        not receipt_results or receipt_results[-1] != "recovered"
+    ):
+        errors.append("browser_failover_status succeeded requires the final recovery receipt to recover")
+    if browser_status == "blocked" and (
+        not receipt_results or receipt_results[-1] not in {"blocked", "failed"}
+    ):
+        errors.append("browser_failover_status blocked requires a terminal blocked receipt")
+
+    if errors:
+        raise ValueError("; ".join(errors[:20]))
+    checkpoint["_validated_checkpoint"] = True
+    checkpoint["_control_census_summary"] = (
+        f"{len(census_controls)} controls; {', '.join(sorted(census_methods))}; "
+        f"{len(census_unmatched)} unmatched"
+    )
+    return checkpoint
 
 def summarize_frontier(frontier):
     """Derive a compact Product Coverage projection and reject caller count drift."""
@@ -170,7 +1455,7 @@ def summarize_frontier(frontier):
         "manifest": frontier.get("manifest_artifact"),
     }
 
-def coverage_confidence_html(frontier):
+def coverage_confidence_html(frontier, checkpoint=None, record_counts=None):
     """Render a bounded early explanation of scope and honest closure."""
     summary = summarize_frontier(frontier)
     if not summary:
@@ -183,7 +1468,7 @@ def coverage_confidence_html(frontier):
         "missing", "out_of_scope", "evidence_debt",
     )}
     covered = status_counts["covered"]
-    not_proven = status_counts["missing"] + status_counts["evidence_debt"]
+    not_proven = status_counts["missing"] + status_counts["evidence_debt"] + int((record_counts or {}).get("evidence_debt", 0))
     roles = ", ".join(summary["roles"]) or "not recorded"
     states = ", ".join(summary["states"]) or "not recorded"
     viewports = ", ".join(summary["viewports"]) or "not recorded"
@@ -193,6 +1478,28 @@ def coverage_confidence_html(frontier):
         f'{status_counts["avoided"]} avoided for safety; {status_counts["inferred"]} inferred; '
         f'{status_counts["blocked"]} blocked; {not_proven} NOT_PROVEN'
     )
+    recovery = (checkpoint or {}).get("_recovery_summary") or {
+        "status": "not_needed", "attempt_count": 0, "recovered_paths": 0, "remaining_debt": 0
+    }
+    labels = {
+        "not_needed": "Not needed", "active": "In progress", "succeeded": "Recovered",
+        "blocked": "Blocked", "user_stopped": "User stopped",
+    }
+    recovery_html = (
+        f'<p><b>Recovery</b><span>{esc(labels.get(recovery["status"], "NOT_PROVEN"))}: '
+        f'{recovery["recovered_paths"]} paths resumed; {recovery["remaining_debt"]} debt items remain.</span></p>'
+        '<details><summary>Recovery attempts</summary>'
+        f'<p>{recovery["attempt_count"]} bounded attempt(s). '
+        f'Status: {esc(recovery["status"])}.</p></details>'
+    )
+    record_counts = record_counts or {}
+    record_text = (
+        f'{record_counts.get("actionable", 0)} actionable · '
+        f'{record_counts.get("evidence_debt", 0)} evidence debt · '
+        f'{record_counts.get("passed_keep", 0)} passed/keep · '
+        f'{record_counts.get("avoided", 0)} avoided · '
+        f'{record_counts.get("scoped_out", 0)} scoped out'
+    )
     return (
         '<section class="confidence-summary"><div class="section-head"><h2>Coverage Confidence</h2></div>'
         '<div class="confidence-grid">'
@@ -200,19 +1507,42 @@ def coverage_confidence_html(frontier):
         f'<p><b>Coverage conditions</b><span>Roles: {esc(roles)} · States: {esc(states)} · Viewports: {esc(viewports)}</span></p>'
         f'<p><b>What was not tested / Important proof limits</b><span>{esc(limits)}. '
         f'{status_counts["out_of_scope"]} out of scope; {status_counts["sampled_with_justification"]} sampled.</span></p>'
+        f'<p><b>Record classes</b><span>{esc(record_text)}</span></p>'
         f'<p><b>Why testing stopped</b><span>{esc(summary["closure_reason"])}</span></p>'
         f'<p><b>{closure}</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
+        f'{recovery_html}'
         '</div></section>'
     )
 
-def project_input(data):
+def project_input(data, orchestration_checkpoint=None):
     """Project validated v1 ledger/report-input data into the stable report shape."""
     if not isinstance(data, dict):
         return {}
     wrapper = data if data.get("schema_name") == "shipworthy/readiness-report-input" else None
     ledger = data.get("source_ledger") if wrapper else data
     if not isinstance(ledger, dict) or ledger.get("schema_name") != "shipworthy/readiness-ledger":
+        if data.get("run_scope") == "full" or (
+            isinstance(data.get("source_ledger"), dict)
+            and data["source_ledger"].get("run_scope") == "full"
+        ):
+            validate_canonical_input(data)
         return data
+    validate_canonical_input(data)
+    checkpoint = orchestration_checkpoint if isinstance(orchestration_checkpoint, dict) else None
+    strict_full = data.get("run_scope") == "full" or ledger.get("run_scope") == "full"
+    if strict_full and (
+        not isinstance(checkpoint, dict)
+        or checkpoint.get("run_scope") != "full"
+        or checkpoint.get("_validated_checkpoint") is not True
+    ):
+        raise ValueError(
+            "current full runs require a validated orchestration-checkpoint.json before rendering"
+        )
+    debt_actions = {
+        item.get("debt_id"): item
+        for item in (checkpoint or {}).get("evidence_debt_actions", [])
+        if isinstance(item, dict) and item.get("debt_id")
+    }
     artifacts = {
         row.get("artifact_id"): row for row in ledger.get("artifacts", [])
         if isinstance(row, dict) and row.get("artifact_id")
@@ -242,39 +1572,63 @@ def project_input(data):
             "severity": V1_SEVERITY.get(row.get("severity"), "info"),
             "canonical_severity": row.get("severity"),
             "artifact_ids": artifact_ids,
-            "evidence": "Artifacts: " + "; ".join(evidence) if evidence else "No evidence artifact is attached to this record.",
-            "verify": f"Proof: {row.get('proof')}; confidence: {row.get('confidence')}; verifier: {row.get('verifier_status')}.",
+            "evidence": (("Evidence: " + ", ".join(row.get("evidence_refs", []))) if row.get("evidence_refs") else "No evidence reference is attached to this record.") +
+                        ((" · Artifacts: " + "; ".join(evidence)) if evidence else ""),
+            "fix": row.get("fix") or (f"Correct {subject.get('title') or row.get('finding_id')} so the observed effect "
+                    f"`{row.get('observed_effect_code')}` no longer occurs."),
+            "verify": row.get("verify") or ("Re-exercise " + ", ".join(row.get("affected_semantic_keys", [])) +
+                       f" and confirm `{row.get('observed_effect_code')}` no longer occurs."),
         }
         if subject.get("location"):
             finding["location"] = {"file": subject["location"]}
         findings.append(finding)
+    evidence_debt = []
     for row in ledger.get("evidence_debt", []):
         if not isinstance(row, dict):
             continue
-        findings.append({
+        action = debt_actions.get(row.get("debt_id"), {})
+        blocker = action.get("last_blocker")
+        evidence = f"Evidence-debt status: {row.get('status')}"
+        if blocker:
+            evidence += f" · Last blocker: {blocker}"
+        evidence_debt.append({
             "record_id": row.get("debt_id"), "record_kind": "evidence_debt",
             "title": f"{row.get('debt_id')} — Evidence required for {row.get('subject')}",
             "consequence": row.get("reason"), "action": "Prove", "proof": "Not tested",
             "confidence": "Hypothesis", "section": "not_proven_not_tested",
             "severity": "info", "canonical_severity": "Unscored",
             "artifact_ids": row.get("artifact_ids", []),
-            "evidence": f"Evidence-debt status: {row.get('status')}",
-            "fix": row.get("proof_needed"), "verify": f"Evidence-debt status: {row.get('status')}.",
+            "evidence": evidence,
+            "fix": action.get("next_action") or row.get("proof_needed"),
+            "verify": action.get("alternate_method") or f"Evidence-debt status: {row.get('status')}.",
         })
     producer = ledger.get("producer") if isinstance(ledger.get("producer"), dict) else {}
+    checkpoint = checkpoint or {
+        "producer": f"{producer.get('name')} {producer.get('version')}",
+        "completion_status": ledger.get("completion_status"),
+        "gate_policy": (ledger.get("gate") or {}).get("policy"),
+        "source_report_input": wrapper.get("report_input_id") if wrapper else None,
+        "frontier_total": len((ledger.get("path_frontier") or {}).get("rows", [])),
+        "exhaustion_status": (ledger.get("path_frontier") or {}).get("closure_state"),
+        "omitted": ["lane roster and agent execution are not encoded by canonical ledger v1.0"],
+    }
     projected = {
-        "target": ledger.get("ledger_id", "target"),
+        "target": checkpoint.get("target_name") or ledger.get("ledger_id", "target"),
         "generated_at": ledger.get("generated_at"),
         "verdict": V1_VERDICT.get(ledger.get("readiness_disposition"), "NOT READY"),
         "findings": findings,
-        "path_frontier": ledger.get("path_frontier"),
-        "checkpoint": {
-            "producer": f"{producer.get('name')} {producer.get('version')}",
-            "completion_status": ledger.get("completion_status"),
-            "gate_policy": (ledger.get("gate") or {}).get("policy"),
-            "source_report_input": wrapper.get("report_input_id") if wrapper else None,
+        "evidence_debt": evidence_debt,
+        "record_counts": derive_record_counts(ledger),
+        "summary": {
+            "clear_before_ship": sum(item.get("section") == "clear_before_ship" for item in findings),
+            "fix_next": sum(item.get("section") == "fix_next" for item in findings),
+            "not_proven_not_tested": sum(item.get("section") == "not_proven_not_tested" for item in findings) + len(evidence_debt),
+            "passed_keep": sum(item.get("section") == "passed_keep" for item in findings),
         },
+        "path_frontier": ledger.get("path_frontier"),
+        "checkpoint": checkpoint,
     }
+    validate_record_count_projection(ledger, projected)
     return projected
 
 def esc(x): return html.escape("" if x is None else str(x))
@@ -504,13 +1858,18 @@ def finding_html(f, idx):
     parts.append("</article>")
     return "".join(parts)
 
-def render(data, interactive=False):
-    data = project_input(data)
+def render(data, interactive=False, orchestration_checkpoint=None):
+    data = project_input(data, orchestration_checkpoint=orchestration_checkpoint)
     if not isinstance(data, dict): data = {}
     target = esc(data.get("target", "target"))
     gen = esc(data.get("generated_at") or datetime.date.today().isoformat())
+    historical_import = data.get("import_mode") == "historical" and str(data.get("input_format") or "").startswith("legacy/")
+    historical_notice = (
+        '\n    <p class="muted-note">Historical import — readable for record review; not a current flagship Shipworthy run.</p>'
+        if historical_import else ""
+    )
     frontier = data.get("path_frontier") if isinstance(data.get("path_frontier"), dict) else None
-    confidence_block = coverage_confidence_html(frontier)
+    confidence_block = coverage_confidence_html(frontier, data.get("checkpoint"), data.get("record_counts"))
     product_cov_block = product_coverage_html(frontier)
     closure_attr = f' data-closure-state="{esc(frontier.get("closure_state"))}"' if frontier else ""
 
@@ -582,11 +1941,32 @@ def render(data, interactive=False):
                       '<article class="finding" style="border-left-color:#34D399">'
                       '<h3>No blocking or open findings were recorded.</h3></article></section>')
 
+    debt_records = data.get("evidence_debt", [])
+    if not isinstance(debt_records, list):
+        debt_records = []
+    if debt_records:
+        debt_cards = ['<section class="section tier-not-proven"><div class="section-head">'
+                      '<h2>Evidence Debt / Not Proven</h2>'
+                      f'<span class="count">{len(debt_records)}</span></div>']
+        debt_cards.extend(finding_html(record, i) for i, record in enumerate(debt_records, 1))
+        debt_cards.append('</section>')
+        find_block += "".join(debt_cards)
+
     ck = data.get("checkpoint") if isinstance(data.get("checkpoint"), dict) else {}
     ck_rows = []
+    if ck.get("target_intent"): ck_rows.append(("target intent", ck["target_intent"]))
+    if ck.get("target_calibration"): ck_rows.append(("target calibration", ck["target_calibration"]))
+    if ck.get("target_calibration_reason"): ck_rows.append(("calibration reason", ck["target_calibration_reason"]))
+    if ck.get("producer"): ck_rows.append(("producer", ck["producer"]))
+    if ck.get("completion_status"): ck_rows.append(("completion status", ck["completion_status"]))
+    if ck.get("gate_policy"): ck_rows.append(("gate policy", ck["gate_policy"]))
+    if ck.get("source_report_input"): ck_rows.append(("source report input", ck["source_report_input"]))
     if isinstance(ck.get("lanes"), list) and ck["lanes"]: ck_rows.append(("lanes", " · ".join(str(x) for x in ck["lanes"])))
+    if ck.get("audit_status"): ck_rows.append(("audit status", ck["audit_status"]))
     if ck.get("goal_mode_status") or data.get("goal_mode_status"):
         ck_rows.append(("goal mode status", ck.get("goal_mode_status") or data.get("goal_mode_status")))
+    if ck.get("goal_completion_status"):
+        ck_rows.append(("goal completion status", ck["goal_completion_status"]))
     if ck.get("goal_mode_objective") or data.get("goal_mode_objective"):
         ck_rows.append(("goal mode objective", ck.get("goal_mode_objective") or data.get("goal_mode_objective")))
     auth = ck.get("multi_agent_authorization") or ck.get("authorization")
@@ -606,6 +1986,20 @@ def render(data, interactive=False):
     evidence_locations = ck.get("evidence_locations") or data.get("evidence_locations")
     if evidence_locations:
         ck_rows.append(("evidence locations", row_text(evidence_locations)))
+    if ck.get("_control_census_summary"):
+        ck_rows.append(("control census", ck["_control_census_summary"]))
+    if ck.get("zero_yield_pass_ids"):
+        ck_rows.append(("zero-yield passes", row_text(ck["zero_yield_pass_ids"])))
+    if ck.get("browser_failover_status"):
+        ck_rows.append(("browser failover", ck["browser_failover_status"]))
+    if ck.get("recovery_status"):
+        ck_rows.append(("recovery status", ck["recovery_status"]))
+    if ck.get("raw_lane_output_paths"):
+        ck_rows.append(("raw lane outputs", row_text(ck["raw_lane_output_paths"])))
+    if ck.get("raw_verifier_output_paths"):
+        ck_rows.append(("raw verifier outputs", row_text(ck["raw_verifier_output_paths"])))
+    if isinstance(ck.get("evidence_debt_actions"), list):
+        ck_rows.append(("active evidence-debt actions", len(ck["evidence_debt_actions"])))
     frontier_fields = [
         ("frontier total", "frontier_total"),
         ("frontier covered", "frontier_covered"),
@@ -764,7 +2158,7 @@ def render(data, interactive=False):
   <header>
     <div class="masthead"><span class="brand">Shipworthy</span><span class="badge-readonly">Read-only</span></div>
     <h1 class="title">Readiness Report</h1>
-    <p class="meta-line">{target}<span class="sep">·</span>{gen}</p>
+    <p class="meta-line">{target}<span class="sep">·</span>{gen}</p>{historical_notice}
   </header>
   <section class="verdict-zone">
     <div class="stamp"><span class="stamp-text">{esc(verdict_label)}</span><span class="stamp-sub">Status · Evidence gated</span></div>
@@ -808,7 +2202,15 @@ def main():
         print(f"error: input file not found: {inp}", file=sys.stderr); sys.exit(2)
     except json.JSONDecodeError as e:
         print(f"error: {inp} is not valid JSON ({e})", file=sys.stderr); sys.exit(2)
-    html_out = render(data, interactive=interactive)
+    try:
+        validate_canonical_input(data, evidence_root=os.path.dirname(os.path.abspath(inp)))
+        checkpoint = load_orchestration_checkpoint(inp, data)
+        if checkpoint:
+            checkpoint["report_generation_status"] = "rendered"
+            checkpoint["report_path"] = os.path.abspath(out)
+        html_out = render(data, interactive=interactive, orchestration_checkpoint=checkpoint)
+    except ValueError as e:
+        print(f"error: canonical report input is invalid ({e})", file=sys.stderr); sys.exit(2)
     atomic_write_text(out, html_out)
     print(f"wrote {out} ({len(html_out)} bytes) from {inp}")
 

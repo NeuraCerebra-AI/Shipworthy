@@ -66,7 +66,12 @@ Use waves when one round's evidence should inform the next:
 - Wave 3: clarity lane, backend-symptom explanation, accessibility/responsive checks, and adversarial validation.
 - Wave 4: synthesis, deduplication, severity normalization, fix ranking, and verification plan.
 
-Collapse waves for standard audits. Use waves for major audits when hidden states, permissions, mutations, or shared components make direct single-pass work risky.
+Collapse waves only for standard or explicitly rapid audits. A current full
+Shipworthy run always retains three independently verified waves; small target
+size and strong early findings may narrow lane breadth but never remove a wave
+or the adaptive closure gate. Wave 3 shadow-reads raw packets and asks what
+plausible paths were missed; continue while discovery yields material paths and
+require two distinct zero-yield method-family passes before closure.
 
 Update the living audit ledger after each wave before starting the next wave. Later waves should receive the current coverage map, new paths discovered, avoided/blocked paths, and open questions rather than redoing the first map.
 
@@ -129,6 +134,7 @@ Product audit lane:
 Use $ship-product-workflows at /path/to/ship-product-workflows.
 You are one lane in a product workflow audit. Inspect only: [lane scope].
 Respect this safe-test boundary: [boundary].
+If browser access fails, preserve the unresolved frontier and follow the controller's recovery ladder: safe cleanup, one transient retry, independent Playwright, another authorized frontend route, then safe reassignment or sequential execution. Playwright control through the same locked binding is not a fallback. If recovery is exhausted, return the blocker. Return recovery receipts and resume the unfinished lane after success. Supporting evidence never substitutes for required frontend execution.
 Return: paths covered, artifacts, confirmed findings, hypotheses, avoided/blocked paths, likely fixes, verification steps, and a ledger update packet with new paths or scope-expansion candidates.
 ```
 

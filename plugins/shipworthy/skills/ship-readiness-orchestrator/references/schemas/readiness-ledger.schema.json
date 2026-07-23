@@ -415,6 +415,27 @@
           "type": "array",
           "uniqueItems": true
         },
+        "fix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "verify": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "finding_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "behavioral_identity": {
+          "type": "object"
+        },
+        "visual_proof": {
+          "type": "object"
+        },
         "observed_effect_code": {
           "maxLength": 128,
           "minLength": 1,
@@ -631,6 +652,10 @@
         },
         "before_state": {"type": "string", "minLength": 1, "maxLength": 200},
         "after_state": {"type": "string", "minLength": 1, "maxLength": 200},
+        "surface_identity": {"type": "string", "minLength": 1, "maxLength": 512},
+        "input_mechanism": {"type": "string", "minLength": 1, "maxLength": 100},
+        "missing_path_proof": {"type": "object"},
+        "execution_receipt_refs": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 512}},
         "terminal_reason": {"type": "string", "minLength": 1, "maxLength": 1000},
         "sample_justification": {"type": "string", "minLength": 1, "maxLength": 1000}
       },
@@ -687,7 +712,8 @@
             "type": "object"
           }
         },
-        "manifest_artifact": {"type": "string", "minLength": 1, "maxLength": 512}
+        "manifest_artifact": {"type": "string", "minLength": 1, "maxLength": 512},
+        "closure_receipts": {"type": "array", "maxItems": 256, "items": {"type": "object"}}
       },
       "required": ["normalization_version", "method_taxonomy_version", "closure_state", "summary", "rows", "discovery_passes", "reconciliation_differences"],
       "type": "object"
@@ -1227,6 +1253,35 @@
     },
     "path_frontier": {
       "$ref": "#/$defs/path_frontier"
+    },
+    "run_scope": {
+      "enum": ["full", "rapid", "historical"],
+      "type": "string"
+    },
+    "raw_discoveries": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"type": "object"}
+    },
+    "execution_receipts": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"type": "object"}
+    },
+    "rejected_discoveries": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"type": "object"}
+    },
+    "out_of_scope_discoveries": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"type": "object"}
+    },
+    "evidence_debt_discoveries": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"type": "object"}
     },
     "readiness_disposition": {
       "$ref": "#/$defs/ReadinessDisposition"

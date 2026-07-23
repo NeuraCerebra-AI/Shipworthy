@@ -57,6 +57,14 @@ Use a provisional route from the prompt, then re-route after cartography if evid
 9. Stress-test every recommendation before reporting it: ask what the fix could hide, weaken, remove, or make worse for another role, state, device, accessibility path, or governance boundary.
 10. Report findings first with evidence, severity, confidence, role/state/device, user consequence, smallest useful fix, verification step, and regression risk.
 
+Visual or layout findings remain `needs-proof` without the exact viewport,
+target state, reproduction steps, retained screenshot/geometry receipt, and a
+separate source mechanism. A fresh disconfirmation blocks a false mechanism
+from upgrading the symptom. Passed/Keep records state what to preserve and
+the regression guard, never a corrective instruction; target intent determines
+whether missing deployment evidence is a fixture scope limit or a production
+release gate.
+
 ## Reference Routing
 
 Do not absorb every reference by default. Route first, then load by dependency order.

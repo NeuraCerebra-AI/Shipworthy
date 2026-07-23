@@ -145,6 +145,7 @@ Use $ship-workflow-clarity at /path/to/ship-workflow-clarity.
 You are one lane in a parallel audit. Inspect only: [lane scope].
 Use Sonnet for normal lanes; use Opus only for major synthesis/adversarial review/high-stakes judgment.
 Use Computer Use and Playwright if available and appropriate to collect runtime-visible evidence.
+If browser access fails, preserve unresolved proof and follow the controller's recovery ladder: safe cleanup, one transient retry, independent Playwright, another authorized frontend route, then safe reassignment or sequential execution. Playwright control through the same locked binding is not a fallback. If recovery is exhausted, return the blocker. Return recovery receipts and resume the unfinished lane after success. Supporting evidence never substitutes for required frontend execution.
 Return evidence-indexed findings, hypotheses, exclusions, and regression risks.
 ```
 

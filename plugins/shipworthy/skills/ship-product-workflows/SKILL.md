@@ -58,6 +58,10 @@ Read this skill's `references/runtime-evidence-and-tools.md` before choosing a b
 
 A screenshot proves only the state visible at capture time; it does not prove an entire workflow. Neither native nor Playwright evidence may silently upgrade a finding to `Confirmed` or verifier status to `approved`. Include in the audit output the chosen evidence mode, selection reason, observed step boundary, artifacts, limitations, and not-proven statements when this skill runs standalone; return to the orchestrator when lane-dispatched the same bounded evidence context. Shipworthy operates through the four public skills and their skill-owned resources without requiring another product surface.
 
+### Browser Failover Gate
+
+Every browser-capable agent instruction must require this behavior: if the native or attached browser locks, disconnects, becomes stale, or cannot create a context, do not stop the lane. Record the failure and switch to an already available independent Playwright process or isolated context; an API such as `tab.playwright` on the same locked browser binding is not the fallback. If independent Playwright is unavailable or forbidden, return the blocker for another allowed frontend route and leave affected paths unresolved. Never install Playwright, replace runtime proof with static evidence, or claim closure because the browser failed.
+
 - For major, full-pass, long-running, agent-assisted, or compaction-prone audits, maintain a living audit ledger. Write it to disk when file writes are allowed and useful; otherwise keep it as an explicit report section or proposed artifact path. Treat it as a provisional flight recorder, not a scope lock.
 - Call `$ship-workflow-clarity` for clarity lanes rather than recreating its full rubric in this skill.
 - Lead with findings. Put scores last, omit them by default, and never use naked scores or decimal grades.
@@ -79,7 +83,22 @@ Before claiming closure:
 - treat unexplained disabled controls as findings, unavailable capabilities as feature rows, and false affordances as surface rows; and
 - reconcile every raw observation to its control, spawned surface, transition, evidence, and finding before approval. Prose or screenshots cannot replace a missing row.
 
+The apparent-affordance census also includes CTA-like cards, upgrade banners,
+styled rows, arrow-bearing panels, clickable-looking text, keyboard-only paths,
+and nonsemantic surfaces that promise interaction. Classify each as functional,
+informational, unavailable, false affordance, rejected with proof, or out of
+scope; do not omit it because it is not a semantic control. When requirements
+promise a path but reconciled source/runtime evidence proves there is no entry
+point, pending state, or cancellation primitive, record a missing-path finding;
+genuinely ambiguous behavior remains `NOT_PROVEN` evidence debt.
+
 Use the reference's mechanical identities from the actual route, including `surface:<actual-route>:<state>:<role>:<viewport>`, and derive child keys from their parents. Validate the final ledger; invalid shorthand, unresolved observations, or a missing proof row forbids frontier closure.
+
+Execution credit is exact: a receipt must match route, role, state, viewport,
+containing surface, control identity/type, visibility, enabled state, input
+mechanism, before state, after state, and evidence linkage. Hidden, disabled,
+off-route, or instrumentation-generated events can discover a path but cannot
+prove that it was exercised.
 
 ## Audit Workflow
 

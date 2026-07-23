@@ -51,6 +51,8 @@ The orchestrator must:
 
 Target the strongest findings, contradictions, cascade risks, and missing proof. Use reproduction, source tracing, browser checks, focused tests, and disconfirmation probes. Include deep-reasoning-style tradeoff analysis and domino-style consequence tracing when relevant.
 
+For browser checks, if access fails, preserve unresolved proof and follow the orchestrator's recovery ladder: safe cleanup, one transient retry, independent Playwright, another authorized frontend route, then safe reassignment or sequential execution. Playwright control through the same locked browser binding is not a fallback. If no applicable safe authorized route recovers execution, return the blocker and do not claim browser coverage. Return recovery receipts and resume the unfinished wave after success. Supporting evidence never substitutes for required frontend execution.
+
 Keep at least one disconfirmation lane when a high-severity finding depends on a single agent, a single evidence type, or a surprising absence signal.
 
 ## Verified Barrier After Wave 2
@@ -63,7 +65,13 @@ Before Wave 3, every evidence-debt item from Wave 1 must be proved, rejected, do
 
 ## Wave 3: Release Gate / What-Did-We-Miss
 
-Run final smoke and adjacent-surface checks. Look for missed route surfaces, hidden state boundaries, documentation drift, test gaps, stale assumptions, and severity inflation.
+Run final smoke and adjacent-surface checks. Shadow-read every raw lane packet,
+browser receipt, source inventory, candidate finding, absence signal, and
+rejected hypothesis. Reconcile each material observation into the canonical
+frontier, a finding, evidence debt, an evidence-backed rejection, or justified
+out-of-scope disposition. Ask what plausible paths were missed and continue
+while discovery yields material paths; closure requires two consecutive
+zero-yield passes from distinct canonical method families.
 
 Use the coverage matrix to choose the final pass. Do not spend Wave 3 only rechecking already-proven lanes while untouched surfaces remain relevant to the user request.
 

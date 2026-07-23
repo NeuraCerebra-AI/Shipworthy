@@ -79,7 +79,7 @@ Before dispatching agents or writing a plan:
 2. Identify the review target, focus lens, allowed mutation level, runtime/browser needs, and output format.
 3. Confirm branch/worktree/source-of-truth when reviewing a repo.
 4. If the task is mutable, prefer an isolated worktree and follow repo instructions such as `AGENTS.md`.
-5. Default to full mode with three waves. Use rapid mode only when the user explicitly asks for a quick/time-boxed pass or the target is genuinely small; state that downgrade before proceeding. Rapid mode still requires a verified barrier before final claims.
+5. Default to full mode with three waves. Use rapid mode only when the user explicitly asks for a quick/time-boxed pass; target size never waives the full-run minimum or closure gates. State the downgrade before proceeding. Rapid mode still requires a verified barrier before final claims.
 6. If the user only asks for high concurrency without asking for a deep review/audit/research target, do not invoke this workflow solely for that reason.
 
 ## Platform Rule
@@ -120,7 +120,7 @@ If context compaction/resume happens after a wave has begun, first list and read
 4. **Verified Barrier 1.** Read all outputs, update evidence state, run independent shadow verification, then write Wave 1 intelligence summary with certificate.
 5. **Wave 2: targeted reproduction and contradiction resolution.** Focus on strongest findings, missing proof, and high-impact cascades.
 6. **Verified Barrier 2.** Repeat the read-all + evidence-state + independent-verifier + certified-summary gate.
-7. **Wave 3: release gate / what-did-we-miss pass.** Run final smoke, adjacent-surface checks, and severity calibration.
+7. **Wave 3: prove nothing material disappeared.** Shadow-read every raw packet, browser receipt, source inventory, candidate finding, absence signal, and rejected hypothesis; reconcile each material observation to the frontier, finding, evidence debt, explicit rejection, or justified out-of-scope record. Ask what plausible paths were missed, then require two consecutive zero-yield discovery passes from distinct canonical method families before closure.
 8. **Verified Barrier 3.** Repeat the wave verification gate before final synthesis.
 9. **Final synthesis.** The orchestrator writes the final synthesis because it owns the full continuity of user intent, preflight truth, all wave outputs, all verifier decisions, and retargeting history. Use Opus or `gpt-5.5 xhigh` to verify the final claim ledger, evidence debt, and coverage gaps before writing, not to replace the orchestrator as author.
 10. **Final report.** Lead with product/research truth, blockers, evidence, false positives, tests/browser proof, and exact uncertainty boundaries.

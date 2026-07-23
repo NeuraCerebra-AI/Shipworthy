@@ -68,12 +68,13 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
 
 ## How to generate it
 
-1. Serialize the completed ledger into the JSON contract below (write it next to
-   the evidence, e.g. `readiness-report.json`).
+1. Serialize the completed canonical ledger as `readiness-ledger.json` and the
+   `shipworthy/readiness-report-input` wrapper as `report-input.json` next to the
+   evidence.
 2. Run:
 
    ```bash
-   python3 scripts/render_report.py readiness-report.json readiness-report.html
+  python3 scripts/render_report.py report-input.json readiness-report.html
    ```
 
    Add `--interactive` for a client-side filter/search/collapse version (opt-in
@@ -142,7 +143,7 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
     "downgrade_reason": "required when the full-run claim is downgraded",
     "report_generation_status": "rendered | blocked | failed | intentionally_not_generated_by_user_constraint",
     "report_path": "absolute path to readiness-report.html, or missing/blocked reason",
-    "ledger_path": "absolute path to readiness-report.json or ledger, or inline snapshot marker",
+    "ledger_path": "readiness-ledger.json or an explicit historical-import source",
     "evidence_locations": ["absolute paths or redacted artifact references"],
     "frontier_total": 0,
     "frontier_covered": 0,
