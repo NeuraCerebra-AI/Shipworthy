@@ -72,6 +72,34 @@ and the mandatory HTML report. Positive recent yield keeps discovery active;
 small targets and strong findings never waive these controls. Closure is
 derived from retained receipts, not authored by a report builder.
 
+## Raw-Evidence-to-Ledger Reconciliation Gate
+
+The ledger remains a draft until every material observation from raw lane and
+verifier packets, execution receipts, runtime/static control censuses, the
+apparent-affordance census, and source-promised missing paths has exactly one
+terminal disposition: a frontier row, finding, evidence-debt record,
+evidence-backed rejection, or reasoned out-of-scope record. A material
+observation must not silently disappear.
+
+Normalize each raw observation with a stable ID, source kind, evidence refs,
+semantic key, and behavioral identity. Reconcile route, role, state, viewport,
+containing surface, control identity/type, input mechanism, and before/after
+state. Wording aliases may match when those behavioral dimensions agree; a
+wrong semantic variant must fail. Do not let desktop satisfy mobile, member
+satisfy admin, opening a surface satisfy its controls, or one transition
+satisfy another. Give independently fixable behavior classes distinct finding
+lineage—for example, misleading success feedback and reload data loss are not
+one defect.
+
+Run `scripts/render_report.py` over the reconciled ledger before verifier
+approval and again before HTML rendering. If retained raw evidence proves an
+omission or mis-keyed variant, amend the same ledger, increment its revision,
+preserve the raw evidence, and renew verifier approval. If proof is still
+missing, add an explicit frontier/evidence-debt disposition and keep closure
+incomplete. Incomplete or blocked status never bypasses this reconciliation;
+it changes the verdict, not the accounting requirement. Never invent execution
+merely to make reconciliation pass.
+
 ## Start Gate
 
 Before dispatching agents, writing findings, or judging design quality:
@@ -123,6 +151,31 @@ Every operational Shipworthy invocation must produce a self-contained HTML readi
 Generate canonical `readiness-ledger.json`, `report-input.json`, and `readiness-report.html` from the final ledger after verification; keep `orchestration-checkpoint.json` beside `report-input.json` as separate operational proof. Do not create a redundant `readiness-report.json`. Default to `~/.shipworthy/runs/<target-slug>/<timestamp>/` so the audited repo stays read-only. Use repo-local `.shipworthy/reports/<timestamp>/` only when the user explicitly requests repo artifacts or the target's instructions require repo-local audit artifacts.
 
 Before final response, verify that `readiness-report.html` exists, was rendered from the final ledger/report JSON, and is linked in the final answer. If report generation fails, file writes are impossible, or the user explicitly forbids artifact creation, lead the final answer with **`HTML report: MISSING/BLOCKED`**, explain why, record it as deliverable debt, and do not imply the Shipworthy run is complete.
+
+### Ledger-to-HTML Critique and Revision Gate
+
+Treat the initial render as a draft projection. Before delivery, compare it
+against the canonical ledger and checkpoint for relevant data loss, distorted
+meaning, or unsupported additions. Confirm that it preserves every formal
+finding, affected semantic paths, every evidence-debt record and its exact `proof_needed`,
+canonical closure and omission language, execution receipts,
+and rejected and out-of-scope discoveries. Spot-check every action class:
+`Passed / Keep` preserves working behavior, `Skip` preserves the safety or scope
+boundary, and neither receives synthesized corrective language.
+
+Treat the verified canonical ledger as immutable during this report critique.
+A report mismatch is a projection or renderer defect; do not change the ledger
+to make the HTML pass. Reopen the ledger only when retained raw evidence independently proves
+that the ledger itself is wrong, then record a new ledger
+revision and renew verifier approval before rendering again.
+
+If the critique finds a mismatch, correct the canonical projection input or the
+deterministic rendering path, rerun validation, and overwrite the same `readiness-report.html`.
+The agent must not hand-edit the HTML, create a second
+“improved” report, invent missing ledger content, or deliver both versions.
+Repeat this bounded critique-and-revision gate until the same
+`readiness-report.html` aligns with the ledger or fail closed as
+`HTML report: MISSING/BLOCKED`.
 
 ## Full-Blast Agent Rules
 
@@ -196,7 +249,7 @@ Every material claim, missing path, blocked check, avoided check, rejected claim
 17. At the end of every wave, read every expected lane output in full, merge normalized lane packets into the ledger, then run an independent verifier against the raw outputs and ledger. The verifier must fail the full-run claim if no browser/computer-use/frontend path-walk occurred while the report claims full Shipworthy. Do not write a wave intelligence summary until the verifier explicitly approves summary-writing.
 18. Retarget each later wave from verified findings, contradictions, coverage gaps, missing expected paths, overcomplicated paths, path_frontier burn-down, and evidence debt, not from the original lane split.
 19. Run a fix-cascade check on major recommendations: compare against the no-change baseline, identify what the fix could break downstream, and preserve proof, governance, recovery, accessibility, expert controls, and necessary friction. Write fix-cascade notes to the ledger.
-20. Before final synthesis, run a final no-overclaim verifier against the final claim ledger, path_frontier burn-down, evidence debt, coverage gaps, frontend path-walk status, and readiness language. The verifier must ask what plausible paths were missed and fail a full-run claim if material frontier rows remain unattempted/unknown/maybe or if the last two discovery/testing passes still found new material path surface. Downgrade claims such as ready, works, accessible, robust, secure, deployable, beloved, viral, complete, or full Shipworthy unless directly supported.
+20. Run the Raw-Evidence-to-Ledger Reconciliation Gate, then run a final no-overclaim verifier against the reconciled claim ledger, path_frontier burn-down, evidence debt, coverage gaps, frontend path-walk status, and readiness language. The verifier must ask what plausible paths were missed and fail a full-run claim if material observations lack terminal dispositions, material frontier rows remain unattempted/unknown/maybe, or the last two discovery/testing passes still found new material path surface. Downgrade claims such as ready, works, accessible, robust, secure, deployable, beloved, viral, complete, or full Shipworthy unless directly supported.
 21. Run the HTML Report Gate for every operational Shipworthy invocation. Generate `readiness-ledger.json`, `report-input.json`, and `readiness-report.html` even when the run is conditional, static constrained, changed-only, source/CLI-only, or downgraded. Default to `~/.shipworthy/runs/<target-slug>/<timestamp>/` so the audited repo stays read-only. Use repo-local `.shipworthy/reports/<timestamp>/` only when the user explicitly requests repo artifacts.
 22. Run the Pre-Final Artifact Assertion: canonical `readiness-ledger.json`, `report-input.json`, and `readiness-report.html` exist unless artifact writes are blocked; no redundant `readiness-report.json` is required; final answer includes the absolute HTML path; and if any required item is missing, the final answer leads with missing artifact debt instead of implying completion.
 23. Write the final report only after the final claim ledger, path_frontier burn-down, exhaustion_status, evidence debt, coverage gaps, verified wave summaries, verifier outputs, fix-cascade notes, final drift check, goal_mode_status, multi-agent authorization status, frontend path-walk status, HTML report generation status, mandatory HTML report path, and ledger/evidence paths are complete.

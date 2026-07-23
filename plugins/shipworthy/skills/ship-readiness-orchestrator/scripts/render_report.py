@@ -356,38 +356,220 @@ def validate_discovery_exhaustion(frontier):
     return frontier.get("closure_state")
 
 
-def reconcile_raw_discoveries(ledger):
-    """Ensure every material raw discovery has a retained canonical disposition."""
+def _semantic_behavioral_identity(key):
+    """Return the variant fields encoded by a canonical semantic key."""
+    key = str(key or "")
+    if key.startswith("surface:"):
+        parts = key[len("surface:"):].rsplit(":", 3)
+        if len(parts) == 4:
+            return {
+                "route": parts[0], "state": parts[1], "role": parts[2],
+                "viewport": parts[3],
+            }
+    receipt_identity = _receipt_identity(key)
+    if receipt_identity:
+        identity = {
+            field: receipt_identity.get(field)
+            for field in ("route", "state", "role", "viewport", "before_state", "after_state")
+            if receipt_identity.get(field) is not None
+        }
+        identity.update({
+            "control_identity": receipt_identity.get("name"),
+            "control_type": receipt_identity.get("type"),
+        })
+        return identity
+    return {}
+
+
+def _disposition_record_id(item):
+    if not isinstance(item, dict):
+        return None
+    return item.get("discovery_id") or item.get("debt_id") or item.get("id")
+
+
+def reconcile_raw_discoveries(ledger, strict=False):
+    """Reconcile each material observation to one explicit canonical outcome."""
     if not isinstance(ledger, dict):
         raise ValueError("raw observation reconciliation requires a ledger object")
     frontier = ledger.get("path_frontier") or {}
-    row_keys = {
-        row.get("semantic_key") for row in frontier.get("rows", [])
-        if isinstance(row, dict) and isinstance(row.get("semantic_key"), str)
+    rows = [row for row in frontier.get("rows", []) if isinstance(row, dict)]
+    rows_by_key = {
+        row.get("semantic_key"): row for row in rows
+        if isinstance(row.get("semantic_key"), str)
     }
-    finding_keys = {
-        key for finding in ledger.get("findings", []) if isinstance(finding, dict)
-        for key in (finding.get("affected_semantic_keys") or [])
-        if isinstance(key, str)
+    rows_by_id = {
+        row.get("id"): row for row in rows if isinstance(row.get("id"), str)
     }
-    dispositions = {
-        item.get("semantic_key") for item in (
-            ledger.get("rejected_discoveries", [])
-            + ledger.get("out_of_scope_discoveries", [])
-            + ledger.get("evidence_debt_discoveries", [])
-        ) if isinstance(item, dict) and isinstance(item.get("semantic_key"), str)
+    findings = {
+        item.get("finding_id"): item
+        for item in ledger.get("findings", [])
+        if isinstance(item, dict) and isinstance(item.get("finding_id"), str)
+    }
+    debt = {
+        item.get("debt_id"): item
+        for item in ledger.get("evidence_debt", [])
+        if isinstance(item, dict) and isinstance(item.get("debt_id"), str)
+    }
+    disposition_lists = {
+        "rejected": ledger.get("rejected_discoveries", []) or [],
+        "out_of_scope": ledger.get("out_of_scope_discoveries", []) or [],
+        "evidence_debt": ledger.get("evidence_debt_discoveries", []) or [],
+    }
+    disposition_records = {
+        kind: {
+            _disposition_record_id(item): item
+            for item in items
+            if isinstance(item, dict) and _disposition_record_id(item)
+        }
+        for kind, items in disposition_lists.items()
+    }
+    summary = {
+        "material_observations": 0, "frontier": 0, "finding": 0,
+        "evidence_debt": 0, "rejected": 0, "out_of_scope": 0,
+        "unresolved": 0,
     }
     unresolved = []
-    for item in ledger.get("raw_discoveries", []) or []:
+    observation_ids = set()
+    finding_defect_classes = {}
+    raw_discoveries = ledger.get("raw_discoveries", []) or []
+    for item in raw_discoveries:
         if not isinstance(item, dict) or not item.get("observation_id"):
             unresolved.append("unnamed raw observation")
             continue
+        observation_id = str(item["observation_id"])
+        if observation_id in observation_ids:
+            unresolved.append(f"{observation_id} is duplicated")
+            continue
+        observation_ids.add(observation_id)
+        material = item.get("material", True)
+        if material:
+            summary["material_observations"] += 1
         key = item.get("semantic_key")
-        if key not in row_keys and key not in finding_keys and key not in dispositions:
-            unresolved.append(str(item.get("observation_id")))
+        if not strict:
+            disposition_keys = {
+                record.get("semantic_key")
+                for records in disposition_lists.values()
+                for record in records
+                if isinstance(record, dict)
+            }
+            finding_keys = {
+                affected
+                for finding in findings.values()
+                for affected in (finding.get("affected_semantic_keys") or [])
+            }
+            if key in rows_by_key:
+                summary["frontier"] += int(bool(material))
+            elif key in finding_keys:
+                summary["finding"] += int(bool(material))
+            elif key in disposition_keys:
+                summary["evidence_debt"] += int(bool(material))
+            else:
+                unresolved.append(observation_id)
+            continue
+
+        if not isinstance(item.get("source_kind"), str) or not item["source_kind"].strip():
+            unresolved.append(f"{observation_id} lacks a source kind")
+            continue
+        if not isinstance(item.get("material"), bool):
+            unresolved.append(f"{observation_id} lacks a material classification")
+            continue
+        if material and (
+            not isinstance(item.get("evidence_refs"), list)
+            or not item.get("evidence_refs")
+        ):
+            unresolved.append(f"{observation_id} lacks evidence")
+            continue
+        identity = item.get("behavioral_identity")
+        if not isinstance(identity, dict) or identity.get("semantic_key") != key:
+            unresolved.append(f"{observation_id} has incomplete behavioral identity")
+            continue
+        expected_identity = _semantic_behavioral_identity(key)
+        identity_mismatch = False
+        for field, expected in expected_identity.items():
+            actual = identity.get(field)
+            if field in {"control_identity", "control_type"}:
+                if str(actual or "").strip().lower() != str(expected or "").strip().lower():
+                    identity_mismatch = True
+                    break
+            elif actual != expected:
+                identity_mismatch = True
+                break
+        if identity_mismatch:
+            unresolved.append(f"{observation_id} behavioral identity contradicts its semantic variant")
+            continue
+
+        disposition = item.get("terminal_disposition")
+        if not isinstance(disposition, dict) or disposition.get("kind") not in summary:
+            unresolved.append(f"{observation_id} requires exactly one terminal disposition")
+            continue
+        kind = disposition["kind"]
+        if kind == "unresolved":
+            unresolved.append(f"{observation_id} remains unresolved")
+            continue
+        record_id = disposition.get("record_id")
+        if kind == "frontier":
+            record = rows_by_id.get(record_id)
+            if not record or record.get("semantic_key") != key:
+                unresolved.append(f"{observation_id} frontier disposition does not resolve exactly")
+                continue
+        elif kind == "finding":
+            record = findings.get(record_id)
+            if not record or key not in (record.get("affected_semantic_keys") or []):
+                unresolved.append(f"{observation_id} finding disposition does not resolve exactly")
+                continue
+            defect_class = item.get("defect_class")
+            if defect_class:
+                prior = finding_defect_classes.setdefault(record_id, set())
+                prior.add(str(defect_class))
+                if len(prior) > 1:
+                    unresolved.append(
+                        f"{observation_id} independently fixable defect classes share finding {record_id}"
+                    )
+                    continue
+        elif kind == "evidence_debt":
+            record = debt.get(record_id) or disposition_records["evidence_debt"].get(record_id)
+            if not record:
+                unresolved.append(f"{observation_id} evidence-debt disposition does not resolve")
+                continue
+            if not record.get("reason") or not record.get("proof_needed"):
+                unresolved.append(
+                    f"{observation_id} evidence-debt disposition requires a concrete proof target"
+                )
+                continue
+        else:
+            record = disposition_records[kind].get(record_id)
+            if not record:
+                unresolved.append(f"{observation_id} {kind} disposition does not resolve")
+                continue
+            linked = record.get("observation_ids") or []
+            if observation_id not in linked or not record.get("reason") or not record.get("evidence_refs"):
+                unresolved.append(f"{observation_id} {kind} disposition requires reason and evidence")
+                continue
+            if record.get("semantic_key") != key:
+                unresolved.append(
+                    f"{observation_id} {kind} disposition names a different semantic path"
+                )
+                continue
+        summary[kind] += int(bool(material))
+    if strict:
+        raw_keys = {
+            item.get("semantic_key")
+            for item in raw_discoveries
+            if isinstance(item, dict) and item.get("material", True)
+        }
+        missing_raw_rows = [
+            row.get("semantic_key")
+            for row in rows
+            if row.get("material", True) and row.get("semantic_key") not in raw_keys
+        ]
+        if missing_raw_rows:
+            unresolved.extend(
+                f"{key} has no material raw observation" for key in missing_raw_rows[:8]
+            )
     if unresolved:
+        summary["unresolved"] = len(unresolved)
         raise ValueError("raw observation reconciliation dropped: " + ", ".join(unresolved[:8]))
-    return True
+    return summary
 
 
 def validate_affordance_census(census):
@@ -404,6 +586,30 @@ def validate_affordance_census(census):
             raise ValueError(f"apparent affordance entry[{index}] requires evidence")
         if entry.get("classification") == "rejected_with_proof" and not entry.get("reason"):
             raise ValueError(f"apparent affordance entry[{index}] rejection requires a reason")
+    return True
+
+
+def reconcile_affordance_census(ledger, census):
+    """Require every action-signalling census entry in the raw discovery set."""
+    validate_affordance_census(census)
+    discoveries = [
+        item for item in (ledger.get("raw_discoveries") or [])
+        if isinstance(item, dict)
+    ]
+    for entry in census.get("entries", []):
+        if entry.get("action_signaling") is not True:
+            continue
+        key = entry.get("semantic_key")
+        affordance_id = entry.get("affordance_id")
+        if not key or not any(
+            item.get("semantic_key") == key
+            and item.get("source_kind") == "apparent_affordance_census"
+            and item.get("source_id") == affordance_id
+            for item in discoveries
+        ):
+            raise ValueError(
+                f"apparent affordance {affordance_id} has no matching raw discovery"
+            )
     return True
 
 
@@ -491,6 +697,79 @@ def validate_execution_receipt_set(rows, events, strict=False):
             for event in candidates
         ):
             raise ValueError("covered path lacks a matching execution receipt")
+    return True
+
+
+def reconcile_execution_receipts(rows, events, raw_discoveries=None):
+    """Reject retained actions that cannot resolve to an exact frontier row."""
+    rows = [row for row in rows if isinstance(row, dict)]
+    by_key = {
+        row.get("semantic_key"): row
+        for row in rows
+        if isinstance(row.get("semantic_key"), str)
+    }
+    by_id = {
+        row.get("id"): row for row in rows if isinstance(row.get("id"), str)
+    }
+    receipt_ids = set()
+    for index, event in enumerate(events or []):
+        if not isinstance(event, dict) or not event.get("receipt_id"):
+            raise ValueError(f"execution receipt[{index}] requires a receipt_id")
+        if event["receipt_id"] in receipt_ids:
+            raise ValueError(f"execution receipt {event['receipt_id']} is duplicated")
+        receipt_ids.add(event["receipt_id"])
+        row = by_key.get(event.get("semantic_key"))
+        if row is None:
+            raise ValueError(
+                f"execution receipt {event['receipt_id']} does not resolve to the frontier"
+            )
+        if row.get("kind") in {"control", "transition"}:
+            parent = by_id.get(row.get("parent_id"))
+            expected_control = (
+                parent.get("control_identity")
+                if row.get("kind") == "transition" and isinstance(parent, dict)
+                else row.get("control_identity")
+            )
+            if not validate_execution_receipt(row, event, expected_control):
+                raise ValueError(
+                    f"execution receipt {event['receipt_id']} contradicts its frontier variant"
+                )
+        elif not isinstance(event.get("evidence_refs"), list) or not event["evidence_refs"]:
+            raise ValueError(f"execution receipt {event['receipt_id']} lacks evidence")
+        matching_raw = [
+            item for item in (raw_discoveries or [])
+            if (
+            isinstance(item, dict)
+            and item.get("semantic_key") == event.get("semantic_key")
+            and item.get("source_kind") == "execution_receipt"
+            and item.get("source_id") == event.get("receipt_id")
+            )
+        ]
+        if raw_discoveries is not None and not matching_raw:
+            raise ValueError(
+                f"execution receipt {event['receipt_id']} is absent from the raw discovery inventory"
+            )
+        for raw in matching_raw:
+            identity = raw.get("behavioral_identity")
+            expected_identity = {
+                "route": event.get("route"),
+                "role": event.get("role"),
+                "state": event.get("state"),
+                "viewport": event.get("viewport"),
+                "containing_surface": event.get("surface"),
+                "control_identity": (event.get("control") or {}).get("identity"),
+                "control_type": (event.get("control") or {}).get("type"),
+                "input_mechanism": event.get("input_mechanism"),
+                "before_state": event.get("before_state"),
+                "after_state": event.get("after_state"),
+            }
+            if (
+                not isinstance(identity, dict)
+                or any(identity.get(field) != value for field, value in expected_identity.items())
+            ):
+                raise ValueError(
+                    f"execution receipt {event['receipt_id']} raw discovery identity does not match"
+                )
     return True
 
 
@@ -602,6 +881,57 @@ def validate_record_count_projection(ledger, projection):
     return True
 
 
+def validate_projection_fidelity(ledger, projection):
+    """Reject a report view that drops canonical user-relevant evidence."""
+    projected_findings = {
+        item.get("record_id"): item
+        for item in projection.get("findings", [])
+        if isinstance(item, dict) and item.get("record_id")
+    }
+    canonical_findings = [
+        item for item in ledger.get("findings", []) if isinstance(item, dict)
+    ]
+    if set(projected_findings) != {
+        item.get("finding_id") for item in canonical_findings
+    }:
+        raise ValueError("finding projection does not reconcile with canonical ledger")
+    for item in canonical_findings:
+        projected = projected_findings[item.get("finding_id")]
+        if projected.get("affected_semantic_keys") != item.get("affected_semantic_keys", []):
+            raise ValueError("finding path lineage was not preserved")
+        if item.get("action") == "Keep" and projected.get("guidance_kind") != "preserve":
+            raise ValueError("Passed / Keep projection must preserve confirmed behavior")
+        if item.get("action") == "Skip" and projected.get("guidance_kind") != "boundary":
+            raise ValueError("Skip projection must preserve the recorded proof boundary")
+
+    projected_debt = {
+        item.get("record_id"): item
+        for item in projection.get("evidence_debt", [])
+        if isinstance(item, dict) and item.get("record_id")
+    }
+    canonical_debt = [
+        item for item in ledger.get("evidence_debt", []) if isinstance(item, dict)
+    ]
+    if set(projected_debt) != {item.get("debt_id") for item in canonical_debt}:
+        raise ValueError("evidence-debt projection does not reconcile with canonical ledger")
+    for item in canonical_debt:
+        if projected_debt[item.get("debt_id")].get("proof_needed") != item.get("proof_needed"):
+            raise ValueError("evidence-debt proof requirement was not preserved")
+
+    traceability = projection.get("traceability")
+    if not isinstance(traceability, dict):
+        raise ValueError("canonical traceability projection is required")
+    for key in (
+        "execution_receipts",
+        "rejected_discoveries",
+        "out_of_scope_discoveries",
+        "evidence_debt_discoveries",
+    ):
+        if traceability.get(key) != ledger.get(key, []):
+            raise ValueError(f"{key} projection does not reconcile with canonical ledger")
+    return True
+
+
 def validate_record_language(record):
     section = record.get("section") if isinstance(record, dict) else None
     action = record.get("action") if isinstance(record, dict) else None
@@ -620,6 +950,39 @@ def validate_record_language(record):
         ):
             raise ValueError("actionable records require concrete, non-tautological fix and verification text")
     return True
+
+
+def projection_guidance(row, subject):
+    """Return action-aware guidance without reversing canonical meaning."""
+    action = row.get("action")
+    title = subject.get("title") or row.get("finding_id")
+    semantic_keys = row.get("affected_semantic_keys", [])
+    observed_effect = row.get("observed_effect_code")
+    if action == "Keep":
+        return {
+            "guidance_kind": "preserve",
+            "fix": row.get("fix") or "Preserve this confirmed behavior under the tested conditions.",
+            "verify": row.get("verify") or "No regression guard was recorded in the canonical ledger.",
+        }
+    if action == "Skip":
+        return {
+            "guidance_kind": "boundary",
+            "fix": row.get("fix") or (
+                "No corrective action is prescribed; this path remains intentionally "
+                "unexecuted under the recorded safety or scope boundary."
+            ),
+            "verify": row.get("verify") or "No proof method was recorded in the canonical ledger.",
+        }
+    return {
+        "guidance_kind": "corrective",
+        "fix": row.get("fix") or (
+            f"Correct {title} so the observed effect `{observed_effect}` no longer occurs."
+        ),
+        "verify": row.get("verify") or (
+            "Re-exercise " + ", ".join(semantic_keys)
+            + f" and confirm `{observed_effect}` no longer occurs."
+        ),
+    }
 
 
 def canonical_artifact_names():
@@ -941,17 +1304,22 @@ def validate_canonical_input(data, evidence_root=None):
             except ValueError as error:
                 errors.append(str(error))
 
-    if strict_run and ledger.get("completion_status") == "complete" and frontier:
+    if strict_run and frontier:
         if not isinstance(ledger.get("raw_discoveries"), list):
-            errors.append("complete canonical runs require raw discoveries for raw-to-final reconciliation")
+            errors.append("current full runs require raw discoveries for raw-to-final reconciliation")
         else:
             try:
-                reconcile_raw_discoveries(ledger)
+                reconcile_raw_discoveries(ledger, strict=True)
             except ValueError as error:
                 errors.append(str(error))
         try:
             validate_execution_receipt_set(
                 frontier.get("rows", []), ledger.get("execution_receipts", []), strict=True
+            )
+            reconcile_execution_receipts(
+                frontier.get("rows", []),
+                ledger.get("execution_receipts", []),
+                ledger.get("raw_discoveries", []),
             )
         except ValueError as error:
             errors.append(str(error))
@@ -1140,6 +1508,7 @@ def load_orchestration_checkpoint(input_path, data):
             # narrative can be retained as evidence, but cannot be shadow-read
             # for raw-to-final reconciliation.
             raw_packet_discoveries = []
+            raw_packet_receipts = []
             for index, reference in enumerate(checkpoint.get("raw_lane_output_paths", []) + checkpoint.get("raw_verifier_output_paths", [])):
                 packet = _checkpoint_json(reference, root, f"raw operational packet[{index}]", errors)
                 if isinstance(packet, dict):
@@ -1148,22 +1517,41 @@ def load_orchestration_checkpoint(input_path, data):
                         raw_packet_discoveries.extend(candidates)
                     else:
                         errors.append(f"raw operational packet[{index}] discoveries must be an array")
-            ledger_raw = [
-                (item.get("observation_id"), item.get("semantic_key"))
+                    receipts = packet.get("execution_receipts")
+                    if isinstance(receipts, list):
+                        raw_packet_receipts.extend(receipts)
+            ledger_raw = {
+                item.get("observation_id"): item
                 for item in (ledger.get("raw_discoveries") or [])
                 if isinstance(item, dict) and item.get("observation_id")
-            ]
+            }
             packet_raw = [
-                (item.get("observation_id"), item.get("semantic_key"))
+                item
                 for item in raw_packet_discoveries
                 if isinstance(item, dict) and item.get("observation_id")
             ]
             if (
                 not raw_packet_discoveries
-                or len(ledger_raw) != len(set(ledger_raw))
-                or set(packet_raw) != set(ledger_raw)
+                or len(ledger_raw) != len(ledger.get("raw_discoveries") or [])
+                or {item.get("observation_id") for item in packet_raw} != set(ledger_raw)
+                or any(item != ledger_raw.get(item.get("observation_id")) for item in packet_raw)
             ):
                 errors.append("raw operational packets do not reconcile one-to-one with ledger discoveries")
+            ledger_receipts = {
+                item.get("receipt_id"): item
+                for item in (ledger.get("execution_receipts") or [])
+                if isinstance(item, dict) and item.get("receipt_id")
+            }
+            if ledger_receipts and (
+                not raw_packet_receipts
+                or {item.get("receipt_id") for item in raw_packet_receipts if isinstance(item, dict)} != set(ledger_receipts)
+                or any(
+                    not isinstance(item, dict)
+                    or item != ledger_receipts.get(item.get("receipt_id"))
+                    for item in raw_packet_receipts
+                )
+            ):
+                errors.append("raw operational packets do not reconcile one-to-one with execution receipts")
             retained_receipt_refs = set(
                 reference.split("#", 1)[0]
                 for field in (
@@ -1207,7 +1595,7 @@ def load_orchestration_checkpoint(input_path, data):
             census = _checkpoint_json(reference, root, f"apparent affordance census[{index}]", errors)
             if isinstance(census, dict):
                 try:
-                    validate_affordance_census(census)
+                    reconcile_affordance_census(ledger, census)
                 except ValueError as error:
                     errors.append(str(error))
 
@@ -1468,7 +1856,9 @@ def summarize_frontier(frontier):
         "manifest": frontier.get("manifest_artifact"),
     }
 
-def coverage_confidence_html(frontier, checkpoint=None, record_counts=None):
+def coverage_confidence_html(
+    frontier, checkpoint=None, record_counts=None, reconciliation_summary=None
+):
     """Render a bounded early explanation of scope and honest closure."""
     summary = summarize_frontier(frontier)
     if not summary:
@@ -1513,6 +1903,20 @@ def coverage_confidence_html(frontier, checkpoint=None, record_counts=None):
         f'{record_counts.get("avoided", 0)} avoided · '
         f'{record_counts.get("scoped_out", 0)} scoped out'
     )
+    reconciliation_html = ""
+    if isinstance(reconciliation_summary, dict):
+        reconciliation_text = (
+            f'{reconciliation_summary.get("material_observations", 0)} material observations · '
+            f'{reconciliation_summary.get("frontier", 0)} frontier · '
+            f'{reconciliation_summary.get("finding", 0)} findings · '
+            f'{reconciliation_summary.get("evidence_debt", 0)} evidence debt · '
+            f'{reconciliation_summary.get("rejected", 0)} rejected · '
+            f'{reconciliation_summary.get("out_of_scope", 0)} out of scope · '
+            f'{reconciliation_summary.get("unresolved", 0)} unresolved'
+        )
+        reconciliation_html = (
+            f'<p><b>Evidence reconciliation</b><span>{esc(reconciliation_text)}</span></p>'
+        )
     return (
         '<section class="confidence-summary"><div class="section-head"><h2>Coverage Confidence</h2></div>'
         '<div class="confidence-grid">'
@@ -1521,6 +1925,7 @@ def coverage_confidence_html(frontier, checkpoint=None, record_counts=None):
         f'<p><b>What was not tested / Important proof limits</b><span>{esc(limits)}. '
         f'{status_counts["out_of_scope"]} out of scope; {status_counts["sampled_with_justification"]} sampled.</span></p>'
         f'<p><b>Record classes</b><span>{esc(record_text)}</span></p>'
+        f'{reconciliation_html}'
         f'<p><b>Why testing stopped</b><span>{esc(summary["closure_reason"])}</span></p>'
         f'<p><b>{closure}</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
         f'{recovery_html}'
@@ -1565,6 +1970,7 @@ def project_input(data, orchestration_checkpoint=None):
         if not isinstance(row, dict):
             continue
         subject = row.get("subject") if isinstance(row.get("subject"), dict) else {}
+        guidance = projection_guidance(row, subject)
         artifact_ids = [value for value in row.get("artifact_ids", []) if value in artifacts]
         evidence = []
         for artifact_id in artifact_ids:
@@ -1585,12 +1991,13 @@ def project_input(data, orchestration_checkpoint=None):
             "severity": V1_SEVERITY.get(row.get("severity"), "info"),
             "canonical_severity": row.get("severity"),
             "artifact_ids": artifact_ids,
+            "canonical_projection": True,
+            "affected_semantic_keys": row.get("affected_semantic_keys", []),
+            "guidance_kind": guidance["guidance_kind"],
             "evidence": (("Evidence: " + ", ".join(row.get("evidence_refs", []))) if row.get("evidence_refs") else "No evidence reference is attached to this record.") +
                         ((" · Artifacts: " + "; ".join(evidence)) if evidence else ""),
-            "fix": row.get("fix") or (f"Correct {subject.get('title') or row.get('finding_id')} so the observed effect "
-                    f"`{row.get('observed_effect_code')}` no longer occurs."),
-            "verify": row.get("verify") or ("Re-exercise " + ", ".join(row.get("affected_semantic_keys", [])) +
-                       f" and confirm `{row.get('observed_effect_code')}` no longer occurs."),
+            "fix": guidance["fix"],
+            "verify": guidance["verify"],
         }
         if subject.get("location"):
             finding["location"] = {"file": subject["location"]}
@@ -1611,6 +2018,8 @@ def project_input(data, orchestration_checkpoint=None):
             "confidence": "Hypothesis", "section": "not_proven_not_tested",
             "severity": "info", "canonical_severity": "Unscored",
             "artifact_ids": row.get("artifact_ids", []),
+            "canonical_projection": True,
+            "proof_needed": row.get("proof_needed"),
             "evidence": evidence,
             "fix": action.get("next_action") or row.get("proof_needed"),
             "verify": action.get("alternate_method") or f"Evidence-debt status: {row.get('status')}.",
@@ -1640,8 +2049,18 @@ def project_input(data, orchestration_checkpoint=None):
         },
         "path_frontier": ledger.get("path_frontier"),
         "checkpoint": checkpoint,
+        "traceability": {
+            "execution_receipts": ledger.get("execution_receipts", []),
+            "rejected_discoveries": ledger.get("rejected_discoveries", []),
+            "out_of_scope_discoveries": ledger.get("out_of_scope_discoveries", []),
+            "evidence_debt_discoveries": ledger.get("evidence_debt_discoveries", []),
+        },
+        "reconciliation_summary": reconcile_raw_discoveries(
+            ledger, strict=strict_full
+        ) if isinstance(ledger.get("raw_discoveries"), list) else None,
     }
     validate_record_count_projection(ledger, projected)
+    validate_projection_fidelity(ledger, projected)
     return projected
 
 def esc(x): return html.escape("" if x is None else str(x))
@@ -1844,11 +2263,23 @@ def legend_html(segments):
 
 def details_html(f):
     rows = []
-    for k in ("evidence", "fix", "verify"):
-        if f.get(k):
-            cls = "mono" if k == "evidence" else "prose"
-            rows.append(f'<div class="ev-row"><div class="ev-label">{k}</div>'
-                        f'<p class="ev-value {cls}">{esc(f[k])}</p></div>')
+    detail_labels = [("evidence", "evidence")]
+    if f.get("canonical_projection"):
+        detail_labels.extend(
+            (
+                ("affected_semantic_keys", "Finding path lineage"),
+                ("proof_needed", "Proof needed"),
+            )
+        )
+    detail_labels.extend((("fix", "fix"), ("verify", "verify")))
+    for key, label in detail_labels:
+        value = f.get(key)
+        if isinstance(value, list):
+            value = " · ".join(str(item) for item in value)
+        if value:
+            cls = "mono" if key in {"evidence", "affected_semantic_keys"} else "prose"
+            rows.append(f'<div class="ev-row"><div class="ev-label">{esc(label)}</div>'
+                        f'<p class="ev-value {cls}">{esc(value)}</p></div>')
     if not rows:
         return ""
     return ('<details><summary>Evidence · Fix · Verify</summary>'
@@ -1871,6 +2302,59 @@ def finding_html(f, idx):
     parts.append("</article>")
     return "".join(parts)
 
+
+def traceability_html(traceability):
+    if not isinstance(traceability, dict):
+        return ""
+
+    receipts = []
+    for item in traceability.get("execution_receipts", []):
+        if not isinstance(item, dict):
+            continue
+        receipt_id = item.get("receipt_id") or "unnamed receipt"
+        path = item.get("relative_path")
+        path_text = esc(path or "No artifact path recorded")
+        if (
+            isinstance(path, str)
+            and path
+            and not os.path.isabs(path)
+            and ".." not in path.replace("\\", "/").split("/")
+        ):
+            path_text = f'<a href="{esc(path)}">{esc(path)}</a>'
+        receipts.append(
+            f'<div class="coverage-proof"><b>{esc(receipt_id)}</b>'
+            f'<span>{esc(item.get("status") or "status not recorded")} · {path_text}</span></div>'
+        )
+
+    dispositions = []
+    for label, key in (
+        ("Rejected", "rejected_discoveries"),
+        ("Out of scope", "out_of_scope_discoveries"),
+        ("Evidence debt", "evidence_debt_discoveries"),
+    ):
+        for item in traceability.get(key, []):
+            if not isinstance(item, dict):
+                continue
+            discovery_id = item.get("discovery_id") or "unnamed discovery"
+            reason = item.get("reason") or item.get("status_reason") or "No reason recorded"
+            semantic_key = item.get("semantic_key")
+            suffix = f" · {semantic_key}" if semantic_key else ""
+            dispositions.append(
+                f'<div class="coverage-proof"><b>{esc(label)} · {esc(discovery_id)}</b>'
+                f'<span>{esc(reason)}{esc(suffix)}</span></div>'
+            )
+
+    receipt_html = "".join(receipts) or '<p class="muted-note">No execution receipt was recorded.</p>'
+    disposition_html = "".join(dispositions) or '<p class="muted-note">No rejected, out-of-scope, or evidence-debt discoveries were recorded.</p>'
+    return (
+        '<section class="section traceability"><div class="section-head"><h2>Coverage And Evidence</h2></div>'
+        '<p class="coverage-meta">The action report is a bounded projection. '
+        '<a href="readiness-ledger.json">Open the canonical ledger and complete path frontier</a>.</p>'
+        + detail_section("Runtime execution receipts", receipt_html)
+        + detail_section("False positives, exclusions, and evidence debt", disposition_html)
+        + '</section>'
+    )
+
 def render(data, interactive=False, orchestration_checkpoint=None):
     data = project_input(data, orchestration_checkpoint=orchestration_checkpoint)
     if not isinstance(data, dict): data = {}
@@ -1882,8 +2366,17 @@ def render(data, interactive=False, orchestration_checkpoint=None):
         if historical_import else ""
     )
     frontier = data.get("path_frontier") if isinstance(data.get("path_frontier"), dict) else None
-    confidence_block = coverage_confidence_html(frontier, data.get("checkpoint"), data.get("record_counts"))
+    confidence_block = coverage_confidence_html(
+        frontier,
+        data.get("checkpoint"),
+        data.get("record_counts"),
+        data.get("reconciliation_summary"),
+    )
     product_cov_block = product_coverage_html(frontier)
+    traceability_block = traceability_html(data.get("traceability"))
+    coverage_evidence_blocks = product_cov_block + (
+        f"\n  {traceability_block}" if traceability_block else ""
+    )
     closure_attr = f' data-closure-state="{esc(frontier.get("closure_state"))}"' if frontier else ""
 
     verdict = str(data.get("verdict", "NOT READY")).upper()
@@ -2187,7 +2680,7 @@ def render(data, interactive=False, orchestration_checkpoint=None):
   {confidence_block}
   {controls}
   {find_block}
-  {product_cov_block}
+  {coverage_evidence_blocks}
   {cov_block}
   <section class="section"><div class="section-head"><h2>Orchestration Checkpoint</h2></div><div class="orch">{ck_html}</div></section>
   <footer>

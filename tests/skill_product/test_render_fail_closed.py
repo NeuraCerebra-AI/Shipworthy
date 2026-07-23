@@ -165,6 +165,128 @@ class FailClosedRenderTests(unittest.TestCase):
         self.assertIn("lane roster and agent execution are not encoded", report)
         self.assertNotIn("No orchestration checkpoint recorded.", report)
 
+    def test_keep_and_skip_projection_preserves_their_meaning(self) -> None:
+        candidate = self.candidate()
+        base = deepcopy(candidate["source_ledger"]["findings"][0])
+        keep = deepcopy(base)
+        keep.update(
+            {
+                "finding_id": "FND-EXPORT-KEEP",
+                "action": "Keep",
+                "section": "passed_keep",
+                "subject": {
+                    "kind": "workflow",
+                    "location": None,
+                    "ref": "export",
+                    "title": "Export produces the expected fixture",
+                },
+                "summary": "The downloaded JSON matched the fixture.",
+                "observed_effect_code": "verified-export-artifact",
+            }
+        )
+        keep.pop("fix", None)
+        keep.pop("verify", None)
+        skip = deepcopy(base)
+        skip.update(
+            {
+                "finding_id": "FND-DELETE-SKIP",
+                "action": "Skip",
+                "proof": "Not tested",
+                "confidence": "Hypothesis",
+                "section": "not_proven_not_tested",
+                "subject": {
+                    "kind": "workflow",
+                    "location": None,
+                    "ref": "delete",
+                    "title": "Delete all data was intentionally skipped",
+                },
+                "summary": "The destructive action was outside the safe-test boundary.",
+                "observed_effect_code": "side-effect-workflows-skipped",
+                "verify": "Use an explicitly authorized disposable fixture before exercising deletion.",
+            }
+        )
+        skip.pop("fix", None)
+        candidate["source_ledger"]["findings"].extend([keep, skip])
+
+        report = render(candidate)
+
+        self.assertIn("Preserve this confirmed behavior under the tested conditions.", report)
+        self.assertIn("No regression guard was recorded in the canonical ledger.", report)
+        self.assertIn("No corrective action is prescribed; this path remains intentionally unexecuted", report)
+        self.assertIn("Use an explicitly authorized disposable fixture", report)
+        self.assertNotIn("Correct Export produces the expected fixture", report)
+        self.assertNotIn("Correct Delete all data was intentionally skipped", report)
+        self.assertNotIn("confirm `verified-export-artifact` no longer occurs", report)
+
+    def test_projection_exposes_lineage_debt_proof_and_discovery_dispositions(self) -> None:
+        candidate = self.candidate()
+        ledger = candidate["source_ledger"]
+        ledger["evidence_debt"] = [
+            {
+                "debt_id": "ED-DELETE",
+                "subject": "destructive deletion",
+                "proof_needed": "Use an authorized disposable fixture and retain the result.",
+                "reason": "Deletion was intentionally avoided.",
+                "status": "needs-proof",
+                "artifact_ids": [],
+            }
+        ]
+        ledger["execution_receipts"] = [
+            {
+                "receipt_id": "REC-RUNTIME-ACTIONS",
+                "relative_path": "evidence/save.json",
+                "status": "bounded local run receipt",
+            }
+        ]
+        ledger["rejected_discoveries"] = [
+            {
+                "discovery_id": "DISC-REJECTED",
+                "semantic_key": "surface:/projects",
+                "reason": "Disconfirmed by runtime evidence.",
+            }
+        ]
+        ledger["out_of_scope_discoveries"] = [
+            {
+                "discovery_id": "DISC-DEPLOY",
+                "semantic_key": "feature:production-deploy",
+                "reason": "No deployment target was supplied.",
+            }
+        ]
+
+        report = render(candidate)
+
+        self.assertIn("Finding path lineage", report)
+        self.assertIn(
+            "control:surface:/projects:normal:member:desktop:save:button:persist",
+            report,
+        )
+        self.assertIn("Use an authorized disposable fixture and retain the result.", report)
+        self.assertIn("REC-RUNTIME-ACTIONS", report)
+        self.assertIn("evidence/save.json", report)
+        self.assertIn("DISC-REJECTED", report)
+        self.assertIn("DISC-DEPLOY", report)
+        self.assertIn("readiness-ledger.json", report)
+
+    def test_coverage_confidence_shows_compact_raw_evidence_reconciliation(self) -> None:
+        candidate = self.candidate()
+        ledger = candidate["source_ledger"]
+        surface = next(
+            row for row in ledger["path_frontier"]["rows"] if row["kind"] == "surface"
+        )
+        ledger["raw_discoveries"] = [
+            {
+                "observation_id": "RAW-SURFACE",
+                "semantic_key": surface["semantic_key"],
+            }
+        ]
+
+        report = render(candidate)
+
+        self.assertIn("Evidence reconciliation", report)
+        self.assertIn("1 material observations", report)
+        self.assertIn("1 frontier", report)
+        self.assertIn("0 unresolved", report)
+
     def test_cli_rejects_nonexistent_evidence_reference_without_writing_html(self) -> None:
         candidate = self.candidate()
         with tempfile.TemporaryDirectory() as raw:
@@ -291,6 +413,44 @@ class FailClosedRenderTests(unittest.TestCase):
             "directory containing `report-input.json`",
             "must not be rendered",
             "computed frontier digest",
+        ):
+            self.assertIn(phrase, combined)
+
+    def test_installed_contract_requires_same_file_post_render_critique_and_revision(self) -> None:
+        skill = (ROOT / "plugins/shipworthy/skills/ship-readiness-orchestrator/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        for phrase in (
+            "Ledger-to-HTML Critique and Revision Gate",
+            "same `readiness-report.html`",
+            "must not hand-edit the HTML",
+            "verified canonical ledger as immutable",
+            "raw evidence independently proves",
+            "affected semantic paths",
+            "exact `proof_needed`",
+            "rejected and out-of-scope discoveries",
+            "Passed / Keep",
+        ):
+            self.assertIn(phrase, skill)
+
+    def test_installed_contract_requires_raw_evidence_to_ledger_reconciliation(self) -> None:
+        skill = (
+            ROOT / "plugins/shipworthy/skills/ship-readiness-orchestrator/SKILL.md"
+        ).read_text(encoding="utf-8")
+        contract = (
+            ROOT
+            / "plugins/shipworthy/skills/ship-readiness-orchestrator/references/ledger-validation-contract.md"
+        ).read_text(encoding="utf-8")
+        combined = skill + contract
+        for phrase in (
+            "Raw-Evidence-to-Ledger Reconciliation Gate",
+            "ledger remains a draft",
+            "exactly one terminal disposition",
+            "route, role, state, viewport",
+            "independently fixable",
+            "wrong semantic variant",
+            "must not silently disappear",
+            "renew verifier approval",
         ):
             self.assertIn(phrase, combined)
 

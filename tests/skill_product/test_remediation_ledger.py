@@ -60,10 +60,32 @@ class RemediationLedgerContractTests(unittest.TestCase):
                     input_mechanism="pointer",
                     execution_receipt_refs=["evidence/save-transition-receipt.json"],
                 )
-        ledger["raw_discoveries"] = [
-            {"observation_id": f"RAW-{index}", "semantic_key": row["semantic_key"]}
-            for index, row in enumerate(rows, 1)
-        ]
+        finding_by_key = {
+            key: finding["finding_id"]
+            for finding in ledger["findings"]
+            for key in finding.get("affected_semantic_keys", [])
+        }
+        ledger["raw_discoveries"] = []
+        for index, row in enumerate(rows, 1):
+            key = row["semantic_key"]
+            finding_id = finding_by_key.get(key)
+            ledger["raw_discoveries"].append(
+                {
+                    "observation_id": f"RAW-{index}",
+                    "semantic_key": key,
+                    "material": row.get("material", True),
+                    "source_kind": "runtime_receipt",
+                    "behavioral_identity": {
+                        "semantic_key": key,
+                        **render_report._semantic_behavioral_identity(key),
+                    },
+                    "evidence_refs": list(row.get("evidence_refs", [])),
+                    "terminal_disposition": {
+                        "kind": "finding" if finding_id else "frontier",
+                        "record_id": finding_id or row["id"],
+                    },
+                }
+            )
         ledger["path_frontier"]["closure_receipts"] = [
             {"source": "verifier", "receipt_ref": "evidence/raw-verifier.json"}
         ]
@@ -101,6 +123,25 @@ class RemediationLedgerContractTests(unittest.TestCase):
                 "evidence_refs": ["evidence/save.json"],
             },
         ]
+        receipts_by_key = {
+            item["semantic_key"]: item
+            for item in ledger["execution_receipts"]
+        }
+        for item in ledger["raw_discoveries"]:
+            if item["semantic_key"] in receipts_by_key:
+                receipt = receipts_by_key[item["semantic_key"]]
+                item.update(
+                    source_kind="execution_receipt",
+                    source_id=receipt["receipt_id"],
+                )
+                item["behavioral_identity"].update(
+                    containing_surface=receipt["surface"],
+                    control_identity=receipt["control"]["identity"],
+                    control_type=receipt["control"]["type"],
+                    input_mechanism=receipt["input_mechanism"],
+                    before_state=receipt["before_state"],
+                    after_state=receipt["after_state"],
+                )
         return candidate
 
     def test_small_target_cannot_waive_three_verified_waves(self) -> None:
@@ -152,6 +193,345 @@ class RemediationLedgerContractTests(unittest.TestCase):
                     ],
                 }
             )
+
+    def test_material_raw_observation_requires_explicit_terminal_disposition(self) -> None:
+        ledger = {
+            "path_frontier": {
+                "rows": [
+                    {
+                        "id": "PF-S",
+                        "kind": "surface",
+                        "semantic_key": "surface:/dashboard:normal:member:desktop",
+                    }
+                ]
+            },
+            "findings": [],
+            "evidence_debt": [],
+            "raw_discoveries": [
+                {
+                    "observation_id": "RAW-DASHBOARD",
+                    "semantic_key": "surface:/dashboard:normal:member:desktop",
+                    "material": True,
+                    "source_kind": "runtime_receipt",
+                    "behavioral_identity": {
+                        "semantic_key": "surface:/dashboard:normal:member:desktop",
+                        "route": "/dashboard",
+                        "state": "normal",
+                        "role": "member",
+                        "viewport": "desktop",
+                    },
+                    "evidence_refs": ["evidence/dashboard.json"],
+                }
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "terminal disposition"):
+            render_report.reconcile_raw_discoveries(ledger, strict=True)
+
+    def test_raw_observation_cannot_cross_credit_role_or_viewport(self) -> None:
+        ledger = {
+            "path_frontier": {
+                "rows": [
+                    {
+                        "id": "PF-C",
+                        "kind": "control",
+                        "semantic_key": (
+                            "control:surface:/team:normal:member:desktop:"
+                            "invite:button:open-dialog"
+                        ),
+                    }
+                ]
+            },
+            "findings": [],
+            "evidence_debt": [],
+            "raw_discoveries": [
+                {
+                    "observation_id": "RAW-INVITE",
+                    "semantic_key": (
+                        "control:surface:/team:normal:member:desktop:"
+                        "invite:button:open-dialog"
+                    ),
+                    "material": True,
+                    "source_kind": "runtime_receipt",
+                    "behavioral_identity": {
+                        "semantic_key": (
+                            "control:surface:/team:normal:member:desktop:"
+                            "invite:button:open-dialog"
+                        ),
+                        "route": "/team",
+                        "state": "normal",
+                        "role": "admin",
+                        "viewport": "mobile",
+                        "control_identity": "Invite",
+                        "control_type": "button",
+                    },
+                    "evidence_refs": ["evidence/invite.json"],
+                    "terminal_disposition": {"kind": "frontier", "record_id": "PF-C"},
+                }
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "behavioral identity"):
+            render_report.reconcile_raw_discoveries(ledger, strict=True)
+
+    def test_independently_fixable_defects_require_distinct_finding_lineage(self) -> None:
+        key = "transition:editing:control:surface:/projects:normal:member:desktop:save:button:persist:saved"
+        base = {
+            "material": True,
+            "source_kind": "runtime_receipt",
+            "semantic_key": key,
+            "behavioral_identity": {
+                "semantic_key": key,
+                "route": "/projects",
+                "state": "normal",
+                "role": "member",
+                "viewport": "desktop",
+                "control_identity": "Save",
+                "control_type": "button",
+                "before_state": "editing",
+                "after_state": "saved",
+            },
+            "evidence_refs": ["evidence/save.json"],
+            "terminal_disposition": {"kind": "finding", "record_id": "FND-SAVE"},
+        }
+        ledger = {
+            "path_frontier": {"rows": [{"id": "PF-T", "kind": "transition", "semantic_key": key}]},
+            "findings": [
+                {"finding_id": "FND-SAVE", "affected_semantic_keys": [key]}
+            ],
+            "evidence_debt": [],
+            "raw_discoveries": [
+                dict(base, observation_id="RAW-MESSAGE", defect_class="misleading-success"),
+                dict(base, observation_id="RAW-RELOAD", defect_class="reload-data-loss"),
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "independently fixable"):
+            render_report.reconcile_raw_discoveries(ledger, strict=True)
+
+    def test_rejected_and_out_of_scope_dispositions_require_reason_and_proof(self) -> None:
+        ledger = {
+            "path_frontier": {"rows": []},
+            "findings": [],
+            "evidence_debt": [],
+            "raw_discoveries": [
+                {
+                    "observation_id": "RAW-UPGRADE",
+                    "semantic_key": "surface:/dashboard:upgrade:member:desktop",
+                    "material": True,
+                    "source_kind": "apparent_affordance_census",
+                    "behavioral_identity": {
+                        "semantic_key": "surface:/dashboard:upgrade:member:desktop",
+                        "route": "/dashboard",
+                        "state": "upgrade",
+                        "role": "member",
+                        "viewport": "desktop",
+                    },
+                    "evidence_refs": ["evidence/upgrade.json"],
+                    "terminal_disposition": {"kind": "rejected", "record_id": "REJ-UPGRADE"},
+                }
+            ],
+            "rejected_discoveries": [
+                {
+                    "discovery_id": "REJ-UPGRADE",
+                    "observation_ids": ["RAW-UPGRADE"],
+                    "semantic_key": "surface:/dashboard:upgrade:member:desktop",
+                }
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "reason and evidence"):
+            render_report.reconcile_raw_discoveries(ledger, strict=True)
+
+    def test_reconciliation_summary_counts_each_material_observation_once(self) -> None:
+        key = "surface:/dashboard:normal:member:desktop"
+        ledger = {
+            "path_frontier": {"rows": [{"id": "PF-S", "kind": "surface", "semantic_key": key}]},
+            "findings": [],
+            "evidence_debt": [],
+            "raw_discoveries": [
+                {
+                    "observation_id": "RAW-DASHBOARD",
+                    "semantic_key": key,
+                    "material": True,
+                    "source_kind": "runtime_receipt",
+                    "behavioral_identity": {
+                        "semantic_key": key,
+                        "route": "/dashboard",
+                        "state": "normal",
+                        "role": "member",
+                        "viewport": "desktop",
+                    },
+                    "evidence_refs": ["evidence/dashboard.json"],
+                    "terminal_disposition": {"kind": "frontier", "record_id": "PF-S"},
+                }
+            ],
+        }
+        self.assertEqual(
+            {
+                "material_observations": 1,
+                "frontier": 1,
+                "finding": 0,
+                "evidence_debt": 0,
+                "rejected": 0,
+                "out_of_scope": 0,
+                "unresolved": 0,
+            },
+            render_report.reconcile_raw_discoveries(ledger, strict=True),
+        )
+
+    def test_execution_receipt_cannot_exist_outside_the_frontier(self) -> None:
+        receipt = {
+            "receipt_id": "REC-AVATAR",
+            "semantic_key": "control:surface:/dashboard:normal:member:desktop:avatar:button:open-menu",
+            "route": "/dashboard",
+            "role": "member",
+            "state": "normal",
+            "viewport": "desktop",
+            "surface": "surface:/dashboard:normal:member:desktop",
+            "control": {"identity": "Avatar", "type": "button"},
+            "visible": True,
+            "enabled": True,
+            "input_mechanism": "pointer",
+            "before_state": "normal",
+            "after_state": "menu-open",
+            "evidence_refs": ["evidence/avatar.json"],
+        }
+        with self.assertRaisesRegex(ValueError, "execution receipt.*frontier"):
+            render_report.reconcile_execution_receipts([], [receipt])
+
+    def test_execution_receipt_must_enter_the_raw_discovery_inventory(self) -> None:
+        key = "control:surface:/dashboard:normal:member:desktop:avatar:button:open-menu"
+        row = {
+            "id": "PF-AVATAR",
+            "kind": "control",
+            "semantic_key": key,
+            "control_identity": {"name": "Avatar", "control_type": "button"},
+        }
+        receipt = {
+            "receipt_id": "REC-AVATAR",
+            "semantic_key": key,
+            "route": "/dashboard",
+            "role": "member",
+            "state": "normal",
+            "viewport": "desktop",
+            "surface": "surface:/dashboard:normal:member:desktop",
+            "control": {"identity": "Avatar", "type": "button"},
+            "visible": True,
+            "enabled": True,
+            "input_mechanism": "pointer",
+            "before_state": "normal",
+            "after_state": "menu-open",
+            "evidence_refs": ["evidence/avatar.json"],
+        }
+        with self.assertRaisesRegex(ValueError, "raw discovery inventory"):
+            render_report.reconcile_execution_receipts([row], [receipt], [])
+        raw = {
+            "observation_id": "RAW-AVATAR",
+            "semantic_key": key,
+            "source_kind": "execution_receipt",
+            "source_id": "REC-AVATAR",
+            "behavioral_identity": {
+                "semantic_key": key,
+                "route": "/dashboard",
+                "role": "member",
+                "state": "normal",
+                "viewport": "desktop",
+                "containing_surface": "surface:/dashboard:normal:member:desktop",
+                "control_identity": "Avatar",
+                "control_type": "button",
+                "input_mechanism": "keyboard",
+                "before_state": "normal",
+                "after_state": "menu-open",
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "raw discovery identity"):
+            render_report.reconcile_execution_receipts([row], [receipt], [raw])
+
+    def test_rejected_disposition_cannot_point_to_a_different_semantic_path(self) -> None:
+        key = "surface:/dashboard:upgrade:member:desktop"
+        ledger = {
+            "path_frontier": {"rows": []},
+            "findings": [],
+            "evidence_debt": [],
+            "raw_discoveries": [
+                {
+                    "observation_id": "RAW-UPGRADE",
+                    "semantic_key": key,
+                    "material": True,
+                    "source_kind": "apparent_affordance_census",
+                    "source_id": "upgrade-card",
+                    "behavioral_identity": {
+                        "semantic_key": key,
+                        "route": "/dashboard",
+                        "state": "upgrade",
+                        "role": "member",
+                        "viewport": "desktop",
+                    },
+                    "evidence_refs": ["evidence/upgrade.json"],
+                    "terminal_disposition": {"kind": "rejected", "record_id": "REJ-UPGRADE"},
+                }
+            ],
+            "rejected_discoveries": [
+                {
+                    "discovery_id": "REJ-UPGRADE",
+                    "observation_ids": ["RAW-UPGRADE"],
+                    "semantic_key": "surface:/billing:upgrade:member:desktop",
+                    "reason": "Disconfirmed.",
+                    "evidence_refs": ["evidence/upgrade.json"],
+                }
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "semantic path"):
+            render_report.reconcile_raw_discoveries(ledger, strict=True)
+
+    def test_evidence_debt_disposition_requires_a_concrete_proof_target(self) -> None:
+        key = "control:surface:/team:normal:admin:mobile:invite:button:open-dialog"
+        ledger = {
+            "path_frontier": {"rows": []},
+            "findings": [],
+            "evidence_debt": [
+                {
+                    "debt_id": "ED-INVITE",
+                    "reason": "Mobile runtime was unavailable.",
+                }
+            ],
+            "raw_discoveries": [
+                {
+                    "observation_id": "RAW-INVITE",
+                    "semantic_key": key,
+                    "material": True,
+                    "source_kind": "control_census",
+                    "behavioral_identity": {
+                        "semantic_key": key,
+                        "route": "/team",
+                        "state": "normal",
+                        "role": "admin",
+                        "viewport": "mobile",
+                        "control_identity": "Invite",
+                        "control_type": "button",
+                    },
+                    "evidence_refs": ["evidence/team-census.json"],
+                    "terminal_disposition": {
+                        "kind": "evidence_debt",
+                        "record_id": "ED-INVITE",
+                    },
+                }
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "proof target"):
+            render_report.reconcile_raw_discoveries(ledger, strict=True)
+
+    def test_apparent_affordance_must_reconcile_to_a_raw_observation(self) -> None:
+        census = {
+            "entries": [
+                {
+                    "affordance_id": "upgrade-card",
+                    "semantic_key": "surface:/dashboard:upgrade:member:desktop",
+                    "action_signaling": True,
+                    "classification": "false_affordance",
+                    "evidence_refs": ["evidence/upgrade.json"],
+                }
+            ]
+        }
+        with self.assertRaisesRegex(ValueError, "affordance.*raw discovery"):
+            render_report.reconcile_affordance_census({"raw_discoveries": []}, census)
 
     def test_apparent_affordance_requires_a_census_disposition(self) -> None:
         with self.assertRaisesRegex(ValueError, "apparent affordance"):
@@ -343,9 +723,33 @@ class RemediationLedgerContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "matching execution receipt"):
             render_report.validate_canonical_input(broken)
 
+    def test_incomplete_full_run_cannot_bypass_raw_reconciliation(self) -> None:
+        candidate = self.full_candidate()
+        ledger = candidate["source_ledger"]
+        ledger["completion_status"] = "incomplete"
+        ledger["readiness_disposition"] = "cannot_determine"
+        ledger["path_frontier"]["closure_state"] = "incomplete"
+        ledger["path_frontier"]["closure_reason"] = "One material variant remains unproven."
+        ledger["raw_discoveries"] = ledger["raw_discoveries"][:-1]
+
+        with self.assertRaisesRegex(ValueError, "no material raw observation"):
+            render_report.validate_canonical_input(candidate)
+
     def test_current_full_checkpoint_requires_three_certified_waves_and_provenance(self) -> None:
         candidate = self.full_candidate()
         frontier = candidate["source_ledger"]["path_frontier"]
+        surface_key = next(
+            row["semantic_key"] for row in frontier["rows"] if row["kind"] == "surface"
+        )
+        surface_raw = next(
+            item
+            for item in candidate["source_ledger"]["raw_discoveries"]
+            if item["semantic_key"] == surface_key
+        )
+        surface_raw.update(
+            source_kind="apparent_affordance_census",
+            source_id="upgrade-card",
+        )
         all_controls = [row["semantic_key"] for row in frontier["rows"] if row["kind"] == "control"]
         frontier_digest = self._digest(frontier["rows"])
         control_digest = hashlib.sha256(
@@ -400,7 +804,13 @@ class RemediationLedgerContractTests(unittest.TestCase):
             (root / "readiness-ledger.json").write_text(json.dumps(candidate["source_ledger"]), encoding="utf-8")
             for reference in checkpoint["raw_lane_output_paths"] + checkpoint["raw_verifier_output_paths"]:
                 (root / reference).parent.mkdir(parents=True, exist_ok=True)
-                (root / reference).write_text(json.dumps({"raw_discoveries": candidate["source_ledger"]["raw_discoveries"]}), encoding="utf-8")
+                (root / reference).write_text(
+                    json.dumps({
+                        "raw_discoveries": candidate["source_ledger"]["raw_discoveries"],
+                        "execution_receipts": candidate["source_ledger"]["execution_receipts"],
+                    }),
+                    encoding="utf-8",
+                )
             for reference in checkpoint["control_census_paths"]:
                 (root / reference).write_text(json.dumps({
                     "method_family": "runtime_structural_inventory" if "runtime" in reference else "static_implementation_inventory",
@@ -410,7 +820,13 @@ class RemediationLedgerContractTests(unittest.TestCase):
                     "unmatched_controls": [],
                 }), encoding="utf-8")
             (root / "evidence/affordance-census.json").write_text(json.dumps({
-                "entries": [{"affordance_id": "upgrade-card", "action_signaling": True, "classification": "false_affordance", "evidence_refs": ["evidence/upgrade.png"]}]
+                "entries": [{
+                    "affordance_id": "upgrade-card",
+                    "semantic_key": surface_key,
+                    "action_signaling": True,
+                    "classification": "false_affordance",
+                    "evidence_refs": ["evidence/upgrade.png"],
+                }]
             }), encoding="utf-8")
             for reference in ("evidence/citation.json", "evidence/upgrade.png", "evidence/save.json"):
                 (root / reference).write_text("proof", encoding="utf-8")
@@ -422,6 +838,21 @@ class RemediationLedgerContractTests(unittest.TestCase):
             (root / "orchestration-checkpoint.json").write_text(json.dumps(checkpoint), encoding="utf-8")
             loaded = render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
             self.assertEqual("complete", loaded["audit_status"])
+            raw_runtime_path = root / "evidence/raw-runtime.json"
+            raw_runtime = json.loads(raw_runtime_path.read_text(encoding="utf-8"))
+            raw_runtime["raw_discoveries"][0]["behavioral_identity"]["role"] = "admin"
+            raw_runtime_path.write_text(json.dumps(raw_runtime), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "raw operational packets"):
+                render_report.load_orchestration_checkpoint(
+                    str(root / "report-input.json"), candidate
+                )
+            raw_runtime_path.write_text(
+                json.dumps({
+                    "raw_discoveries": candidate["source_ledger"]["raw_discoveries"],
+                    "execution_receipts": candidate["source_ledger"]["execution_receipts"],
+                }),
+                encoding="utf-8",
+            )
             broken = deepcopy(checkpoint)
             broken["verified_wave_ids"] = ["W1", "W2"]
             (root / "orchestration-checkpoint.json").write_text(json.dumps(broken), encoding="utf-8")

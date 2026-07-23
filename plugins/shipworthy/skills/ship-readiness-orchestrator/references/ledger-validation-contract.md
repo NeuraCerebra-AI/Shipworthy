@@ -72,6 +72,23 @@ Positive recent discovery yield, an omitted gate disclosure, strong early
 findings, or a small target cannot produce complete status. Missing paths that
 are promised but proven absent are `missing` findings, not indefinite debt.
 
+For the Raw-Evidence-to-Ledger Reconciliation Gate, the ledger remains a draft
+until every material raw observation has exactly one terminal disposition.
+Retain its stable observation ID, source kind, evidence references, semantic
+key, and behavioral identity. Compare route, role, state, viewport, containing
+surface, control identity/type, input mechanism, and before/after state; reject
+a wrong semantic variant even when its label is similar. Every retained
+execution receipt and action-signalling affordance must resolve through the raw
+discovery set into the frontier or an explicit disposition. Repeated events may
+deduplicate only when their complete behavioral identity agrees. Independently
+fixable effects require distinct finding lineage. Rejected and out-of-scope
+records require linked observation IDs, reason, and evidence. Material
+observations must not silently disappear. When raw evidence proves the ledger
+wrong, increment its revision and renew verifier approval; otherwise preserve
+the gap as evidence debt and keep closure incomplete. An incomplete or blocked
+full run remains renderable only after this accounting succeeds; those statuses
+cannot bypass reconciliation.
+
 Actionable records carry an observed behavior, user consequence, concrete
 smallest safe fix, exact verification step, evidence references, and canonical
 behavioral lineage. Visual records additionally require exact viewport and

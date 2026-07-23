@@ -110,6 +110,16 @@ Static artifacts have hard limits. A screenshot can support visible design, copy
 
 Normalize lane packets before adding them to the canonical ledger.
 
+Retain each material lane observation as `raw_discoveries` before synthesis.
+Give it a stable `observation_id`, `source_kind`, `material`, `semantic_key`,
+`behavioral_identity`, `evidence_refs`, and `terminal_disposition`. The
+behavioral identity preserves route, role, state, viewport, containing surface,
+control identity/type, input mechanism, and before/after state when applicable.
+The terminal disposition names exactly one frontier row, finding,
+evidence-debt row, rejected-discovery row, or out-of-scope row. Repeated events
+may share a disposition only when the full behavioral identity and defect
+class agree.
+
 Canonical severity:
 
 - `P0 Blocker`: prevents release, causes data loss/security/privacy breach, irreversible destructive action, payment/publishing/permission failure, or blocks the core workflow for the target user.
