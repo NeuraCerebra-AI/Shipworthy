@@ -67,8 +67,9 @@ For a current `run_scope: full`, this gate also requires three distinct
 verified wave IDs and retained independent certificates, raw-to-final discovery
 reconciliation, an apparent-affordance census, exact route/role/state/viewport/
 surface/control/input/before-after execution receipts, retained verifier output
-and citation provenance, recovery exhaustion, canonical artifact validation,
-and the mandatory HTML report. Positive recent yield keeps discovery active;
+and citation provenance, frontend-to-backend correlation for backend-effecting
+controls, recovery exhaustion, canonical artifact validation, and the mandatory
+HTML report. Positive recent yield keeps discovery active;
 small targets and strong findings never waive these controls. Closure is
 derived from retained receipts, not authored by a report builder.
 
@@ -138,6 +139,39 @@ incomplete. Incomplete or blocked status never bypasses this reconciliation;
 it changes the verdict, not the accounting requirement. Never invent execution
 merely to make reconciliation pass.
 
+## Frontend-to-Backend Correlation Gate
+
+For each material control whose user-visible action should change backend state
+or truth—save/create/update/submit, import/export, publish, invite, auth or
+permission changes, safe destructive/recovery/asynchronous actions, and success
+or failure feedback—extend its existing execution receipt with
+`backend_effect_expected`, a reason, and one nested `backend_correlation`.
+Do not create a parallel receipt inventory. The control receipt owns the
+correlation; its transition receipt retains before/after lineage without
+double-counting the same action.
+
+Use one designated runtime driver per browser/server instance. Capture the
+backend process to a fresh external run log when authorized, then for each
+backend-effecting action record the pre-action offset/state, exercise the UI,
+capture request/response and console evidence, read only the new log range,
+inspect authorized resulting state, perform reload/re-entry when persistence is
+claimed, and append the receipt immediately. Canonical correlation status is
+`matched`, `mismatch`, `blocked`, or `not_applicable`; every network, logs,
+state, and reentry channel is explicitly `observed`, `blocked`, or
+`not_applicable`.
+
+`matched` requires bounded runtime backend evidence. Success with a failed or
+duplicate mutation, unchanged state, correlated unhandled error, or failed
+re-entry is `mismatch` with finding lineage. An unavailable channel is
+`blocked`/NOT_PROVEN, not a failure and not a pass. Purely presentational
+controls may be `not_applicable` with a reason. Try, in order, browser network
+evidence, an authorized local API/state endpoint, existing target-owned tests
+or telemetry, and already-accessible authorized provider logs. Never install
+monitoring, alter production instrumentation, request credentials, access an
+unauthorized store, retain secrets/bodies/personal data/unbounded logs, or use
+source as runtime proof. This gate follows the existing safe-test boundary and
+does not expand into a backend architecture review.
+
 ## Start Gate
 
 Before dispatching agents, writing findings, or judging design quality:
@@ -147,6 +181,16 @@ Before dispatching agents, writing findings, or judging design quality:
 3. Record the target fingerprint: repo path, branch, commit, dirty state, worktree, runtime URL or launch command, environment, timestamp, account/role/fixture, viewport/device assumptions, and evidence output location.
 4. Define the safe-test boundary: allowed actions, forbidden actions, mutation risks, reset plan, privacy constraints, paid/provider constraints, production risks, and stop conditions.
 5. Treat the run as read-only unless the user explicitly authorizes a specific action, the fixture/reset plan is known, and the action is inside a disposable or safely resettable environment. High-risk actions require both explicit approval and a disposable/resettable environment.
+
+For a declared full benchmark/comparative fixture only, require a clean
+`git status --porcelain` before exploration, record the baseline revision/tag,
+and write all generated evidence directly under the external Shipworthy run
+root. Pre-existing screenshots, logs, receipts, ledgers, snapshots, or any other
+dirty entry abort the benchmark before analysis; do not delete user files
+without authorization. Use a clean clone/worktree or obtain explicit cleanup
+authorization. Still render the mandatory blocked HTML explaining the aborted
+preflight, but do not issue benchmark results. Ordinary product audits preserve
+and record dirty worktrees and do not inherit this benchmark-only abort rule.
 
 ## Multi-Agent Authorization Gate
 

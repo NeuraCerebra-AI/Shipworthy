@@ -215,7 +215,20 @@ def build_validation_repair_manifest(message, attempt_count=1):
     failures = []
     for index, problem in enumerate(fragments):
         lowered = problem.casefold()
-        if "receipt" in lowered and "original" in lowered:
+        if any(
+            token in lowered
+            for token in (
+                "backend correlation", "backend-effect", "backend effect",
+                "correlated backend", "re-entry result", "request count",
+                "bounded log range",
+            )
+        ):
+            gate = "frontend_to_backend_correlation"
+            action = (
+                "Re-exercise the action with bounded request, log-delta, state, "
+                "and re-entry proof, or mark the claim NOT_PROVEN."
+            )
+        elif "receipt" in lowered and "original" in lowered:
             gate = "receipt_to_original"
             action = "Restore the preserved observation or safely re-exercise and recapture the path."
         elif "census" in lowered and "original" in lowered:
@@ -1153,6 +1166,350 @@ def reconcile_execution_receipts(rows, events, raw_discoveries=None):
     return True
 
 
+BACKEND_CORRELATION_STATUSES = {"matched", "mismatch", "blocked", "not_applicable"}
+BACKEND_CHANNEL_STATUSES = {"observed", "blocked", "not_applicable"}
+BACKEND_CHANNELS = ("network", "logs", "state", "reentry")
+SENSITIVE_CORRELATION_FIELDS = {
+    "authorization", "cookie", "cookies", "token", "secret", "password",
+    "headers", "request_body", "response_body", "body", "log_content",
+    "raw_log", "raw_logs", "personal_data",
+}
+MAX_CORRELATED_LOG_BYTES = 1_048_576
+
+
+def _reject_sensitive_correlation_fields(value, path="backend_correlation"):
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if str(key).casefold() in SENSITIVE_CORRELATION_FIELDS:
+                raise ValueError(
+                    f"{path} contains sensitive or raw payload field {key}"
+                )
+            _reject_sensitive_correlation_fields(nested, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            _reject_sensitive_correlation_fields(nested, f"{path}[{index}]")
+
+
+def _observed_channel(channel, name, receipt_id):
+    if not isinstance(channel, dict):
+        raise ValueError(
+            f"backend correlation {receipt_id} channel {name} must be an object"
+        )
+    status = channel.get("status")
+    if status not in BACKEND_CHANNEL_STATUSES:
+        raise ValueError(
+            f"backend correlation {receipt_id} channel {name} has a non-canonical status"
+        )
+    if status == "observed":
+        references = channel.get("evidence_refs")
+        if not isinstance(references, list) or not references:
+            raise ValueError(
+                f"backend correlation {receipt_id} observed channel {name} lacks evidence"
+            )
+    elif status in {"blocked", "not_applicable"} and not str(
+        channel.get("reason") or ""
+    ).strip():
+        raise ValueError(
+            f"backend correlation {receipt_id} {status} channel {name} lacks a reason"
+        )
+    return status == "observed"
+
+
+def reconcile_backend_correlations(
+    rows, events, findings, strict=False, require_closure=False
+):
+    """Validate bounded backend proof owned by material control execution receipts."""
+    by_key = {
+        row.get("semantic_key"): row
+        for row in (rows or [])
+        if isinstance(row, dict) and isinstance(row.get("semantic_key"), str)
+    }
+    finding_keys = {
+        key
+        for finding in (findings or [])
+        if isinstance(finding, dict)
+        for key in finding.get("affected_semantic_keys", [])
+        if isinstance(key, str)
+    }
+    summary = {
+        "backend_effecting_actions": 0,
+        "matched": 0,
+        "mismatch": 0,
+        "blocked": 0,
+        "not_proven": 0,
+        "correlated_backend_errors": 0,
+        "persistence_checks": 0,
+        "blocked_channels": 0,
+    }
+    for event in events or []:
+        if not isinstance(event, dict):
+            continue
+        row = by_key.get(event.get("semantic_key"))
+        # A transition receipt inherits the correlation owned by its parent
+        # control receipt; counting it again would duplicate one user action.
+        material_control = (
+            isinstance(row, dict)
+            and row.get("kind") == "control"
+            and row.get("material", True)
+        )
+        if not material_control:
+            continue
+        receipt_id = event.get("receipt_id") or "(unnamed)"
+        expected = event.get("backend_effect_expected")
+        reason = event.get("backend_effect_reason")
+        correlation = event.get("backend_correlation")
+        if strict and not isinstance(expected, bool):
+            raise ValueError(
+                f"backend correlation {receipt_id} requires backend_effect_expected"
+            )
+        if expected is None:
+            continue
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError(
+                f"backend correlation {receipt_id} requires a backend effect reason"
+            )
+        if not isinstance(correlation, dict):
+            raise ValueError(
+                f"backend correlation {receipt_id} requires a correlation object"
+            )
+        _reject_sensitive_correlation_fields(correlation)
+        status = correlation.get("status")
+        if status not in BACKEND_CORRELATION_STATUSES:
+            raise ValueError(
+                f"backend correlation {receipt_id} has a non-canonical status"
+            )
+        if expected is False:
+            if status != "not_applicable":
+                raise ValueError(
+                    f"backend correlation {receipt_id} must be not_applicable "
+                    "when no backend effect is expected"
+                )
+            continue
+        if status == "not_applicable":
+            raise ValueError(
+                f"backend correlation {receipt_id} cannot be not_applicable "
+                "when a backend effect is expected"
+            )
+        summary["backend_effecting_actions"] += 1
+        summary[status] += 1
+        if not isinstance(correlation.get("state_change_expected"), bool):
+            raise ValueError(
+                f"backend correlation {receipt_id} requires state_change_expected"
+            )
+        if not isinstance(correlation.get("persistence_expected"), bool):
+            raise ValueError(
+                f"backend correlation {receipt_id} requires persistence_expected"
+            )
+        if correlation.get("ui_feedback") not in {"success", "failure", "none"}:
+            raise ValueError(
+                f"backend correlation {receipt_id} requires canonical UI feedback"
+            )
+        if correlation.get("persistence_expected"):
+            summary["persistence_checks"] += 1
+        if status == "blocked":
+            summary["not_proven"] += 1
+        channels = correlation.get("channels")
+        if not isinstance(channels, dict) or any(
+            name not in channels for name in BACKEND_CHANNELS
+        ):
+            raise ValueError(
+                f"backend correlation {receipt_id} requires all channel statuses"
+            )
+        observed = {
+            name: _observed_channel(channels[name], name, receipt_id)
+            for name in BACKEND_CHANNELS
+        }
+        summary["blocked_channels"] += sum(
+            channels[name].get("status") == "blocked" for name in BACKEND_CHANNELS
+        )
+        mismatch_signals = []
+        logs = channels["logs"]
+        correlated_errors = logs.get("correlated_error_count", 0)
+        if (
+            (observed["logs"] and "correlated_error_count" not in logs)
+            or not isinstance(correlated_errors, int)
+            or isinstance(correlated_errors, bool)
+            or correlated_errors < 0
+        ):
+            raise ValueError(
+                f"backend correlation {receipt_id} correlated error count is invalid"
+            )
+        summary["correlated_backend_errors"] += correlated_errors
+        if correlated_errors:
+            mismatch_signals.append("correlated backend error")
+        if observed["logs"]:
+            if not str(logs.get("source_ref") or "").strip():
+                raise ValueError(
+                    f"backend correlation {receipt_id} observed logs lack a source"
+                )
+            start = logs.get("start_offset")
+            end = logs.get("end_offset")
+            if (
+                not isinstance(start, int)
+                or isinstance(start, bool)
+                or not isinstance(end, int)
+                or isinstance(end, bool)
+                or start < 0
+                or end < start
+                or end - start > MAX_CORRELATED_LOG_BYTES
+            ):
+                raise ValueError(
+                    f"backend correlation {receipt_id} requires a bounded log range"
+                )
+        network = channels["network"]
+        if observed["network"]:
+            actual = network.get("request_count")
+            expected_count = network.get("expected_request_count")
+            if (
+                not isinstance(actual, int)
+                or isinstance(actual, bool)
+                or not isinstance(expected_count, int)
+                or isinstance(expected_count, bool)
+                or actual < 0
+                or expected_count < 0
+            ):
+                raise ValueError(
+                    f"backend correlation {receipt_id} request count is invalid"
+                )
+            if actual != expected_count:
+                mismatch_signals.append("request count mismatch")
+            if (
+                not str(network.get("method") or "").strip()
+                or not str(network.get("path") or "").strip()
+                or not isinstance(network.get("response_status"), int)
+                or isinstance(network.get("response_status"), bool)
+                or not 100 <= network["response_status"] <= 599
+            ):
+                raise ValueError(
+                    f"backend correlation {receipt_id} observed network proof is incomplete"
+                )
+            if (
+                correlation.get("ui_feedback") == "success"
+                and network["response_status"] >= 400
+            ):
+                mismatch_signals.append("success feedback with failed response")
+        state = channels["state"]
+        reentry = channels["reentry"]
+        if observed["state"] and (
+            not str(state.get("before") or "").strip()
+            or not str(state.get("after") or "").strip()
+        ):
+            raise ValueError(
+                f"backend correlation {receipt_id} observed state proof is incomplete"
+            )
+        if observed["reentry"] and not str(reentry.get("result") or "").strip():
+            raise ValueError(
+                f"backend correlation {receipt_id} observed re-entry proof is incomplete"
+            )
+        if (
+            correlation.get("state_change_expected")
+            and observed["state"]
+            and state.get("before") == state.get("after")
+        ):
+            mismatch_signals.append("expected state did not change")
+        if (
+            correlation.get("ui_feedback") == "failure"
+            and correlation.get("state_change_expected")
+            and observed["state"]
+            and state.get("before") != state.get("after")
+        ):
+            mismatch_signals.append("failure feedback despite backend state change")
+        if (
+            correlation.get("persistence_expected")
+            and observed["state"]
+            and observed["reentry"]
+            and reentry.get("result") != state.get("after")
+        ):
+            mismatch_signals.append("re-entry contradicts backend state")
+        if status == "matched":
+            if not any(observed[name] for name in ("network", "logs", "state")):
+                raise ValueError(
+                    f"backend correlation {receipt_id} matched without runtime backend evidence"
+                )
+            if correlated_errors:
+                raise ValueError(
+                    f"backend correlation {receipt_id} matched despite correlated backend errors"
+                )
+            if observed["network"] and (
+                network.get("request_count") != network.get("expected_request_count")
+            ):
+                raise ValueError(
+                    f"backend correlation {receipt_id} request count does not match expectation"
+                )
+            if correlation.get("state_change_expected"):
+                if (
+                    not observed["state"]
+                    or not str(state.get("before") or "").strip()
+                    or not str(state.get("after") or "").strip()
+                    or state.get("before") == state.get("after")
+                ):
+                    raise ValueError(
+                        f"backend correlation {receipt_id} matched without the expected state change"
+                    )
+            if correlation.get("persistence_expected"):
+                if not observed["state"] or not observed["reentry"]:
+                    raise ValueError(
+                        f"backend correlation {receipt_id} persistence claim lacks re-entry evidence"
+                    )
+                if reentry.get("result") != state.get("after"):
+                    raise ValueError(
+                        f"backend correlation {receipt_id} re-entry result contradicts backend state"
+                    )
+            if mismatch_signals:
+                raise ValueError(
+                    f"backend correlation {receipt_id} matched despite contradictory evidence"
+                )
+        elif status == "mismatch":
+            if event.get("semantic_key") not in finding_keys:
+                raise ValueError(
+                    f"backend correlation {receipt_id} mismatch lacks finding lineage"
+                )
+            if not mismatch_signals:
+                raise ValueError(
+                    f"backend correlation {receipt_id} mismatch lacks contradictory evidence"
+                )
+        if require_closure and status == "blocked":
+            raise ValueError(
+                f"backend correlation {receipt_id} is blocked and cannot support covered closure"
+            )
+    return summary
+
+
+def validate_benchmark_preflight(checkpoint, allow_aborted_report=False):
+    """Fail closed only for declared full benchmark evaluations."""
+    if not isinstance(checkpoint, dict):
+        return True
+    if not (
+        checkpoint.get("run_scope") == "full"
+        and checkpoint.get("target_intent") == "benchmark_fixture"
+    ):
+        return True
+    receipt = checkpoint.get("benchmark_preflight")
+    if not isinstance(receipt, dict):
+        raise ValueError("benchmark preflight requires a clean target receipt")
+    invalid = (
+        receipt.get("status") != "clean"
+        or not str(receipt.get("baseline_revision") or "").strip()
+        or not isinstance(receipt.get("porcelain_entries"), list)
+        or receipt.get("porcelain_entries")
+        or not isinstance(receipt.get("generated_artifacts"), list)
+        or receipt.get("generated_artifacts")
+        or receipt.get("evidence_external") is not True
+    )
+    if not invalid:
+        return True
+    if (
+        allow_aborted_report
+        and checkpoint.get("audit_status") == "blocked"
+        and checkpoint.get("frontend_path_walk_performed") is False
+        and checkpoint.get("path_walk_status") == "not_performed"
+    ):
+        return True
+    raise ValueError(
+        "benchmark preflight requires a clean target and external evidence root"
+    )
+
+
 def classify_missing_path(proof):
     if not isinstance(proof, dict):
         return "evidence_debt"
@@ -1701,6 +2058,13 @@ def validate_canonical_input(data, evidence_root=None):
                 ledger.get("execution_receipts", []),
                 ledger.get("raw_discoveries", []),
             )
+            reconcile_backend_correlations(
+                frontier.get("rows", []),
+                ledger.get("execution_receipts", []),
+                ledger.get("findings", []),
+                strict=True,
+                require_closure=frontier.get("closure_state") == "closed_multi_source",
+            )
         except ValueError as error:
             errors.append(str(error))
 
@@ -1714,6 +2078,16 @@ def validate_canonical_input(data, evidence_root=None):
             if isinstance(observation, dict) and isinstance(observation.get("evidence_refs"), list)
         )
         references.extend(finding.get("evidence_refs", []) for finding in ledger.get("findings", []) if isinstance(finding, dict) and isinstance(finding.get("evidence_refs"), list))
+        references.extend(
+            channel.get("evidence_refs", [])
+            for receipt in ledger.get("execution_receipts", [])
+            if isinstance(receipt, dict)
+            for channel in (
+                (receipt.get("backend_correlation") or {}).get("channels", {})
+            ).values()
+            if isinstance(channel, dict)
+            and isinstance(channel.get("evidence_refs"), list)
+        )
         references.extend(
             [finding.get("visual_proof", {}).get("screenshot_or_geometry_ref")]
             for finding in ledger.get("findings", [])
@@ -1812,6 +2186,10 @@ def load_orchestration_checkpoint(input_path, data):
     # declaring run_scope=full; that declaration is then validated strictly.
     strict_full_run = checkpoint.get("run_scope") == "full"
     if strict_full_run:
+        try:
+            validate_benchmark_preflight(checkpoint, allow_aborted_report=True)
+        except ValueError as error:
+            errors.append(str(error))
         validation_state = checkpoint.get("validation_state")
         validation_attempts = checkpoint.get("validation_attempts")
         if validation_state not in {
@@ -2270,7 +2648,8 @@ def summarize_frontier(frontier):
     }
 
 def coverage_confidence_html(
-    frontier, checkpoint=None, record_counts=None, reconciliation_summary=None
+    frontier, checkpoint=None, record_counts=None, reconciliation_summary=None,
+    backend_correlation_summary=None,
 ):
     """Render a bounded early explanation of scope and honest closure."""
     summary = summarize_frontier(frontier)
@@ -2362,6 +2741,28 @@ def coverage_confidence_html(
         completion_html = (
             f'<p><b>Renderer validation</b><span>{esc(completion)}</span></p>'
         )
+    backend_html = ""
+    if (
+        isinstance(backend_correlation_summary, dict)
+        and backend_correlation_summary.get("backend_effecting_actions", 0) > 0
+    ):
+        backend_text = (
+            f'{backend_correlation_summary.get("matched", 0)} of '
+            f'{backend_correlation_summary.get("backend_effecting_actions", 0)} '
+            f'backend-effecting actions correlated · '
+            f'{backend_correlation_summary.get("mismatch", 0)} mismatches · '
+            f'{backend_correlation_summary.get("correlated_backend_errors", 0)} '
+            f'correlated backend errors · '
+            f'{backend_correlation_summary.get("persistence_checks", 0)} '
+            f'persistence checks · '
+            f'{backend_correlation_summary.get("blocked_channels", 0)} '
+            f'blocked channels · '
+            f'{backend_correlation_summary.get("not_proven", 0)} NOT_PROVEN'
+        )
+        backend_html = (
+            f'<p><b>Frontend-to-backend correlation</b>'
+            f'<span>{esc(backend_text)}</span></p>'
+        )
     return (
         '<section class="confidence-summary"><div class="section-head"><h2>Coverage Confidence</h2></div>'
         '<div class="confidence-grid">'
@@ -2373,6 +2774,7 @@ def coverage_confidence_html(
         f'{accounting_html}'
         f'{original_closure_html}'
         f'{reconciliation_html}'
+        f'{backend_html}'
         f'{completion_html}'
         f'<p><b>Why testing stopped</b><span>{esc(summary["closure_reason"])}</span></p>'
         f'<p><b>{closure}</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
@@ -2506,6 +2908,17 @@ def project_input(data, orchestration_checkpoint=None):
         "reconciliation_summary": reconcile_raw_discoveries(
             ledger, strict=strict_full
         ) if isinstance(ledger.get("raw_discoveries"), list) else None,
+        "backend_correlation_summary": reconcile_backend_correlations(
+            (ledger.get("path_frontier") or {}).get("rows", []),
+            ledger.get("execution_receipts", []),
+            ledger.get("findings", []),
+            strict=strict_full,
+            require_closure=(
+                strict_full
+                and (ledger.get("path_frontier") or {}).get("closure_state")
+                == "closed_multi_source"
+            ),
+        ),
     }
     validate_record_count_projection(ledger, projected)
     validate_projection_fidelity(ledger, projected)
@@ -2769,9 +3182,31 @@ def traceability_html(traceability):
             and ".." not in path.replace("\\", "/").split("/")
         ):
             path_text = f'<a href="{esc(path)}">{esc(path)}</a>'
+        correlation = (
+            item.get("backend_correlation")
+            if isinstance(item.get("backend_correlation"), dict)
+            else None
+        )
+        correlation_text = ""
+        if correlation:
+            channels = (
+                correlation.get("channels")
+                if isinstance(correlation.get("channels"), dict)
+                else {}
+            )
+            channel_text = " · ".join(
+                f"{name} {channels[name].get('status', 'not recorded')}"
+                for name in BACKEND_CHANNELS
+                if isinstance(channels.get(name), dict)
+            )
+            correlation_text = (
+                f" · backend {correlation.get('status', 'not recorded')}"
+                + (f" · {channel_text}" if channel_text else "")
+            )
         receipts.append(
             f'<div class="coverage-proof"><b>{esc(receipt_id)}</b>'
-            f'<span>{esc(item.get("status") or "status not recorded")} · {path_text}</span></div>'
+            f'<span>{esc(item.get("status") or "status not recorded")}'
+            f'{esc(correlation_text)} · {path_text}</span></div>'
         )
 
     dispositions = []
@@ -2819,6 +3254,7 @@ def render(data, interactive=False, orchestration_checkpoint=None):
         data.get("checkpoint"),
         data.get("record_counts"),
         data.get("reconciliation_summary"),
+        data.get("backend_correlation_summary"),
     )
     product_cov_block = product_coverage_html(frontier)
     traceability_block = traceability_html(data.get("traceability"))

@@ -118,6 +118,7 @@ Shipworthy final answer with this concise next-step ask:
 8. **Product Coverage**
    - Near the beginning, add a compact Coverage Confidence summary: tested/not tested scope; roles, states, and viewports; stop reason; closure; inferred, blocked, avoided, and NOT_PROVEN limits.
    - In that summary, show compact end-to-end evidence accounting: execution receipts, census controls, action-signalling affordances, original observations, ledger observations, unresolved count, and renderer-validation receipt status. Do not expose the full inventories by default.
+   - When backend-effecting actions exist, show renderer-derived frontend-to-backend counts: correlated actions and denominator, mismatches, correlated backend errors, and NOT_PROVEN actions. Keep request and bounded log-range detail collapsed; never render secrets or payload bodies.
    - After the action-first finding sections, show canonical closure/reason, exact counts and each exact denominator, discovery families, and bounded feature rows.
    - Collapse Control evidence, Role/state/device coverage, blocked/avoided actions, reconciliation, and manifest detail; link safe local frontier JSON instead of dumping rows.
 

@@ -30,6 +30,7 @@ orchestration claims.
 ```json
 {
   "target_name": "Human product name",
+  "target_intent": "production_product or benchmark_fixture",
   "lanes": ["runtime — completed — evidence/runtime.txt", "verifier — approved — evidence/verifier.txt"],
   "mode": "authorized native agents or sequential fallback",
   "multi_agent_authorization": "explicitly authorized, denied, unavailable, or not received",
@@ -62,6 +63,14 @@ orchestration claims.
 }
 ```
 
+For `target_intent: benchmark_fixture` with `run_scope: full`, also retain
+`benchmark_preflight` with `status: clean`, a non-empty `baseline_revision`,
+optional `baseline_tag`, empty `porcelain_entries` and `generated_artifacts`,
+and `evidence_external: true`. Any dirty entry aborts exploration. This
+benchmark-only rule permits a blocked, not-performed checkpoint to render the
+mandatory abort report; it does not permit benchmark results and does not
+reject an ordinary product audit merely because its user worktree is dirty.
+
 For `run_scope: full`, the checkpoint is a non-waivable completion contract:
 retain three distinct `verified_wave_ids` and one approved independent
 certificate per wave; retain raw lane and verifier packets; and retain an
@@ -70,7 +79,16 @@ Every raw discovery must reconcile to a frontier row, finding lineage, or an
 explicit evidence-backed rejection/out-of-scope disposition. Every covered
 material control and transition must have an exact visible execution receipt
 for route, role, state, viewport, containing surface, control identity/type,
-input mechanism, and before/after state. Closure receipts must resolve to a
+input mechanism, and before/after state. Each material control receipt also
+declares `backend_effect_expected` and a non-empty reason. A backend-effecting
+control owns one nested `backend_correlation` whose overall status is
+`matched`, `mismatch`, or `blocked` and whose `network`, `logs`, `state`, and
+`reentry` channels each explicitly say `observed`, `blocked`, or
+`not_applicable`; it also records boolean state-change/persistence expectations
+and UI feedback as `success`, `failure`, or `none`. A presentational control may
+use overall `not_applicable`.
+Transition receipts preserve transition lineage without duplicating the
+control's correlation. Closure receipts must resolve to a
 retained operational source path; a report builder cannot originate closure.
 Positive recent discovery yield, an omitted gate disclosure, strong early
 findings, or a small target cannot produce complete status. Missing paths that
@@ -92,6 +110,20 @@ synthesis. A material before/after receipt requires exact transition lineage.
 Missing, invented, changed, or circular records fail closure; verifier
 approval, completed waves, zero-yield passes, and non-complete audit status do
 not waive this check.
+
+For backend correlation, `matched` requires bounded runtime backend proof.
+Observed channels require safe evidence references. Log proof records a source,
+non-negative byte offsets no more than 1 MiB apart, and correlated error count;
+network proof records method, redacted path, response status, and expected and
+actual request counts; state proof records before/after; persistence
+additionally requires agreeing reload/re-entry proof.
+Success with a failed or duplicate mutation, unchanged expected state,
+correlated unhandled error, or failed re-entry cannot be `matched`. A
+`mismatch` requires finding lineage. A `blocked` channel stays NOT_PROVEN and
+must carry a reason; an overall `blocked` correlation cannot support closed
+coverage, while `matched` may retain a blocked non-required channel when other
+runtime proof supports the action claim. Reject secrets, headers, cookies,
+tokens, bodies, personal data, and raw/unbounded log content.
 
 For a current full run, checkpoint validation state is `collecting`,
 `synthesizing`, `validating`, `repairing`, `complete`, or `blocked`, with at

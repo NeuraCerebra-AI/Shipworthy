@@ -60,6 +60,22 @@ Assess path effort for each material goal: step count, decision count, context s
 
 Use runtime/browser evidence when available: screenshots, recordings, DOM/UI tree, accessibility tree, console, network, API/log snippets, route traces, state snapshots, persistence checks, and code anchors that explain user-visible behavior.
 
+For every material control that should affect backend state or truth, use the
+existing execution receipt as the single correlation record. With one
+designated runtime driver per browser/server instance: capture authorized
+backend stdout/stderr to a fresh external run log; record the current log
+offset/state; exercise the frontend action; capture request/response and
+console activity; read only the new log range; inspect authorized resulting
+state; reload/re-enter for persistence claims; then append and verify the
+receipt before continuing. Explicitly classify network, logs, state, and
+reentry as `observed`, `blocked`, or `not_applicable`, and the overall result as
+`matched`, `mismatch`, `blocked`, or `not_applicable`. A channel that cannot be
+observed remains NOT_PROVEN. Contradictory feedback/state, duplicate mutations,
+correlated unhandled errors, and failed persistence become distinct findings.
+Do not retain secrets, payload bodies, personal data, or unbounded logs.
+Presentational controls need only an explicit no-backend-effect reason unless
+they unexpectedly trigger a request.
+
 Label each discovered material path or expected intent covered, sampled, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt. Return canonical semantic rows with `intent → feature → surface → control → transition` lineage, `shipworthy-semantic-v1` identities, `shipworthy-methods-v1` observations, evidence refs, attempt counts, control identity, and transition before/after states. Record discovery passes and source/runtime reconciliation differences at feature and surface levels. Do not present the lane packet as the canonical ledger.
 
 Before any frontier or finding synthesis, freeze an original evidence packet

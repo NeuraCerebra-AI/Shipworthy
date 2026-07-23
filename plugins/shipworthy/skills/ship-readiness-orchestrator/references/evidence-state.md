@@ -263,6 +263,25 @@ Do not merge blocked and avoided.
 
 For screenshot-only or static-artifact audits, do not label a workflow `covered` unless the artifact includes enough sequential trace evidence to support that label. Usually label visible surfaces `sampled`, behavior claims `inferred`, and unavailable runtime checks `blocked` or `evidence_debt`.
 
+## Backend Correlation In Execution Receipts
+
+For a material control receipt, record whether a backend effect is expected and
+why. When true, add one nested `backend_correlation` with overall status
+`matched`, `mismatch`, or `blocked`, plus explicit `network`, `logs`, `state`,
+and `reentry` channel statuses, boolean state-change/persistence expectations,
+and UI feedback `success`, `failure`, or `none`. When false, use
+`not_applicable` and a reason.
+The parent control receipt owns this proof; do not create a second correlation
+inventory or duplicate it on the transition receipt.
+
+Observed channels retain only bounded facts and safe evidence references:
+request method/redacted path/counts/status, bounded log source and byte offsets
+with the correlated error count, state before/after, and re-entry result. Do not retain credentials,
+headers, cookies, tokens, request/response bodies, personal data, or raw log
+content. A persistence claim requires observed resulting state and reload or
+re-entry agreement. A blocked channel stays NOT_PROVEN; a mismatch must link to
+the affected semantic key in a finding.
+
 ## Evidence Debt Register
 
 Track:

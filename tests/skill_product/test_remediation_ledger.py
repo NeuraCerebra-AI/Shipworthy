@@ -109,6 +109,44 @@ class RemediationLedgerContractTests(unittest.TestCase):
                 "before_state": "editing",
                 "after_state": "saved",
                 "evidence_refs": ["evidence/save.json"],
+                "backend_effect_expected": True,
+                "backend_effect_reason": "Save should persist the edited project.",
+                "backend_correlation": {
+                    "status": "matched",
+                    "ui_feedback": "success",
+                    "state_change_expected": True,
+                    "persistence_expected": True,
+                    "channels": {
+                        "network": {
+                            "status": "observed",
+                            "request_count": 1,
+                            "expected_request_count": 1,
+                            "method": "POST",
+                            "path": "/api/projects",
+                            "response_status": 200,
+                            "evidence_refs": ["evidence/save-network.json"],
+                        },
+                        "logs": {
+                            "status": "observed",
+                            "source_ref": "evidence/backend.log",
+                            "start_offset": 120,
+                            "end_offset": 380,
+                            "correlated_error_count": 0,
+                            "evidence_refs": ["evidence/backend.log#bytes=120-380"],
+                        },
+                        "state": {
+                            "status": "observed",
+                            "before": "editing",
+                            "after": "saved",
+                            "evidence_refs": ["evidence/save-state.json"],
+                        },
+                        "reentry": {
+                            "status": "observed",
+                            "result": "saved",
+                            "evidence_refs": ["evidence/save-reload.json"],
+                        },
+                    },
+                },
             },
             {
                 "receipt_id": "evidence/save-transition-receipt.json",
@@ -174,6 +212,262 @@ class RemediationLedgerContractTests(unittest.TestCase):
             render_report.validate_canonical_input(
                 {"run_scope": "full", "input_format": "legacy/readiness-v0"}
             )
+
+    def test_backend_correlation_accepts_matched_persistent_action(self) -> None:
+        candidate = self.full_candidate()
+        summary = render_report.reconcile_backend_correlations(
+            candidate["source_ledger"]["path_frontier"]["rows"],
+            candidate["source_ledger"]["execution_receipts"],
+            candidate["source_ledger"]["findings"],
+            strict=True,
+        )
+        self.assertEqual(
+            {
+                "backend_effecting_actions": 1,
+                "matched": 1,
+                "mismatch": 0,
+                "blocked": 0,
+                "not_proven": 0,
+                "correlated_backend_errors": 0,
+                "persistence_checks": 1,
+                "blocked_channels": 0,
+            },
+            summary,
+        )
+
+    def test_backend_correlation_rejects_success_without_persistence(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"]["channels"]["reentry"]["result"] = "editing"
+        with self.assertRaisesRegex(ValueError, "re-entry result"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+
+    def test_backend_correlation_rejects_failure_feedback_after_state_changed(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"]["ui_feedback"] = "failure"
+        with self.assertRaisesRegex(ValueError, "contradictory evidence"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+
+    def test_backend_correlation_rejects_hidden_correlated_error_and_duplicate_request(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"]["channels"]["logs"]["correlated_error_count"] = 1
+        with self.assertRaisesRegex(ValueError, "correlated backend errors"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+        receipt["backend_correlation"]["channels"]["logs"]["correlated_error_count"] = 0
+        receipt["backend_correlation"]["channels"]["network"]["request_count"] = 2
+        with self.assertRaisesRegex(ValueError, "request count"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+        receipt["backend_correlation"]["status"] = "mismatch"
+        summary = render_report.reconcile_backend_correlations(
+            candidate["source_ledger"]["path_frontier"]["rows"],
+            candidate["source_ledger"]["execution_receipts"],
+            candidate["source_ledger"]["findings"],
+            strict=True,
+        )
+        self.assertEqual(1, summary["mismatch"])
+
+    def test_presentational_action_can_explicitly_have_no_backend_effect(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt.update(
+            backend_effect_expected=False,
+            backend_effect_reason="Opening this local menu is presentational.",
+            backend_correlation={"status": "not_applicable"},
+        )
+        summary = render_report.reconcile_backend_correlations(
+            candidate["source_ledger"]["path_frontier"]["rows"],
+            candidate["source_ledger"]["execution_receipts"],
+            candidate["source_ledger"]["findings"],
+            strict=True,
+        )
+        self.assertEqual(0, summary["backend_effecting_actions"])
+        self.assertNotIn(
+            "Frontend-to-backend correlation",
+            render_report.coverage_confidence_html(
+                candidate["source_ledger"]["path_frontier"],
+                backend_correlation_summary=summary,
+            ),
+        )
+
+    def test_full_control_cannot_omit_backend_correlation(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        del receipt["backend_effect_expected"]
+        del receipt["backend_effect_reason"]
+        del receipt["backend_correlation"]
+        with self.assertRaisesRegex(ValueError, "backend_effect_expected"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+
+    def test_missing_logs_can_be_explicitly_blocked_with_other_runtime_proof(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"]["channels"]["logs"] = {
+            "status": "blocked",
+            "reason": "Backend process output was unavailable.",
+        }
+        summary = render_report.reconcile_backend_correlations(
+            candidate["source_ledger"]["path_frontier"]["rows"],
+            candidate["source_ledger"]["execution_receipts"],
+            candidate["source_ledger"]["findings"],
+            strict=True,
+        )
+        self.assertEqual(1, summary["matched"])
+        self.assertEqual(1, summary["blocked_channels"])
+
+    def test_blocked_backend_channels_remain_not_proven(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"] = {
+            "status": "blocked",
+            "ui_feedback": "success",
+            "state_change_expected": True,
+            "persistence_expected": True,
+            "channels": {
+                name: {"status": "blocked", "reason": "Channel unavailable."}
+                for name in ("network", "logs", "state", "reentry")
+            },
+        }
+        summary = render_report.reconcile_backend_correlations(
+            candidate["source_ledger"]["path_frontier"]["rows"],
+            candidate["source_ledger"]["execution_receipts"],
+            candidate["source_ledger"]["findings"],
+            strict=True,
+        )
+        self.assertEqual(1, summary["not_proven"])
+        with self.assertRaisesRegex(ValueError, "cannot support covered closure"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+                require_closure=True,
+            )
+
+    def test_backend_correlation_rejects_secrets_payloads_and_unbounded_logs(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"]["channels"]["network"]["authorization"] = "secret"
+        with self.assertRaisesRegex(ValueError, "sensitive or raw payload field"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+        del receipt["backend_correlation"]["channels"]["network"]["authorization"]
+        receipt["backend_correlation"]["channels"]["logs"]["end_offset"] = 2_000_000
+        with self.assertRaisesRegex(ValueError, "bounded log range"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+
+    def test_backend_mismatch_requires_finding_lineage(self) -> None:
+        candidate = self.full_candidate()
+        receipt = candidate["source_ledger"]["execution_receipts"][0]
+        receipt["backend_correlation"]["status"] = "mismatch"
+        receipt["backend_correlation"]["channels"]["state"]["after"] = "editing"
+        candidate["source_ledger"]["findings"][0]["affected_semantic_keys"] = []
+        with self.assertRaisesRegex(ValueError, "finding lineage"):
+            render_report.reconcile_backend_correlations(
+                candidate["source_ledger"]["path_frontier"]["rows"],
+                candidate["source_ledger"]["execution_receipts"],
+                candidate["source_ledger"]["findings"],
+                strict=True,
+            )
+
+    def test_backend_summary_is_derived_and_human_readable(self) -> None:
+        candidate = self.full_candidate()
+        summary = render_report.reconcile_backend_correlations(
+            candidate["source_ledger"]["path_frontier"]["rows"],
+            candidate["source_ledger"]["execution_receipts"],
+            candidate["source_ledger"]["findings"],
+            strict=True,
+        )
+        output = render_report.coverage_confidence_html(
+            candidate["source_ledger"]["path_frontier"],
+            backend_correlation_summary=summary,
+        )
+        self.assertIn("Frontend-to-backend correlation", output)
+        self.assertIn("1 of 1 backend-effecting actions correlated", output)
+        self.assertIn("0 mismatches", output)
+        self.assertNotIn("authorization", output)
+
+    def test_backend_failure_uses_existing_bounded_repair_queue(self) -> None:
+        manifest = render_report.build_validation_repair_manifest(
+            "backend correlation EVENT-SAVE matched despite correlated backend errors",
+            attempt_count=2,
+        )
+        self.assertEqual(
+            "frontend_to_backend_correlation",
+            manifest["failures"][0]["gate"],
+        )
+        self.assertIn("Re-exercise", manifest["failures"][0]["required_action"])
+        self.assertEqual(3, manifest["max_attempts"])
+
+    def test_benchmark_preflight_must_be_clean_and_external(self) -> None:
+        clean = {
+            "run_scope": "full",
+            "target_intent": "benchmark_fixture",
+            "benchmark_preflight": {
+                "status": "clean",
+                "baseline_revision": "0d40df9",
+                "baseline_tag": "gauntlet-default-v1",
+                "porcelain_entries": [],
+                "generated_artifacts": [],
+                "evidence_external": True,
+            },
+        }
+        self.assertTrue(render_report.validate_benchmark_preflight(clean))
+        dirty = deepcopy(clean)
+        dirty["benchmark_preflight"]["porcelain_entries"] = ["?? evidence/"]
+        with self.assertRaisesRegex(ValueError, "clean target"):
+            render_report.validate_benchmark_preflight(dirty)
+        dirty.update(
+            audit_status="blocked",
+            frontend_path_walk_performed=False,
+            path_walk_status="not_performed",
+        )
+        self.assertTrue(
+            render_report.validate_benchmark_preflight(
+                dirty, allow_aborted_report=True
+            )
+        )
+        ordinary = {
+            "run_scope": "full",
+            "target_intent": "production_product",
+            "benchmark_preflight": {"status": "dirty"},
+        }
+        self.assertTrue(render_report.validate_benchmark_preflight(ordinary))
 
     def test_positive_discovery_yield_cannot_be_exhausted(self) -> None:
         with self.assertRaisesRegex(ValueError, "positive discovery yield"):
@@ -963,6 +1257,14 @@ class RemediationLedgerContractTests(unittest.TestCase):
             "target_intent": "benchmark_fixture",
             "target_calibration": "scope_limitation",
             "target_calibration_reason": "This fixture does not claim production deployment; missing CI/deploy files are scope limits.",
+            "benchmark_preflight": {
+                "status": "clean",
+                "baseline_revision": "0d40df9",
+                "baseline_tag": "gauntlet-default-v1",
+                "porcelain_entries": [],
+                "generated_artifacts": [],
+                "evidence_external": True,
+            },
             "lanes": ["runtime", "verifier"],
             "mode": "structured orchestration",
             "multi_agent_authorization": "explicitly authorized",
@@ -1048,7 +1350,15 @@ class RemediationLedgerContractTests(unittest.TestCase):
                     "evidence_refs": ["evidence/upgrade.png"],
                 }]
             }), encoding="utf-8")
-            for reference in ("evidence/citation.json", "evidence/upgrade.png", "evidence/save.json"):
+            for reference in (
+                "evidence/citation.json",
+                "evidence/upgrade.png",
+                "evidence/save.json",
+                "evidence/save-network.json",
+                "evidence/backend.log",
+                "evidence/save-state.json",
+                "evidence/save-reload.json",
+            ):
                 (root / reference).write_text("proof", encoding="utf-8")
             for index, reference in enumerate(checkpoint["wave_certificate_paths"], 1):
                 (root / reference).write_text(json.dumps({
@@ -1089,6 +1399,11 @@ class RemediationLedgerContractTests(unittest.TestCase):
             )
             self.assertEqual(0, rendered.returncode, rendered.stderr)
             self.assertTrue(output_path.exists())
+            report_html = output_path.read_text(encoding="utf-8")
+            self.assertIn("Frontend-to-backend correlation", report_html)
+            self.assertIn("1 of 1 backend-effecting actions correlated", report_html)
+            self.assertIn("1 persistence checks", report_html)
+            self.assertIn("backend matched", report_html)
             self.assertTrue((root / "validation-completion.json").exists())
             finalized_checkpoint = json.loads(
                 (root / "orchestration-checkpoint.json").read_text(encoding="utf-8")
