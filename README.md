@@ -4,7 +4,7 @@
 
 ### Autonomous, evidence-graded product-readiness audits — for apps &amp; AI agents.
 
-It walks your whole product like your most paranoid senior engineer — **every screen, every path, and the backend underneath** — then proves whether you're ready to ship.
+It walks your whole product like your most paranoid senior engineer — **every safe discoverable screen and path, plus the backend underneath** — then proves whether you're ready to ship.
 
 [![GitHub stars](https://img.shields.io/github/stars/NeuraCerebra-AI/shipworthy?style=social)](https://github.com/NeuraCerebra-AI/shipworthy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -27,8 +27,9 @@ Most "it works on my machine" ships die on the things a quick look never catches
 - The thing a user will **obviously** try — export, undo, invite a teammate, recover from a failed upload — that has **no path at all**.
 - The screen that *looks* finished, retains no attention, and quietly leaks trust.
 - And the meta-failure: an audit that declares **"ready"** after sampling three happy paths and calling it a day.
+- The audit that actually finds a path, then drops or mislabels it while merging agent output — leaving a final report that looks more complete than the evidence.
 
-Shipworthy finds all of the above **and refuses the last one.** It treats "try every path" as a coverage ambition with honest exclusions — not a claim of omniscience — and keeps a live evidence ledger so every readiness statement traces back to proof.
+Shipworthy finds all of the above **and refuses the last two.** It treats "try every path" as a coverage ambition with honest exclusions — not a claim of omniscience — and keeps a live evidence ledger so every readiness statement traces back to proof. Every material observation must reach an exact path, finding, proof gap, rejection, or scope boundary; role, state, device, and interaction variants cannot be silently cross-credited.
 
 <div align="center"><img src="assets/flow.svg" alt="How it works: map the path universe, walk every safe path across UI and backend, run an independent verifier, report coverage and evidence debt, then issue a proven ship-or-don't verdict" width="100%"></div>
 
@@ -75,6 +76,10 @@ Full Shipworthy ends by frontier closure, not vibes, a fixed wave count, or a
 timer. It keeps a path frontier open until every material path is covered,
 sampled with justification, blocked, avoided, missing, out of scope, or evidence
 debt — and until repeated discovery passes stop finding new material paths.
+It also audits the evidence chain of custody: observations collected by runtime
+lanes, control censuses, and verifiers must survive into the canonical ledger
+without being dropped, merged across different behaviors, or assigned to the
+wrong role, state, viewport, or control.
 
 For the flagship run, "tries every safe discoverable user path" means using the
 actual frontend when one is available: browser, in-app browser, Chrome,
@@ -102,7 +107,7 @@ directory. Each skill also works independently.
 
 <sub>*Illustrative — the report format is real; the contents are a sample, not a live run. A recorded asciinema/GIF walkthrough → `docs/demo.gif`; PRs welcome.*</sub>
 
-> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
+> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, evidence-reconciliation summary, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
 
 The report is meant to tell you what to do next, not bury you in audit prose:
 **Clear Before Ship** blocks readiness, **Fix Next** is real but non-blocking,
@@ -161,7 +166,7 @@ apply the fixes safely, verify each one, and regenerate the Shipworthy HTML repo
 | Skill | Role | Use it alone when… |
 |---|---|---|
 | **ship-readiness-orchestrator** | The conductor. Owns the one evidence ledger, the coverage matrix, and the readiness verdict; dispatches and reconciles the three lanes without letting them overclaim. | You want the full "is this ready to ship / be beloved / be viral" pass. |
-| **ship-deep-review** | The evidence engine. Multi-wave agent dispatch with a hard rule: no wave summary until an **independent verifier** has checked the raw outputs against the claim ledger. | You want a hostile, multi-wave review or research validation. |
+| **ship-deep-review** | The evidence engine. Multi-wave agent dispatch with a hard rule: no wave summary until an **independent verifier** has checked the raw outputs against the claim ledger. | You explicitly invoke `ship-deep-review` by name, or the active readiness orchestrator loads it as its required controller. Generic review or audit language does not activate it. |
 | **ship-product-workflows** | The path walker. Safely tries or traces every meaningful user path — UI, state, persistence, forms, nav, permissions, and backend symptoms that surface in the UI. | You want to know where a specific app or feature actually breaks. |
 | **ship-workflow-clarity** | The human lens. Judges whether a person can tell where they are, what to do next, what will and won't happen, and how to recover — and warns when a "simpler" fix strips proof, governance, or recovery. | You want a clarity read on a screen, flow, or dashboard. |
 
@@ -178,6 +183,7 @@ One truth layer, proven. The lanes feed evidence *packets* into the orchestrator
 | Walks real **user paths** (UI) | ✅ | 🟡 ad hoc | ❌ |
 | Checks **backend symptoms tied to UI** | ✅ | 🟡 | 🟡 static only |
 | **Coverage map** with honest exclusions | ✅ | ❌ | ❌ |
+| Proves raw observations survived into the final ledger and report | ✅ | ❌ | ❌ |
 | **Independent verifier** before it says "ready" | ✅ | ❌ | ❌ |
 | Refuses to **overclaim** readiness | ✅ | ❌ | ❌ |
 | **Read-only**, hands you the fix + verify step | ✅ | 🟡 | 🟡 |
