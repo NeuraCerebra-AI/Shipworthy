@@ -110,15 +110,19 @@ Static artifacts have hard limits. A screenshot can support visible design, copy
 
 Normalize lane packets before adding them to the canonical ledger.
 
-Retain each material lane observation as `raw_discoveries` before synthesis.
-Give it a stable `observation_id`, `source_kind`, `material`, `semantic_key`,
-`behavioral_identity`, `evidence_refs`, and `terminal_disposition`. The
-behavioral identity preserves route, role, state, viewport, containing surface,
-control identity/type, input mechanism, and before/after state when applicable.
-The terminal disposition names exactly one frontier row, finding,
-evidence-debt row, rejected-discovery row, or out-of-scope row. Repeated events
-may share a disposition only when the full behavioral identity and defect
-class agree.
+Freeze each material lane observation in an original evidence packet captured
+before synthesis. Give it a stable `observation_id`, `source_kind`, `material`,
+`semantic_key`, `behavioral_identity`, and `evidence_refs`, but no terminal
+disposition or downstream frontier/finding identity. The behavioral identity
+preserves route, role, state, viewport, containing surface, control
+identity/type, input mechanism, and before/after state when applicable.
+
+Copy each original observation unchanged into ledger `raw_discoveries`, then
+add exactly one `terminal_disposition` naming a frontier row, finding,
+evidence-debt row, rejected-discovery row, or out-of-scope row. Never
+reconstruct original observations from those downstream records. Repeated
+events may share a disposition only when the full behavioral identity and
+defect class agree.
 
 Canonical severity:
 

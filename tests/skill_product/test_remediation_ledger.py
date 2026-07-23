@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
 from copy import deepcopy
@@ -74,7 +75,10 @@ class RemediationLedgerContractTests(unittest.TestCase):
                     "observation_id": f"RAW-{index}",
                     "semantic_key": key,
                     "material": row.get("material", True),
-                    "source_kind": "runtime_receipt",
+                    "source_kind": "runtime_human_interaction",
+                    "source_id": f"EVENT-{index}",
+                    "source_artifact": "evidence/raw-runtime.json",
+                    "source_pointer": f"/observations/{index - 1}",
                     "behavioral_identity": {
                         "semantic_key": key,
                         **render_report._semantic_behavioral_identity(key),
@@ -444,6 +448,204 @@ class RemediationLedgerContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "raw discovery identity"):
             render_report.reconcile_execution_receipts([row], [receipt], [raw])
 
+    def test_original_evidence_packet_rejects_frontier_derived_observations(self) -> None:
+        key = "surface:/dashboard:normal:member:desktop"
+        ledger = {
+            "path_frontier": {
+                "rows": [{"id": "PF-DASH", "kind": "surface", "semantic_key": key}]
+            },
+            "raw_discoveries": [
+                {
+                    "observation_id": "OBS-ROW-PF-DASH",
+                    "source_kind": "declared_behavior_inventory",
+                    "source_id": "PF-DASH",
+                    "source_artifact": "evidence/raw-runtime.json",
+                    "source_pointer": "/observations/0",
+                    "material": True,
+                    "semantic_key": key,
+                    "behavioral_identity": {
+                        "semantic_key": key,
+                        "route": "/dashboard",
+                        "state": "normal",
+                        "role": "member",
+                        "viewport": "desktop",
+                    },
+                    "evidence_refs": ["evidence/dashboard.yml"],
+                    "terminal_disposition": {"kind": "frontier", "record_id": "PF-DASH"},
+                }
+            ],
+            "execution_receipts": [],
+        }
+        packet = {
+            "packet_id": "PACKET-RUNTIME",
+            "capture_phase": "pre_synthesis",
+            "artifact_path": "evidence/raw-runtime.json",
+            "observations": [
+                {
+                    key: value
+                    for key, value in ledger["raw_discoveries"][0].items()
+                    if key != "terminal_disposition"
+                }
+            ],
+            "execution_receipts": [],
+        }
+        with self.assertRaisesRegex(ValueError, "circular provenance"):
+            render_report.reconcile_original_evidence_packets([packet], ledger)
+
+    def test_original_evidence_packet_cannot_omit_a_material_observation(self) -> None:
+        key = "control:surface:/dashboard:normal:member:desktop:command-palette:keyboard:open"
+        original = {
+            "observation_id": "OBS-RUNTIME-42",
+            "source_kind": "runtime_human_interaction",
+            "source_id": "EVENT-42",
+            "source_artifact": "evidence/raw-runtime.json",
+            "source_pointer": "/observations/0",
+            "material": True,
+            "semantic_key": key,
+            "behavioral_identity": {
+                "semantic_key": key,
+                "route": "/dashboard",
+                "state": "normal",
+                "role": "member",
+                "viewport": "desktop",
+                "containing_surface": "surface:/dashboard:normal:member:desktop",
+                "control_identity": "command-palette",
+                "control_type": "keyboard",
+                "input_mechanism": "Meta+K",
+                "before_state": "closed",
+                "after_state": "open",
+            },
+            "evidence_refs": ["evidence/runtime-receipt.json#event-42"],
+        }
+        packet = {
+            "packet_id": "PACKET-RUNTIME",
+            "capture_phase": "pre_synthesis",
+            "artifact_path": "evidence/raw-runtime.json",
+            "observations": [original],
+            "execution_receipts": [],
+        }
+        ledger = {"path_frontier": {"rows": []}, "raw_discoveries": [], "execution_receipts": []}
+        with self.assertRaisesRegex(ValueError, "original observation.*absent"):
+            render_report.reconcile_original_evidence_packets([packet], ledger)
+
+    def test_material_state_change_receipt_requires_transition_lineage(self) -> None:
+        key = "control:surface:/projects:editing:member:desktop:publish:button:publish"
+        receipt = {
+            "receipt_id": "EVENT-PUBLISH-1",
+            "semantic_key": key,
+            "route": "/projects",
+            "role": "member",
+            "state": "editing",
+            "viewport": "desktop",
+            "surface": "surface:/projects:editing:member:desktop",
+            "control": {"identity": "Publish", "type": "button"},
+            "visible": True,
+            "enabled": True,
+            "input_mechanism": "pointer",
+            "before_state": "draft",
+            "after_state": "published",
+            "material_state_change": True,
+            "evidence_refs": ["evidence/publish.yml"],
+        }
+        ledger = {
+            "path_frontier": {
+                "rows": [{"id": "PF-PUBLISH", "kind": "control", "semantic_key": key}]
+            },
+            "raw_discoveries": [],
+            "execution_receipts": [receipt],
+        }
+        packet = {
+            "packet_id": "PACKET-RUNTIME",
+            "capture_phase": "pre_synthesis",
+            "artifact_path": "evidence/raw-runtime.json",
+            "observations": [],
+            "execution_receipts": [receipt],
+        }
+        with self.assertRaisesRegex(ValueError, "material state change.*transition"):
+            render_report.reconcile_original_evidence_packets([packet], ledger)
+
+    def test_upstream_inventory_cannot_be_absent_from_original_packet(self) -> None:
+        packet = {
+            "capture_phase": "pre_synthesis",
+            "artifact_path": "evidence/raw-runtime.json",
+            "observations": [{
+                "observation_id": "OBS-SAVE",
+                "source_kind": "execution_receipt",
+                "source_id": "EVENT-SAVE",
+                "source_artifact": "evidence/raw-runtime.json",
+                "source_pointer": "/observations/0",
+                "semantic_key": "control:surface:/projects:normal:member:desktop:save:button:persist",
+            }],
+            "execution_receipts": [{
+                "receipt_id": "EVENT-SAVE",
+                "semantic_key": "control:surface:/projects:normal:member:desktop:save:button:persist",
+            }],
+        }
+        with self.assertRaisesRegex(ValueError, "census control.*absent from original"):
+            render_report.reconcile_upstream_inventory(
+                [packet],
+                {
+                    "control:surface:/projects:normal:member:desktop:save:button:persist",
+                    "control:surface:/projects:normal:member:desktop:archive:button:archive",
+                },
+                [],
+            )
+
+    def test_validation_failure_builds_bounded_machine_repair_queue(self) -> None:
+        manifest = render_report.build_validation_repair_manifest(
+            "execution receipt EVENT-42 is absent from original evidence; "
+            "census control archive is absent from original evidence",
+            attempt_count=2,
+        )
+        self.assertEqual("repair_required", manifest["status"])
+        self.assertEqual(2, manifest["attempt_count"])
+        self.assertEqual(2, len(manifest["failures"]))
+        self.assertEqual("receipt_to_original", manifest["failures"][0]["gate"])
+        self.assertIn("required_action", manifest["failures"][0])
+
+        blocked = render_report.build_validation_repair_manifest(
+            "; ".join(f"failure {index}" for index in range(40)),
+            attempt_count=3,
+        )
+        self.assertEqual("blocked_required", blocked["status"])
+        self.assertLessEqual(len(blocked["failures"]), 20)
+
+    def test_completion_receipt_binds_ledger_checkpoint_packets_and_report(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            input_path = root / "report-input.json"
+            report_path = root / "readiness-report.html"
+            packet_path = root / "evidence" / "raw-runtime.json"
+            packet_path.parent.mkdir()
+            input_path.write_text('{"source_ledger":{"ledger_id":"LED-1"}}', encoding="utf-8")
+            packet_path.write_text('{"observations":[]}', encoding="utf-8")
+            checkpoint = {
+                "validation_state": "complete",
+                "validation_completion_receipt_path": "validation-completion.json",
+                "raw_lane_output_paths": ["evidence/raw-runtime.json"],
+                "raw_verifier_output_paths": [],
+            }
+            html = "<html>validated</html>"
+
+            receipt = render_report.build_validation_completion_receipt(
+                str(input_path), str(report_path), checkpoint, html
+            )
+
+            self.assertEqual("passed", receipt["status"])
+            self.assertEqual(
+                hashlib.sha256(html.encode("utf-8")).hexdigest(),
+                receipt["report_sha256"],
+            )
+            self.assertEqual(
+                hashlib.sha256(packet_path.read_bytes()).hexdigest(),
+                receipt["original_packet_sha256"]["evidence/raw-runtime.json"],
+            )
+            self.assertEqual(
+                render_report._canonical_digest({"ledger_id": "LED-1"}),
+                receipt["ledger_sha256"],
+            )
+            self.assertIn("original_evidence_closure", receipt["gates"])
+
     def test_rejected_disposition_cannot_point_to_a_different_semantic_path(self) -> None:
         key = "surface:/dashboard:upgrade:member:desktop"
         ledger = {
@@ -797,6 +999,10 @@ class RemediationLedgerContractTests(unittest.TestCase):
             "recovery_receipt_paths": [],
             "browser_failover_status": "not_needed",
             "browser_failover_receipt_paths": [],
+            "validation_state": "validating",
+            "validation_attempts": [],
+            "validation_repair_queue_path": "validation-repair.json",
+            "validation_completion_receipt_path": "validation-completion.json",
         }
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -804,10 +1010,24 @@ class RemediationLedgerContractTests(unittest.TestCase):
             (root / "readiness-ledger.json").write_text(json.dumps(candidate["source_ledger"]), encoding="utf-8")
             for reference in checkpoint["raw_lane_output_paths"] + checkpoint["raw_verifier_output_paths"]:
                 (root / reference).parent.mkdir(parents=True, exist_ok=True)
+                is_runtime = reference == "evidence/raw-runtime.json"
                 (root / reference).write_text(
                     json.dumps({
-                        "raw_discoveries": candidate["source_ledger"]["raw_discoveries"],
-                        "execution_receipts": candidate["source_ledger"]["execution_receipts"],
+                        "packet_id": "PACKET-RUNTIME" if is_runtime else "PACKET-VERIFIER",
+                        "capture_phase": "pre_synthesis",
+                        "artifact_path": reference,
+                        "observations": [
+                            {
+                                key: value
+                                for key, value in item.items()
+                                if key != "terminal_disposition"
+                            }
+                            for item in candidate["source_ledger"]["raw_discoveries"]
+                        ] if is_runtime else [],
+                        "execution_receipts": (
+                            candidate["source_ledger"]["execution_receipts"]
+                            if is_runtime else []
+                        ),
                     }),
                     encoding="utf-8",
                 )
@@ -838,17 +1058,66 @@ class RemediationLedgerContractTests(unittest.TestCase):
             (root / "orchestration-checkpoint.json").write_text(json.dumps(checkpoint), encoding="utf-8")
             loaded = render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
             self.assertEqual("complete", loaded["audit_status"])
+            self.assertEqual(0, loaded["_upstream_accounting_summary"]["unresolved"])
+
+            canonical_refs = {
+                candidate["source_ledger"]["path_frontier"]["manifest_artifact"]
+            }
+            for row in candidate["source_ledger"]["path_frontier"]["rows"]:
+                canonical_refs.update(row.get("evidence_refs", []))
+                for observation in row.get("observations", []):
+                    canonical_refs.update(observation.get("evidence_refs", []))
+            for finding in candidate["source_ledger"]["findings"]:
+                canonical_refs.update(finding.get("evidence_refs", []))
+            for reference in canonical_refs:
+                path = root / reference
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if not path.exists():
+                    path.write_text("canonical evidence", encoding="utf-8")
+
+            output_path = root / "readiness-report.html"
+            rendered = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(render_report.__file__)),
+                    str(root / "report-input.json"),
+                    str(output_path),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, rendered.returncode, rendered.stderr)
+            self.assertTrue(output_path.exists())
+            self.assertTrue((root / "validation-completion.json").exists())
+            finalized_checkpoint = json.loads(
+                (root / "orchestration-checkpoint.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual("complete", finalized_checkpoint["validation_state"])
+            self.assertIn(
+                "validation_completion_receipt_sha256", finalized_checkpoint
+            )
             raw_runtime_path = root / "evidence/raw-runtime.json"
             raw_runtime = json.loads(raw_runtime_path.read_text(encoding="utf-8"))
-            raw_runtime["raw_discoveries"][0]["behavioral_identity"]["role"] = "admin"
+            raw_runtime["observations"][0]["behavioral_identity"]["role"] = "admin"
             raw_runtime_path.write_text(json.dumps(raw_runtime), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "raw operational packets"):
+            with self.assertRaisesRegex(ValueError, "changed during ledger synthesis"):
                 render_report.load_orchestration_checkpoint(
                     str(root / "report-input.json"), candidate
                 )
             raw_runtime_path.write_text(
                 json.dumps({
-                    "raw_discoveries": candidate["source_ledger"]["raw_discoveries"],
+                    "packet_id": "PACKET-RUNTIME",
+                    "capture_phase": "pre_synthesis",
+                    "artifact_path": "evidence/raw-runtime.json",
+                    "observations": [
+                        {
+                            key: value
+                            for key, value in item.items()
+                            if key != "terminal_disposition"
+                        }
+                        for item in candidate["source_ledger"]["raw_discoveries"]
+                    ],
                     "execution_receipts": candidate["source_ledger"]["execution_receipts"],
                 }),
                 encoding="utf-8",
@@ -884,7 +1153,7 @@ class RemediationLedgerContractTests(unittest.TestCase):
                 }), encoding="utf-8")
             for reference in checkpoint["raw_lane_output_paths"] + checkpoint["raw_verifier_output_paths"]:
                 (root / reference).write_text("{}", encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "raw operational packets do not reconcile"):
+            with self.assertRaisesRegex(ValueError, "frozen before synthesis|requires pre-synthesis"):
                 render_report.load_orchestration_checkpoint(str(root / "report-input.json"), candidate)
 
 

@@ -14,6 +14,9 @@ import sys, json, html, datetime, re, os, tempfile, hashlib
 sys.dont_write_bytecode = True
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 MAX_CHECKPOINT_BYTES = 256 * 1024
+RENDERER_VERSION = "1.1.0"
+MAX_VALIDATION_FAILURES = 20
+MAX_VALIDATION_ATTEMPTS = 3
 CHECKPOINT_REQUIRED = {
     "target_name", "lanes", "mode", "multi_agent_authorization", "frontend_path_walk_performed",
     "frontend_tool", "runtime_target", "path_walk_status", "verifier", "omitted",
@@ -184,6 +187,170 @@ def atomic_write_text(path, value):
     finally:
         if temporary and os.path.exists(temporary):
             os.unlink(temporary)
+
+
+def _canonical_digest(value):
+    payload = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _public_checkpoint(checkpoint):
+    return {
+        key: value
+        for key, value in (checkpoint or {}).items()
+        if not str(key).startswith("_")
+        and key != "validation_completion_receipt_sha256"
+    }
+
+
+def build_validation_repair_manifest(message, attempt_count=1):
+    """Turn bounded validation errors into deterministic repair actions."""
+    fragments = [
+        fragment.strip()
+        for fragment in str(message or "").split(";")
+        if fragment.strip()
+    ][:MAX_VALIDATION_FAILURES]
+    failures = []
+    for index, problem in enumerate(fragments):
+        lowered = problem.casefold()
+        if "receipt" in lowered and "original" in lowered:
+            gate = "receipt_to_original"
+            action = "Restore the preserved observation or safely re-exercise and recapture the path."
+        elif "census" in lowered and "original" in lowered:
+            gate = "census_to_original"
+            action = "Add the preserved census observation to the original packet before synthesis."
+        elif "original" in lowered:
+            gate = "original_to_ledger"
+            action = "Reconcile the immutable original packet with the canonical ledger."
+        elif "transition" in lowered:
+            gate = "transition_lineage"
+            action = "Restore exact before/after transition evidence or mark the path NOT_PROVEN."
+        else:
+            gate = "canonical_validation"
+            action = "Repair the cited canonical artifact and rerun the renderer."
+        failures.append({
+            "failure_id": f"VAL-{index + 1:03d}",
+            "gate": gate,
+            "problem": problem,
+            "required_action": action,
+        })
+    attempt = min(MAX_VALIDATION_ATTEMPTS, max(1, int(attempt_count or 1)))
+    return {
+        "schema_name": "shipworthy/validation-repair",
+        "schema_version": "1.0",
+        "status": "blocked_required" if attempt >= MAX_VALIDATION_ATTEMPTS else "repair_required",
+        "attempt_count": attempt,
+        "max_attempts": MAX_VALIDATION_ATTEMPTS,
+        "failures": failures,
+    }
+
+
+def build_validation_completion_receipt(input_path, report_path, checkpoint, html_text):
+    """Bind the accepted canonical inputs and rendered report without networking."""
+    root = os.path.dirname(os.path.abspath(input_path))
+    packet_digests = {}
+    for reference in (
+        list((checkpoint or {}).get("raw_lane_output_paths", []))
+        + list((checkpoint or {}).get("raw_verifier_output_paths", []))
+    ):
+        candidate = os.path.join(root, reference)
+        if os.path.isfile(candidate):
+            with open(candidate, "rb") as handle:
+                packet_digests[reference] = hashlib.sha256(handle.read()).hexdigest()
+    with open(input_path, "rb") as handle:
+        input_bytes = handle.read()
+    input_digest = hashlib.sha256(input_bytes).hexdigest()
+    document = json.loads(input_bytes.decode("utf-8"))
+    ledger = (
+        document.get("source_ledger")
+        if isinstance(document, dict) and isinstance(document.get("source_ledger"), dict)
+        else document
+    )
+    return {
+        "schema_name": "shipworthy/validation-completion",
+        "schema_version": "1.0",
+        "status": "passed",
+        "renderer": f"shipworthy-render-report/{RENDERER_VERSION}",
+        "report_path": os.path.basename(report_path),
+        "report_sha256": hashlib.sha256(html_text.encode("utf-8")).hexdigest(),
+        "report_input_sha256": input_digest,
+        "ledger_sha256": _canonical_digest(ledger),
+        "checkpoint_sha256": _canonical_digest(_public_checkpoint(checkpoint)),
+        "original_packet_sha256": packet_digests,
+        "gates": [
+            "canonical_input",
+            "original_evidence_closure",
+            "upstream_inventory_closure",
+            "frontier_closure",
+            "renderer_projection",
+        ],
+    }
+
+
+def validate_validation_completion_receipt(
+    receipt, input_path, checkpoint, root, errors
+):
+    """Verify that a prior terminal receipt still binds the current artifacts."""
+    required_gates = {
+        "canonical_input",
+        "original_evidence_closure",
+        "upstream_inventory_closure",
+        "frontier_closure",
+        "renderer_projection",
+    }
+    if not isinstance(receipt, dict) or receipt.get("status") != "passed":
+        errors.append("validation completion receipt is incomplete")
+        return
+    if receipt.get("renderer") != f"shipworthy-render-report/{RENDERER_VERSION}":
+        errors.append("validation completion receipt renderer version is stale")
+    gates = receipt.get("gates")
+    if not isinstance(gates, list) or not required_gates.issubset(gates):
+        errors.append("validation completion receipt lacks required gates")
+    with open(input_path, "rb") as handle:
+        input_bytes = handle.read()
+        if receipt.get("report_input_sha256") != hashlib.sha256(input_bytes).hexdigest():
+            errors.append("validation completion receipt report-input digest does not match")
+    document = json.loads(input_bytes.decode("utf-8"))
+    ledger = (
+        document.get("source_ledger")
+        if isinstance(document, dict) and isinstance(document.get("source_ledger"), dict)
+        else document
+    )
+    if receipt.get("ledger_sha256") != _canonical_digest(ledger):
+        errors.append("validation completion receipt ledger digest does not match")
+    if receipt.get("checkpoint_sha256") != _canonical_digest(
+        _public_checkpoint(checkpoint)
+    ):
+        errors.append("validation completion receipt checkpoint digest does not match")
+    expected_packets = receipt.get("original_packet_sha256")
+    if not isinstance(expected_packets, dict):
+        errors.append("validation completion receipt packet digests are invalid")
+    else:
+        references = (
+            list(checkpoint.get("raw_lane_output_paths", []))
+            + list(checkpoint.get("raw_verifier_output_paths", []))
+        )
+        if set(expected_packets) != set(references):
+            errors.append("validation completion receipt packet set does not match")
+        for reference in references:
+            candidate = os.path.join(root, reference)
+            if os.path.isfile(candidate):
+                with open(candidate, "rb") as handle:
+                    digest = hashlib.sha256(handle.read()).hexdigest()
+                if expected_packets.get(reference) != digest:
+                    errors.append(
+                        f"validation completion receipt packet digest changed: {reference}"
+                    )
+    report_reference = receipt.get("report_path")
+    report_path = os.path.join(root, report_reference) if isinstance(report_reference, str) else ""
+    if not report_path or not os.path.isfile(report_path):
+        errors.append("validation completion receipt report does not resolve")
+    else:
+        with open(report_path, "rb") as handle:
+            if receipt.get("report_sha256") != hashlib.sha256(handle.read()).hexdigest():
+                errors.append("validation completion receipt report digest does not match")
 
 COV = {
     "covered": "#34D399", "sampled": "#3B82F6", "blocked": "#F59E0B",
@@ -385,6 +552,219 @@ def _disposition_record_id(item):
     if not isinstance(item, dict):
         return None
     return item.get("discovery_id") or item.get("debt_id") or item.get("id")
+
+
+def _downstream_evidence_identifier(value):
+    token = str(value or "").upper()
+    return (
+        token.startswith(("PF-", "FND-"))
+        or "-PF-" in token
+        or "-FND-" in token
+        or token.startswith(("OBS-ROW-", "OBS-FND-"))
+    )
+
+
+def reconcile_original_evidence_packets(packets, ledger):
+    """Prove that pre-synthesis observations, not ledger rows, feed the ledger."""
+    if not isinstance(packets, list) or not packets:
+        raise ValueError("original evidence reconciliation requires pre-synthesis packets")
+    if not isinstance(ledger, dict):
+        raise ValueError("original evidence reconciliation requires a ledger")
+
+    original = {}
+    packet_receipts = {}
+    for index, packet in enumerate(packets):
+        if not isinstance(packet, dict):
+            raise ValueError(f"original evidence packet[{index}] must be an object")
+        if packet.get("capture_phase") != "pre_synthesis":
+            raise ValueError(f"original evidence packet[{index}] was not frozen before synthesis")
+        artifact_path = packet.get("artifact_path")
+        if not isinstance(artifact_path, str) or not artifact_path.strip():
+            raise ValueError(f"original evidence packet[{index}] lacks its artifact path")
+        observations = packet.get("observations")
+        receipts = packet.get("execution_receipts")
+        if not isinstance(observations, list) or not isinstance(receipts, list):
+            raise ValueError(
+                f"original evidence packet[{index}] requires observations and execution_receipts arrays"
+            )
+        for offset, observation in enumerate(observations):
+            if not isinstance(observation, dict) or not observation.get("observation_id"):
+                raise ValueError(
+                    f"original evidence packet[{index}] observation[{offset}] is incomplete"
+                )
+            observation_id = str(observation["observation_id"])
+            source_id = observation.get("source_id")
+            if (
+                _downstream_evidence_identifier(observation_id)
+                or _downstream_evidence_identifier(source_id)
+                or observation.get("terminal_disposition") is not None
+            ):
+                raise ValueError(
+                    f"original observation {observation_id} has circular provenance"
+                )
+            if observation.get("source_artifact") != artifact_path:
+                raise ValueError(
+                    f"original observation {observation_id} does not cite its source packet"
+                )
+            pointer = observation.get("source_pointer")
+            if pointer != f"/observations/{offset}":
+                raise ValueError(
+                    f"original observation {observation_id} lacks an exact source pointer"
+                )
+            if observation_id in original:
+                raise ValueError(f"original observation {observation_id} is duplicated")
+            original[observation_id] = observation
+        for offset, receipt in enumerate(receipts):
+            if not isinstance(receipt, dict) or not receipt.get("receipt_id"):
+                raise ValueError(
+                    f"original evidence packet[{index}] execution_receipt[{offset}] is incomplete"
+                )
+            receipt_id = str(receipt["receipt_id"])
+            if _downstream_evidence_identifier(receipt_id):
+                raise ValueError(f"execution receipt {receipt_id} has circular provenance")
+            if receipt_id in packet_receipts:
+                raise ValueError(f"execution receipt {receipt_id} is duplicated across packets")
+            packet_receipts[receipt_id] = receipt
+
+    ledger_raw = {}
+    for item in ledger.get("raw_discoveries", []) or []:
+        if not isinstance(item, dict) or not item.get("observation_id"):
+            raise ValueError("ledger contains an unnamed raw observation")
+        observation_id = str(item["observation_id"])
+        if observation_id in ledger_raw:
+            raise ValueError(f"ledger raw observation {observation_id} is duplicated")
+        ledger_raw[observation_id] = item
+
+    absent = sorted(set(original) - set(ledger_raw))
+    invented = sorted(set(ledger_raw) - set(original))
+    if absent:
+        raise ValueError(f"original observation {absent[0]} is absent from the ledger")
+    if invented:
+        raise ValueError(f"ledger observation {invented[0]} lacks original evidence provenance")
+    for observation_id, source in original.items():
+        retained = ledger_raw[observation_id]
+        if any(retained.get(field) != value for field, value in source.items()):
+            raise ValueError(
+                f"original observation {observation_id} changed during ledger synthesis"
+            )
+        if not isinstance(retained.get("terminal_disposition"), dict):
+            raise ValueError(
+                f"original observation {observation_id} lacks a terminal ledger disposition"
+            )
+
+    ledger_receipts = {}
+    for receipt in ledger.get("execution_receipts", []) or []:
+        if not isinstance(receipt, dict) or not receipt.get("receipt_id"):
+            raise ValueError("ledger contains an unnamed execution receipt")
+        receipt_id = str(receipt["receipt_id"])
+        if receipt_id in ledger_receipts:
+            raise ValueError(f"ledger execution receipt {receipt_id} is duplicated")
+        ledger_receipts[receipt_id] = receipt
+    if set(packet_receipts) != set(ledger_receipts) or any(
+        receipt != ledger_receipts.get(receipt_id)
+        for receipt_id, receipt in packet_receipts.items()
+    ):
+        raise ValueError("original execution receipts do not reconcile one-to-one with the ledger")
+
+    rows = [
+        row for row in (ledger.get("path_frontier") or {}).get("rows", [])
+        if isinstance(row, dict)
+    ]
+    by_key = {
+        row.get("semantic_key"): row
+        for row in rows
+        if isinstance(row.get("semantic_key"), str)
+    }
+    by_parent = {}
+    for row in rows:
+        by_parent.setdefault(row.get("parent_id"), []).append(row)
+    for receipt in packet_receipts.values():
+        before, after = receipt.get("before_state"), receipt.get("after_state")
+        material_change = receipt.get("material_state_change") is True or (
+            isinstance(before, str) and isinstance(after, str) and before != after
+        )
+        if not material_change:
+            continue
+        row = by_key.get(receipt.get("semantic_key"))
+        transitions = (
+            [row] if isinstance(row, dict) and row.get("kind") == "transition"
+            else [
+                child for child in by_parent.get(row.get("id") if isinstance(row, dict) else None, [])
+                if child.get("kind") == "transition"
+            ]
+        )
+        if not any(
+            child.get("before_state") == before and child.get("after_state") == after
+            for child in transitions
+        ):
+            raise ValueError(
+                f"material state change {receipt.get('receipt_id')} lacks transition lineage"
+            )
+    return {
+        "original_observations": len(original),
+        "ledger_observations": len(ledger_raw),
+        "execution_receipts": len(packet_receipts),
+        "unresolved": 0,
+    }
+
+
+def reconcile_upstream_inventory(packets, census_controls, affordance_entries):
+    """Require receipts and independent inventories in frozen original evidence."""
+    observations = [
+        observation
+        for packet in (packets or [])
+        if isinstance(packet, dict)
+        for observation in packet.get("observations", [])
+        if isinstance(observation, dict)
+    ]
+    receipts = [
+        receipt
+        for packet in (packets or [])
+        if isinstance(packet, dict)
+        for receipt in packet.get("execution_receipts", [])
+        if isinstance(receipt, dict)
+    ]
+    for receipt in receipts:
+        if not any(
+            observation.get("source_kind") == "execution_receipt"
+            and observation.get("source_id") == receipt.get("receipt_id")
+            and observation.get("semantic_key") == receipt.get("semantic_key")
+            for observation in observations
+        ):
+            raise ValueError(
+                f"execution receipt {receipt.get('receipt_id')} is absent from original evidence"
+            )
+    observed_keys = {
+        observation.get("semantic_key")
+        for observation in observations
+        if isinstance(observation.get("semantic_key"), str)
+    }
+    missing_controls = sorted(set(census_controls or []) - observed_keys)
+    if missing_controls:
+        raise ValueError(
+            f"census control {missing_controls[0]} is absent from original evidence"
+        )
+    action_affordances = [
+        entry for entry in (affordance_entries or [])
+        if isinstance(entry, dict) and entry.get("action_signaling") is True
+    ]
+    for entry in action_affordances:
+        if not any(
+            observation.get("source_kind") == "apparent_affordance_census"
+            and observation.get("source_id") == entry.get("affordance_id")
+            and observation.get("semantic_key") == entry.get("semantic_key")
+            for observation in observations
+        ):
+            raise ValueError(
+                f"apparent affordance {entry.get('affordance_id')} is absent from original evidence"
+            )
+    return {
+        "execution_receipts": len(receipts),
+        "census_controls": len(set(census_controls or [])),
+        "action_signaling_affordances": len(action_affordances),
+        "original_observations": len(observations),
+        "unresolved": 0,
+    }
 
 
 def reconcile_raw_discoveries(ledger, strict=False):
@@ -1415,6 +1795,8 @@ def load_orchestration_checkpoint(input_path, data):
         raise ValueError("orchestration-checkpoint.json required text fields must be non-empty strings")
 
     errors = []
+    original_packets = []
+    affordance_entries = []
     audit_status = checkpoint.get("audit_status")
     goal_completion_status = checkpoint.get("goal_completion_status")
     browser_status = checkpoint.get("browser_failover_status")
@@ -1429,6 +1811,55 @@ def load_orchestration_checkpoint(input_path, data):
     # records.  A current full run opts into the non-waivable contract by
     # declaring run_scope=full; that declaration is then validated strictly.
     strict_full_run = checkpoint.get("run_scope") == "full"
+    if strict_full_run:
+        validation_state = checkpoint.get("validation_state")
+        validation_attempts = checkpoint.get("validation_attempts")
+        if validation_state not in {
+            "collecting", "synthesizing", "validating", "repairing", "complete", "blocked"
+        }:
+            errors.append("current full run validation_state is not canonical")
+        if (
+            not isinstance(validation_attempts, list)
+            or len(validation_attempts) > MAX_VALIDATION_ATTEMPTS
+            or not all(isinstance(item, dict) for item in validation_attempts)
+        ):
+            errors.append("current full run validation_attempts are invalid or unbounded")
+        for field in (
+            "validation_repair_queue_path",
+            "validation_completion_receipt_path",
+        ):
+            value = checkpoint.get(field)
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or os.path.isabs(value)
+                or ".." in value.replace("\\", "/").split("/")
+            ):
+                errors.append(f"current full run {field} must be a safe relative path")
+        if audit_status == "complete" and validation_state not in {"validating", "complete"}:
+            errors.append(
+                "audit_status complete requires validation_state validating or complete"
+            )
+        if validation_state == "complete":
+            receipt_reference = checkpoint.get("validation_completion_receipt_path")
+            receipt = _checkpoint_json(
+                receipt_reference, root, "validation completion receipt", errors
+            )
+            if isinstance(receipt, dict):
+                receipt_path = os.path.join(root, receipt_reference)
+                with open(receipt_path, "rb") as handle:
+                    receipt_digest = hashlib.sha256(handle.read()).hexdigest()
+                if checkpoint.get("validation_completion_receipt_sha256") != receipt_digest:
+                    errors.append(
+                        "validation completion receipt digest does not match checkpoint"
+                    )
+                validate_validation_completion_receipt(
+                    receipt, input_path, checkpoint, root, errors
+                )
+                checkpoint["_completion_receipt"] = receipt
+                checkpoint["_completion_receipt_summary"] = (
+                    "Passed · renderer-issued receipt retained"
+                )
     if audit_status == "complete" and strict_full_run:
         strict_checkpoint = dict(checkpoint)
         try:
@@ -1507,51 +1938,20 @@ def load_orchestration_checkpoint(input_path, data):
             # Current full runs retain machine-readable raw packets.  A plain
             # narrative can be retained as evidence, but cannot be shadow-read
             # for raw-to-final reconciliation.
-            raw_packet_discoveries = []
-            raw_packet_receipts = []
             for index, reference in enumerate(checkpoint.get("raw_lane_output_paths", []) + checkpoint.get("raw_verifier_output_paths", [])):
                 packet = _checkpoint_json(reference, root, f"raw operational packet[{index}]", errors)
                 if isinstance(packet, dict):
-                    candidates = packet.get("raw_discoveries", packet.get("discoveries"))
-                    if isinstance(candidates, list):
-                        raw_packet_discoveries.extend(candidates)
-                    else:
-                        errors.append(f"raw operational packet[{index}] discoveries must be an array")
-                    receipts = packet.get("execution_receipts")
-                    if isinstance(receipts, list):
-                        raw_packet_receipts.extend(receipts)
-            ledger_raw = {
-                item.get("observation_id"): item
-                for item in (ledger.get("raw_discoveries") or [])
-                if isinstance(item, dict) and item.get("observation_id")
-            }
-            packet_raw = [
-                item
-                for item in raw_packet_discoveries
-                if isinstance(item, dict) and item.get("observation_id")
-            ]
-            if (
-                not raw_packet_discoveries
-                or len(ledger_raw) != len(ledger.get("raw_discoveries") or [])
-                or {item.get("observation_id") for item in packet_raw} != set(ledger_raw)
-                or any(item != ledger_raw.get(item.get("observation_id")) for item in packet_raw)
-            ):
-                errors.append("raw operational packets do not reconcile one-to-one with ledger discoveries")
-            ledger_receipts = {
-                item.get("receipt_id"): item
-                for item in (ledger.get("execution_receipts") or [])
-                if isinstance(item, dict) and item.get("receipt_id")
-            }
-            if ledger_receipts and (
-                not raw_packet_receipts
-                or {item.get("receipt_id") for item in raw_packet_receipts if isinstance(item, dict)} != set(ledger_receipts)
-                or any(
-                    not isinstance(item, dict)
-                    or item != ledger_receipts.get(item.get("receipt_id"))
-                    for item in raw_packet_receipts
+                    if packet.get("artifact_path") != reference:
+                        errors.append(
+                            f"raw operational packet[{index}] artifact_path does not match its retained path"
+                        )
+                    original_packets.append(packet)
+            try:
+                checkpoint["_original_evidence_summary"] = (
+                    reconcile_original_evidence_packets(original_packets, ledger)
                 )
-            ):
-                errors.append("raw operational packets do not reconcile one-to-one with execution receipts")
+            except ValueError as error:
+                errors.append(str(error))
             retained_receipt_refs = set(
                 reference.split("#", 1)[0]
                 for field in (
@@ -1594,6 +1994,9 @@ def load_orchestration_checkpoint(input_path, data):
         for index, reference in enumerate(checkpoint.get("apparent_affordance_census_paths", [])):
             census = _checkpoint_json(reference, root, f"apparent affordance census[{index}]", errors)
             if isinstance(census, dict):
+                affordance_entries.extend(
+                    entry for entry in census.get("entries", []) if isinstance(entry, dict)
+                )
                 try:
                     reconcile_affordance_census(ledger, census)
                 except ValueError as error:
@@ -1640,6 +2043,16 @@ def load_orchestration_checkpoint(input_path, data):
             census_methods.add(method)
         census_controls.update(keys)
         census_unmatched.extend(unmatched)
+
+    if strict_full_run and audit_status == "complete":
+        try:
+            accounting = reconcile_upstream_inventory(
+                original_packets, census_controls, affordance_entries
+            )
+            accounting["ledger_observations"] = len(ledger.get("raw_discoveries", []))
+            checkpoint["_upstream_accounting_summary"] = accounting
+        except ValueError as error:
+            errors.append(str(error))
 
     passes = frontier.get("discovery_passes") if isinstance(frontier.get("discovery_passes"), list) else []
     pass_ids = [item.get("id") for item in passes if isinstance(item, dict)]
@@ -1917,6 +2330,38 @@ def coverage_confidence_html(
         reconciliation_html = (
             f'<p><b>Evidence reconciliation</b><span>{esc(reconciliation_text)}</span></p>'
         )
+    original_closure_html = ""
+    original_summary = (checkpoint or {}).get("_original_evidence_summary")
+    if isinstance(original_summary, dict):
+        original_text = (
+            f'{original_summary.get("original_observations", 0)} original observations · '
+            f'{original_summary.get("ledger_observations", 0)} ledger observations · '
+            f'{original_summary.get("execution_receipts", 0)} execution receipts · '
+            f'{original_summary.get("unresolved", 0)} unresolved'
+        )
+        original_closure_html = (
+            f'<p><b>Original evidence closure</b><span>{esc(original_text)}</span></p>'
+        )
+    accounting_html = ""
+    accounting = (checkpoint or {}).get("_upstream_accounting_summary")
+    if isinstance(accounting, dict):
+        accounting_text = (
+            f'{accounting.get("execution_receipts", 0)} execution receipts · '
+            f'{accounting.get("census_controls", 0)} census controls · '
+            f'{accounting.get("action_signaling_affordances", 0)} action-signalling affordances → '
+            f'{accounting.get("original_observations", 0)} original observations → '
+            f'{accounting.get("ledger_observations", accounting.get("original_observations", 0))} ledger observations · '
+            f'{accounting.get("unresolved", 0)} unresolved'
+        )
+        accounting_html = (
+            f'<p><b>Evidence accounting</b><span>{esc(accounting_text)}</span></p>'
+        )
+    completion_html = ""
+    completion = (checkpoint or {}).get("_completion_receipt_summary")
+    if isinstance(completion, str) and completion.strip():
+        completion_html = (
+            f'<p><b>Renderer validation</b><span>{esc(completion)}</span></p>'
+        )
     return (
         '<section class="confidence-summary"><div class="section-head"><h2>Coverage Confidence</h2></div>'
         '<div class="confidence-grid">'
@@ -1925,7 +2370,10 @@ def coverage_confidence_html(
         f'<p><b>What was not tested / Important proof limits</b><span>{esc(limits)}. '
         f'{status_counts["out_of_scope"]} out of scope; {status_counts["sampled_with_justification"]} sampled.</span></p>'
         f'<p><b>Record classes</b><span>{esc(record_text)}</span></p>'
+        f'{accounting_html}'
+        f'{original_closure_html}'
         f'{reconciliation_html}'
+        f'{completion_html}'
         f'<p><b>Why testing stopped</b><span>{esc(summary["closure_reason"])}</span></p>'
         f'<p><b>{closure}</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
         f'{recovery_html}'
@@ -2469,6 +2917,10 @@ def render(data, interactive=False, orchestration_checkpoint=None):
     if ck.get("source_report_input"): ck_rows.append(("source report input", ck["source_report_input"]))
     if isinstance(ck.get("lanes"), list) and ck["lanes"]: ck_rows.append(("lanes", " · ".join(str(x) for x in ck["lanes"])))
     if ck.get("audit_status"): ck_rows.append(("audit status", ck["audit_status"]))
+    if ck.get("validation_state"):
+        ck_rows.append(("validation state", ck["validation_state"]))
+    if ck.get("validation_completion_receipt_path"):
+        ck_rows.append(("validation receipt", ck["validation_completion_receipt_path"]))
     if ck.get("goal_mode_status") or data.get("goal_mode_status"):
         ck_rows.append(("goal mode status", ck.get("goal_mode_status") or data.get("goal_mode_status")))
     if ck.get("goal_completion_status"):
@@ -2691,6 +3143,104 @@ def render(data, interactive=False, orchestration_checkpoint=None):
 {script}
 </div></body></html>"""
 
+
+def _record_validation_failure(input_path, message):
+    root = os.path.dirname(os.path.abspath(input_path))
+    checkpoint_path = os.path.join(root, "orchestration-checkpoint.json")
+    checkpoint = {}
+    if os.path.isfile(checkpoint_path):
+        try:
+            with open(checkpoint_path, encoding="utf-8") as handle:
+                candidate = json.load(handle)
+            if isinstance(candidate, dict):
+                checkpoint = candidate
+        except (OSError, json.JSONDecodeError):
+            checkpoint = {}
+    repair_reference = checkpoint.get("validation_repair_queue_path")
+    if (
+        not isinstance(repair_reference, str)
+        or os.path.isabs(repair_reference)
+        or ".." in repair_reference.replace("\\", "/").split("/")
+    ):
+        repair_reference = "validation-repair.json"
+    repair_path = os.path.join(root, repair_reference)
+    prior_attempt = 0
+    if os.path.isfile(repair_path):
+        try:
+            with open(repair_path, encoding="utf-8") as handle:
+                prior = json.load(handle)
+            prior_attempt = int(prior.get("attempt_count", 0))
+        except (OSError, ValueError, json.JSONDecodeError, AttributeError):
+            prior_attempt = 0
+    manifest = build_validation_repair_manifest(message, prior_attempt + 1)
+    atomic_write_text(
+        repair_path,
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+    )
+    if checkpoint.get("run_scope") == "full":
+        attempts = checkpoint.get("validation_attempts")
+        attempts = list(attempts) if isinstance(attempts, list) else []
+        attempts.append({
+            "attempt": manifest["attempt_count"],
+            "status": manifest["status"],
+            "failure_ids": [item["failure_id"] for item in manifest["failures"]],
+        })
+        checkpoint["validation_attempts"] = attempts[-MAX_VALIDATION_ATTEMPTS:]
+        checkpoint["validation_state"] = (
+            "blocked" if manifest["status"] == "blocked_required" else "repairing"
+        )
+        checkpoint["validation_repair_queue_path"] = repair_reference
+        atomic_write_text(
+            checkpoint_path,
+            json.dumps(checkpoint, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        )
+    return repair_path
+
+
+def _finalize_current_full_run(
+    input_path, output_path, data, checkpoint, interactive=False
+):
+    root = os.path.dirname(os.path.abspath(input_path))
+    if os.path.dirname(os.path.abspath(output_path)) != root:
+        raise ValueError(
+            "current full run report output must remain beside the canonical run artifacts"
+        )
+    finalized = _public_checkpoint(checkpoint)
+    finalized["validation_state"] = "complete"
+    finalized["report_generation_status"] = "rendered"
+    finalized["report_path"] = os.path.abspath(output_path)
+    receipt_reference = finalized.get(
+        "validation_completion_receipt_path", "validation-completion.json"
+    )
+    receipt_path = os.path.join(root, receipt_reference)
+    render_checkpoint = dict(finalized)
+    for key, value in checkpoint.items():
+        if str(key).startswith("_"):
+            render_checkpoint[key] = value
+    render_checkpoint["_completion_receipt_summary"] = (
+        "Passed · renderer-issued receipt retained"
+    )
+    html_out = render(
+        data, interactive=interactive, orchestration_checkpoint=render_checkpoint
+    )
+    receipt = build_validation_completion_receipt(
+        input_path, output_path, finalized, html_out
+    )
+    receipt_text = (
+        json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
+    finalized["validation_completion_receipt_sha256"] = hashlib.sha256(
+        receipt_text.encode("utf-8")
+    ).hexdigest()
+    atomic_write_text(receipt_path, receipt_text)
+    atomic_write_text(output_path, html_out)
+    atomic_write_text(
+        os.path.join(root, "orchestration-checkpoint.json"),
+        json.dumps(finalized, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+    )
+    return html_out, receipt_path
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     interactive = "--interactive" in sys.argv[1:]
@@ -2711,12 +3261,45 @@ def main():
     try:
         validate_canonical_input(data, evidence_root=os.path.dirname(os.path.abspath(inp)))
         checkpoint = load_orchestration_checkpoint(inp, data)
+        if (
+            isinstance(checkpoint, dict)
+            and checkpoint.get("run_scope") == "full"
+            and checkpoint.get("validation_state") == "validating"
+        ):
+            html_out, receipt_path = _finalize_current_full_run(
+                inp, out, data, checkpoint, interactive=interactive
+            )
+            print(
+                f"wrote {out} ({len(html_out)} bytes) from {inp}; "
+                f"validation receipt {receipt_path}"
+            )
+            return
         if checkpoint:
             checkpoint["report_generation_status"] = "rendered"
             checkpoint["report_path"] = os.path.abspath(out)
         html_out = render(data, interactive=interactive, orchestration_checkpoint=checkpoint)
+        if (
+            isinstance(checkpoint, dict)
+            and checkpoint.get("run_scope") == "full"
+            and checkpoint.get("validation_state") == "complete"
+        ):
+            receipt = checkpoint.get("_completion_receipt")
+            if (
+                not isinstance(receipt, dict)
+                or receipt.get("report_path") != os.path.basename(out)
+                or receipt.get("report_sha256")
+                != hashlib.sha256(html_out.encode("utf-8")).hexdigest()
+            ):
+                raise ValueError(
+                    "completed report differs from its renderer receipt; return validation_state to validating"
+                )
     except ValueError as e:
-        print(f"error: canonical report input is invalid ({e})", file=sys.stderr); sys.exit(2)
+        repair_path = _record_validation_failure(inp, str(e))
+        print(
+            f"error: canonical report input is invalid ({e}); repair queue: {repair_path}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
     atomic_write_text(out, html_out)
     print(f"wrote {out} ({len(html_out)} bytes) from {inp}")
 

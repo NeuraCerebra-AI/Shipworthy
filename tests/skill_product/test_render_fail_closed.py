@@ -287,6 +287,49 @@ class FailClosedRenderTests(unittest.TestCase):
         self.assertIn("1 frontier", report)
         self.assertIn("0 unresolved", report)
 
+    def test_coverage_confidence_shows_original_evidence_closure(self) -> None:
+        candidate = self.candidate()
+        checkpoint = {
+            "_original_evidence_summary": {
+                "original_observations": 23,
+                "ledger_observations": 23,
+                "execution_receipts": 19,
+                "unresolved": 0,
+            }
+        }
+
+        report = render(candidate, orchestration_checkpoint=checkpoint)
+
+        self.assertIn("Original evidence closure", report)
+        self.assertIn("23 original observations", report)
+        self.assertIn("23 ledger observations", report)
+        self.assertIn("19 execution receipts", report)
+        self.assertIn("0 unresolved", report)
+
+    def test_coverage_confidence_shows_end_to_end_evidence_accounting(self) -> None:
+        candidate = self.candidate()
+        checkpoint = {
+            "_upstream_accounting_summary": {
+                "execution_receipts": 19,
+                "census_controls": 23,
+                "action_signaling_affordances": 2,
+                "original_observations": 27,
+                "ledger_observations": 27,
+                "unresolved": 0,
+            },
+            "_completion_receipt_summary": "Passed · renderer-issued receipt retained",
+        }
+
+        report = render(candidate, orchestration_checkpoint=checkpoint)
+
+        self.assertIn("Evidence accounting", report)
+        self.assertIn("19 execution receipts", report)
+        self.assertIn("23 census controls", report)
+        self.assertIn("27 original observations", report)
+        self.assertIn("27 ledger observations", report)
+        self.assertIn("Renderer validation", report)
+        self.assertIn("renderer-issued receipt retained", report)
+
     def test_cli_rejects_nonexistent_evidence_reference_without_writing_html(self) -> None:
         candidate = self.candidate()
         with tempfile.TemporaryDirectory() as raw:
@@ -302,7 +345,22 @@ class FailClosedRenderTests(unittest.TestCase):
             )
             self.assertNotEqual(0, result.returncode)
             self.assertIn("evidence reference does not resolve", result.stderr)
+            self.assertIn("repair queue", result.stderr)
             self.assertFalse(output_path.exists())
+            repair_path = root / "validation-repair.json"
+            repair = json.loads(repair_path.read_text(encoding="utf-8"))
+            self.assertEqual("repair_required", repair["status"])
+            self.assertTrue(repair["failures"])
+            for _ in range(2):
+                subprocess.run(
+                    [sys.executable, str(SCRIPT), str(input_path), str(output_path)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            repair = json.loads(repair_path.read_text(encoding="utf-8"))
+            self.assertEqual("blocked_required", repair["status"])
+            self.assertEqual(3, repair["attempt_count"])
 
     def test_cli_rejects_available_artifact_with_false_integrity_metadata(self) -> None:
         candidate = self.candidate()
@@ -444,6 +502,14 @@ class FailClosedRenderTests(unittest.TestCase):
         combined = skill + contract
         for phrase in (
             "Raw-Evidence-to-Ledger Reconciliation Gate",
+            "Original-Evidence Closure Gate",
+            "captured before frontier or finding synthesis",
+            "must not be reconstructed",
+            "circular provenance",
+            "Observe → append → verify → continue",
+            "receipt/census-to-original",
+            "machine-readable repair queue",
+            "renderer-issued completion receipt",
             "ledger remains a draft",
             "exactly one terminal disposition",
             "route, role, state, viewport",

@@ -61,7 +61,7 @@ If the platform has goal mode but authorization is denied, unavailable, or not r
 
 Keep operational state separate from ledger evidence. In `orchestration-checkpoint.json`, record `audit_status` as `active`, `complete`, `blocked`, or `user_stopped`; keep `goal_mode_status` for goal availability/authorization; and record `goal_completion_status` as `active`, `complete`, `blocked`, `user_stopped`, or `not_applicable`.
 
-Before claiming closure, reconcile `control_census_paths`, `zero_yield_pass_ids`, `raw_lane_output_paths`, `raw_verifier_output_paths`, `evidence_debt_actions`, `recovery_status`, `recovery_attempts`, `recovery_receipt_paths`, `browser_failover_status`, and `browser_failover_receipt_paths` through `scripts/render_report.py`. The orchestrator must not mark the persistent goal complete unless that final gate succeeds with `audit_status: complete`, a complete ledger, a closed multi-source frontier, full frontend path-walk, approved verifier, reconciled runtime/static control census, qualifying zero-yield passes, and no active or blocked recovery. A truthful `active`, `blocked`, or `user_stopped` audit still receives the mandatory human-readable HTML report, but it is not closure.
+Before claiming closure, reconcile `control_census_paths`, `zero_yield_pass_ids`, `raw_lane_output_paths`, `raw_verifier_output_paths`, `evidence_debt_actions`, `recovery_status`, `recovery_attempts`, `recovery_receipt_paths`, `browser_failover_status`, `browser_failover_receipt_paths`, `validation_state`, `validation_attempts`, and the validation receipt/repair paths through `scripts/render_report.py`. The orchestrator must not mark the persistent goal complete unless that final gate succeeds with `audit_status: complete`, a complete ledger, a closed multi-source frontier, full frontend path-walk, approved verifier, reconciled runtime/static control census, qualifying zero-yield passes, a renderer-issued completion receipt, and no active or blocked recovery. A truthful `active`, `blocked`, or `user_stopped` audit still receives the mandatory human-readable HTML report, but it is not closure.
 
 For a current `run_scope: full`, this gate also requires three distinct
 verified wave IDs and retained independent certificates, raw-to-final discovery
@@ -73,6 +73,44 @@ small targets and strong findings never waive these controls. Closure is
 derived from retained receipts, not authored by a report builder.
 
 ## Raw-Evidence-to-Ledger Reconciliation Gate
+
+### Original-Evidence Closure Gate
+
+Before frontier or finding synthesis, freeze every lane's original packet with
+`capture_phase: pre_synthesis`, its retained `artifact_path`, `observations`,
+and `execution_receipts`. Those observations are the input to synthesis: they
+must not be reconstructed from `path_frontier`, findings, the canonical ledger,
+checkpoint summaries, report input, or HTML. Do not put terminal dispositions
+or downstream `PF-*`/`FND-*` identities into an original packet. That is
+circular provenance and must fail closure.
+
+Capture continuously: **Observe → append → verify → continue**. After each
+bounded behavior, append its observation and receipt to the retained packet,
+verify the write, then exercise the next behavior. Do not reconstruct a whole
+wave from memory after exploration.
+
+After synthesis, require a one-to-one match from every original observation and
+execution receipt into the canonical ledger. Original fields remain unchanged;
+the ledger adds exactly one terminal disposition. Any original observation
+missing from the ledger, ledger observation without an original source, changed
+observation, missing receipt, or material before/after change without exact
+transition lineage fails the gate. No verifier approval, wave completion,
+zero-yield pass, blocked status, or report prose can waive it.
+
+Before closure, also require receipt/census-to-original reconciliation:
+execution receipts, runtime/static control censuses, and action-signalling
+affordances must each resolve to the frozen original packet before that packet
+resolves to the ledger. On failure, consume the renderer's bounded
+machine-readable repair queue, repair preserved evidence or safely re-exercise
+the named path, set validation back to `validating`, and rerun the same
+renderer. After three failed attempts, stop as blocked with explicit evidence
+debt; never loop indefinitely or call the audit complete.
+
+Only the renderer may transition a current full run from `validating` to
+`complete`. It must retain a renderer-issued completion receipt binding the
+report input, checkpoint, original packets, and final HTML digests. Missing or
+stale receipt proof invalidates completion. Hand-authored HTML, verifier prose,
+and a checkpoint assertion cannot substitute for this receipt.
 
 The ledger remains a draft until every material observation from raw lane and
 verifier packets, execution receipts, runtime/static control censuses, the

@@ -54,7 +54,11 @@ orchestration claims.
   "recovery_attempts": [],
   "recovery_receipt_paths": [],
   "browser_failover_status": "not_needed | active | succeeded | blocked | user_stopped",
-  "browser_failover_receipt_paths": []
+  "browser_failover_receipt_paths": [],
+  "validation_state": "collecting | synthesizing | validating | repairing | complete | blocked",
+  "validation_attempts": [],
+  "validation_repair_queue_path": "validation-repair.json",
+  "validation_completion_receipt_path": "validation-completion.json"
 }
 ```
 
@@ -72,8 +76,40 @@ Positive recent discovery yield, an omitted gate disclosure, strong early
 findings, or a small target cannot produce complete status. Missing paths that
 are promised but proven absent are `missing` findings, not indefinite debt.
 
-For the Raw-Evidence-to-Ledger Reconciliation Gate, the ledger remains a draft
-until every material raw observation has exactly one terminal disposition.
+For the Raw-Evidence-to-Ledger Reconciliation Gate, first enforce the
+**Original-Evidence Closure Gate**. Each retained lane/verifier packet must be
+captured before frontier or finding synthesis with `capture_phase:
+pre_synthesis`, its own `artifact_path`, and `observations` plus
+`execution_receipts` arrays. Original observations must not be reconstructed
+from frontier rows, findings, the ledger, checkpoint, report input, or HTML.
+They carry no terminal disposition and no downstream `PF-*`/`FND-*` identity;
+either condition is circular provenance and fails validation.
+
+The ledger remains a draft until every original observation and execution
+receipt matches the ledger one-to-one and every material raw observation has
+exactly one terminal disposition. Original fields remain unchanged during
+synthesis. A material before/after receipt requires exact transition lineage.
+Missing, invented, changed, or circular records fail closure; verifier
+approval, completed waves, zero-yield passes, and non-complete audit status do
+not waive this check.
+
+For a current full run, checkpoint validation state is `collecting`,
+`synthesizing`, `validating`, `repairing`, `complete`, or `blocked`, with at
+most three bounded `validation_attempts`. Final validation also enforces
+receipt/census-to-original reconciliation across execution receipts,
+runtime/static control censuses, and action-signalling affordances. A failure
+produces `validation-repair.json`, a bounded machine-readable repair queue
+containing the failed gate, problem, and required action. The controller repairs
+the cited artifact or re-exercises the path, returns the state to `validating`,
+and reruns the renderer. The third failure requires blocked status and explicit
+evidence debt.
+
+Only `scripts/render_report.py` may move validation from `validating` to
+`complete`. It writes `validation-completion.json`, a renderer-issued completion
+receipt binding digests for report input, checkpoint, original packets, and
+HTML. A completed validation state without a matching receipt and digest fails
+closed; modifying any bound artifact invalidates that completion.
+
 Retain its stable observation ID, source kind, evidence references, semantic
 key, and behavioral identity. Compare route, role, state, viewport, containing
 surface, control identity/type, input mechanism, and before/after state; reject

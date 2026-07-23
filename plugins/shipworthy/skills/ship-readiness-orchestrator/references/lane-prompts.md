@@ -30,7 +30,7 @@ For one shared runtime, designate a single coordinated runtime driver unless iso
 
 Every browser-using lane prompt must carry the complete Block-Recovery Ladder from `browser-evidence-routing.md`: record failure; safe cleanup; continuity check and one transient retry; independent Playwright; another authorized frontend route such as Chrome, Computer Use, or target-owned E2E; lane reassignment or a sequential coordinated driver; supporting evidence only; then resume the unfinished wave. `tab.playwright` on the same locked native-browser binding is not a fallback. Refresh the capability inventory before exhaustion. Keep recovery active while a safe applicable authorized method remains, do not claim frontend coverage or closure for unresolved paths, and never install a capability or modify the target merely to recover evidence.
 
-Before final synthesis, write the schema-external operational fields in `orchestration-checkpoint.json`: `audit_status`, `goal_mode_status`, `goal_completion_status`, `raw_lane_output_paths`, `raw_verifier_output_paths`, `control_census_paths`, `zero_yield_pass_ids`, `evidence_debt_actions`, `recovery_status`, `recovery_attempts`, `recovery_receipt_paths`, `browser_failover_status`, and `browser_failover_receipt_paths`. Keep the frozen ledger/report wrapper unchanged. Render the truthful checkpoint even when it is active, blocked, or user-stopped, but do not mark the persistent goal complete until `scripts/render_report.py` accepts a complete state.
+Before final synthesis, write the schema-external operational fields in `orchestration-checkpoint.json`: `audit_status`, `goal_mode_status`, `goal_completion_status`, `raw_lane_output_paths`, `raw_verifier_output_paths`, `control_census_paths`, `zero_yield_pass_ids`, `evidence_debt_actions`, `recovery_status`, `recovery_attempts`, `recovery_receipt_paths`, `browser_failover_status`, `browser_failover_receipt_paths`, `validation_state`, `validation_attempts`, `validation_repair_queue_path`, and `validation_completion_receipt_path`. Keep the frozen ledger/report wrapper unchanged. Render the truthful checkpoint even when it is active, blocked, or user-stopped, but do not mark the persistent goal complete until `scripts/render_report.py` accepts a complete state and writes its completion receipt.
 
 Do not imply that the lane prompt or Shipworthy skill overrides platform tool policy. In Codex or any platform requiring explicit authorization, no subagent may be dispatched until the current user request or the user's answer explicitly authorizes subagents, delegation, or parallel-agent work.
 ```
@@ -62,13 +62,20 @@ Use runtime/browser evidence when available: screenshots, recordings, DOM/UI tre
 
 Label each discovered material path or expected intent covered, sampled, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt. Return canonical semantic rows with `intent → feature → surface → control → transition` lineage, `shipworthy-semantic-v1` identities, `shipworthy-methods-v1` observations, evidence refs, attempt counts, control identity, and transition before/after states. Record discovery passes and source/runtime reconciliation differences at feature and surface levels. Do not present the lane packet as the canonical ledger.
 
-Also return every material observation in `raw_discoveries` before synthesis:
-stable observation ID, source kind/source ID, material flag, semantic key,
+Before any frontier or finding synthesis, freeze an original evidence packet
+with `capture_phase: pre_synthesis`, its retained `artifact_path`,
+`observations`, and `execution_receipts`. Each observation carries a stable
+observation ID, source kind/source ID, material flag, semantic key,
 route/role/state/viewport/surface/control/input/before-after behavioral
-identity, evidence refs, defect class when applicable, and one proposed
-terminal disposition. Return execution receipts in `execution_receipts`.
-Do not omit an observation because it appears duplicative; identify the
-proposed duplicate so the controller can compare complete behavioral identity.
+identity, evidence refs, and defect class when applicable. The packet must not
+contain terminal dispositions, `PF-*`/`FND-*` source identities, or observations
+reconstructed from frontier rows, findings, the ledger, report input, or HTML.
+Do not omit an observation because it appears duplicative; retain it so the
+controller can compare complete behavioral identity. The controller, not the
+lane, later copies each observation unchanged into ledger `raw_discoveries` and
+adds exactly one terminal disposition. Capture continuously: after each bounded
+behavior, append its observation and receipt, verify the retained write, then
+continue. Do not reconstruct the packet from memory at wave end.
 
 Return actual product failures as findings with `affected_semantic_keys`, `observed_effect_code`, and `evidence_refs`. Do not turn a normal blocked, avoided, missing, or out-of-scope disposition into a finding unless separately observed product behavior causes user harm. Return candidate claim/coverage/evidence-debt rows, lane-native severity, suggested canonical severity, evidence class, confidence, falsifier, false-positive notes, backend symptoms tied to user paths, new paths discovered, evidence debt, and exact verification steps.
 
@@ -146,7 +153,13 @@ You are the independent verifier for a Deep Review wave.
 
 You receive raw lane outputs, the target brief, target fingerprint, safe-test boundary, claim ledger, coverage matrix, and evidence debt register. Do not rely on a narrative summary.
 
-First do a shadow read of raw outputs and independently extract candidate findings, contradictions, absence signals, and proof gaps. Then compare that extraction to the ledger.
+First enumerate the retained pre-synthesis original packets and execution
+receipts without inspecting synthesized frontier rows or findings. Reject any
+packet with a missing pre-synthesis marker, terminal dispositions, downstream
+frontier/finding identities, or observations reconstructed from the ledger,
+checkpoint, report input, or HTML. Then shadow-read those original outputs,
+independently extract candidate findings, contradictions, absence signals, and
+proof gaps, and only then compare that extraction to the ledger.
 
 For every material claim, mark approved, downgraded, rejected, needs-proof, or blocked. Check evidence class, provenance tags, canonical severity/confidence mapping, target fingerprint, contradictions, false-positive boundaries, missing caveats, overclaiming, duplicate ledgers, missing ledger rows, "all paths" overreach, redaction/storage safety, and required retargeting. For final-pass verification, also check that major recommendations have fix-cascade notes and every final claim maps to a claim, coverage, evidence-debt, or fix-cascade row. Ask "what plausible paths were missed?" and compare the answer against the path_frontier.
 
