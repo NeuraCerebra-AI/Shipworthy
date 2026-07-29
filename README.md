@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/hero.svg" alt="Shipworthy — autonomous, evidence-graded product-readiness audits for apps and AI agents. Walks your whole product, proves it's worthy to ship, never overclaims." width="100%">
+<img src=".github/assets/hero.svg" alt="Shipworthy — autonomous, evidence-graded product-readiness audits for apps and AI agents. Walks your whole product, proves it's worthy to ship, never overclaims." width="100%">
 
 ### Autonomous, evidence-graded product-readiness audits — for apps &amp; AI agents.
 
@@ -8,8 +8,7 @@ It walks your whole product like your most paranoid senior engineer — **every 
 
 [![GitHub stars](https://img.shields.io/github/stars/NeuraCerebra-AI/shipworthy?style=social)](https://github.com/NeuraCerebra-AI/shipworthy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Validated](https://img.shields.io/github/actions/workflow/status/NeuraCerebra-AI/shipworthy/validate.yml?label=validated&style=flat-square)](https://github.com/NeuraCerebra-AI/shipworthy/actions)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin%20%2B%204%20skills-8A2BE2?style=flat-square)](https://code.claude.com/docs/en/skills)
+[![Skills](https://img.shields.io/badge/skills-4-8A2BE2?style=flat-square)](#-the-four-skills)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat-square)](https://github.com/NeuraCerebra-AI/shipworthy/releases)
 
 **✓ Read-only by default  ✓ Self-contained markdown  ✓ No telemetry  ✓ No credential access  ✓ No auto-update**
@@ -31,26 +30,19 @@ Most "it works on my machine" ships die on the things a quick look never catches
 
 Shipworthy finds all of the above **and refuses the last two.** It treats "try every path" as a coverage ambition with honest exclusions — not a claim of omniscience — and keeps a live evidence ledger so every readiness statement traces back to proof. Every material observation must reach an exact path, finding, proof gap, rejection, or scope boundary; role, state, device, and interaction variants cannot be silently cross-credited.
 
-<div align="center"><img src="assets/flow.svg" alt="How it works: map the path universe, walk every safe path across UI and backend, run an independent verifier, report coverage and evidence debt, then issue a proven ship-or-don't verdict" width="100%"></div>
+<div align="center"><img src=".github/assets/flow.svg" alt="How it works: map the path universe, walk every safe path across UI and backend, run an independent verifier, report coverage and evidence debt, then issue a proven ship-or-don't verdict" width="100%"></div>
 
 ## ⚡ Install in 30 seconds
 
-Use the host's plugin manager so installation, updates, and removal stay owned by
-the app. The plugin bundles all four self-contained skills.
+Open Codex or Claude Code and ask:
 
-In **Claude Code**:
+> Install the four top-level skills from
+> [NeuraCerebra-AI/Shipworthy](https://github.com/NeuraCerebra-AI/Shipworthy)
+> into this environment's skills directory. Install each folder as a separate
+> skill—not the repository as one nested skill.
 
-```bash
-/plugin marketplace add NeuraCerebra-AI/Shipworthy
-/plugin install shipworthy@shipworthy
-/reload-plugins
-```
-
-In **Codex**, add this repository as a plugin source and install `shipworthy`
-through the plugin UI. Restart Codex if the four skills are not visible
-immediately. Exact native Codex install/reload/upgrade/uninstall commands have
-not been exercised in this migration and remain **NOT_PROVEN**; the advanced
-manual fallback below is the only locally rehearsed install path.
+The four skill folders should end up directly beside the user's other skills.
+Start a new session after installation so the host discovers them.
 
 Then ask:
 
@@ -81,27 +73,13 @@ Playwright, Computer Use, or the app UI itself. Repo/source, CLI, HTTP, tests,
 logs, provider checks, database probes, and docs are supporting evidence, not a
 substitute for walking the product like a user.
 
-<details>
-<summary><b>Advanced manual fallback</b></summary>
-
-```bash
-git clone https://github.com/NeuraCerebra-AI/Shipworthy.git
-cd Shipworthy
-./install.sh --target codex   # installs into ~/.agents/skills
-./install.sh --target claude  # installs into ~/.claude/skills
-```
-Use `--target both` only when you intentionally maintain both manual installations.
-Existing copies receive timestamped backups outside the active skill-discovery
-directory. Each skill also works independently.
-</details>
-
 ## 🎬 What a run looks like
 
-<div align="center"><img src="assets/sample-report.svg" alt="Illustrative readiness report: NOT READY with Clear Before Ship, Fix Next, Not Proven / Not Tested, and Passed / Keep sections, a coverage map over 34 paths, and an orchestration checkpoint whose independent verifier is APPROVED" width="100%"></div>
+<div align="center"><img src=".github/assets/sample-report.svg" alt="Illustrative readiness report: NOT READY with Clear Before Ship, Fix Next, Not Proven / Not Tested, and Passed / Keep sections, a coverage map over 34 paths, and an orchestration checkpoint whose independent verifier is APPROVED" width="100%"></div>
 
-<sub>*Illustrative — the report format is real; the contents are a sample, not a live run. PRs welcome.*</sub>
+<sub>*Illustrative — the report format is real; the contents are a sample, not a live run.*</sub>
 
-> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, evidence-reconciliation summary, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](plugins/shipworthy/skills/ship-readiness-orchestrator/references/visual-html-report.md).
+> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, evidence-reconciliation summary, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](ship-readiness-orchestrator/references/visual-html-report.md).
 
 The report is meant to tell you what to do next, not bury you in audit prose:
 **Clear Before Ship** blocks readiness, **Fix Next** is real but non-blocking,
@@ -166,7 +144,7 @@ apply the fixes safely, verify each one, and regenerate the Shipworthy HTML repo
 
 ## 🗺️ How it fits together
 
-<div align="center"><img src="assets/architecture.svg" alt="Architecture: the ship-readiness-orchestrator owns the one evidence ledger, coverage matrix, verdict, and no-overclaim gate, and dispatches three lanes — ship-deep-review (waves and verifier gates), ship-product-workflows (walks every path across UI and backend), and ship-workflow-clarity (the human lens with harmful-simplify warnings); product-workflows feeds a clarity packet to workflow-clarity" width="100%"></div>
+<div align="center"><img src=".github/assets/architecture.svg" alt="Architecture: the ship-readiness-orchestrator owns the one evidence ledger, coverage matrix, verdict, and no-overclaim gate, and dispatches three lanes — ship-deep-review (waves and verifier gates), ship-product-workflows (walks every path across UI and backend), and ship-workflow-clarity (the human lens with harmful-simplify warnings); product-workflows feeds a clarity packet to workflow-clarity" width="100%"></div>
 
 One truth layer, proven. The lanes feed evidence *packets* into the orchestrator's single ledger — they never publish competing conclusions. Full control stack in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -204,13 +182,9 @@ environment. It reports the smallest useful fix and an exact verification step
 
 **Will it change my code?** No — read-only by default. It gives you the fix and the verification step; you decide.
 
-**Claude Code only?** It's built on the open `SKILL.md` standard, so it also runs in Codex and other SKILL.md-compatible agents. `./install.sh` covers the manual path.
+**Claude Code only?** No. It's built on the open `SKILL.md` standard, so it also runs in Codex and other SKILL.md-compatible agents.
 
 **Why "Shipworthy"?** Because the tool tells you whether your product is *worthy* of shipping — an earned, evidence-backed verdict, not a naked score.
-
-## 🤝 Contributing
-
-PRs welcome — we aim to respond within 48 hours. Great first contributions: new archetype overlays, better path-discovery heuristics, real worked examples, and a recorded demo. Start with issues labeled `good first issue`, and read **[CONTRIBUTING.md](CONTRIBUTING.md)** (the one rule: never add a second source of truth, and never let a lane declare "ready").
 
 ## ⭐ Star this if it saved you a bad launch
 

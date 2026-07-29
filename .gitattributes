@@ -1,3 +1,0 @@
-# Golden JSON fixtures intentionally retain their original whitespace. Do not
-# rewrite them during linting or checkout.
-tests/skill_product/fixtures/**/*.json -whitespace

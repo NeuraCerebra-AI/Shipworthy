@@ -2,7 +2,7 @@
 
 Shipworthy is deliberately **one brain with three lanes**, not four peers. The single most important property of the system is that it produces **one evidence-backed truth layer**, never competing conclusions. This document explains who owns what, so contributors don't accidentally create a second source of truth.
 
-<div align="center"><img src="assets/architecture.svg" alt="Shipworthy architecture: one orchestrator owns the evidence ledger and conducts three specialist lanes" width="100%"></div>
+<div align="center"><img src=".github/assets/architecture.svg" alt="Shipworthy architecture: one orchestrator owns the evidence ledger and conducts three specialist lanes" width="100%"></div>
 
 ## The one rule
 
@@ -116,20 +116,16 @@ If a required sub-skill can't be found or read, the orchestrator's **Sub-Skill L
 
 ## Four self-contained skills
 
-The installed product is exactly four independently usable skills. Detailed
+The product is exactly four independently usable, top-level skills. Detailed
 contracts and schemas live under each skill's own references; deterministic
 HTML, SARIF, and evidence-bundle transforms are the three standard-library
-scripts inside the orchestrator. Development tests, fixtures, parity checks,
-and lifecycle rehearsals remain repository-only.
+scripts inside the orchestrator.
 
-Codex and Claude plugin managers own normal installation. The manual installer
-is an explicit-target fallback that validates all four sources, preserves
-timestamped backups, and restores the exact prior skill state after failure.
-It never touches audit evidence, and it does not automate uninstall.
-
-Legacy comparison, installed parity, and rollback assurance are repository test
-behaviors, not additional installed machinery. Legacy retirement is a repository
-history concern, not installed machinery.
+Install each top-level skill folder directly into the host's skills directory.
+The repository itself is not a skill and must not become an extra nesting layer.
+Codex, Claude Code, or another `SKILL.md`-compatible agent should place the four
+folders beside the user's other installed skills and preserve existing versions
+before replacing them.
 
 ## Lean host-native evidence flow
 

@@ -29,10 +29,8 @@ npm-debug.log*
 # Shipworthy evidence output (ledgers/traces are run artifacts, not source)
 /tmp/ship-*/
 **/audit-ledger.md
-!plugins/shipworthy/skills/ship-product-workflows/templates/audit-ledger.md
+!ship-product-workflows/templates/audit-ledger.md
 evidence/
-!tests/skill_product/fixtures/evidence/
-!tests/skill_product/fixtures/evidence/*.json
 outputs/
 
 # Demo capture artifacts (record locally; don't commit large casts by default)
@@ -49,3 +47,16 @@ docs/demo.gif
 # generated visual reports
 readiness-report.html
 *.readiness-report.html
+
+# Intentionally excluded repository infrastructure
+/.agents/
+/.claude-plugin/
+/.gitattributes
+/.github/workflows/
+/assets/
+/CONTRIBUTING.md
+/docs/
+/install.sh
+/plugins/
+/tests/
+/ship-*/README.md
