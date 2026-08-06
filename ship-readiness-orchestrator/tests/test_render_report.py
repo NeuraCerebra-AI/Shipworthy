@@ -576,6 +576,12 @@ class BundledSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bundled schema validation failed"):
             RENDERER.validate_bundled_schema(ledger)
 
+    def test_skill_contract_requires_inline_chat_handoff(self):
+        skill_text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("inline-chat requirement", skill_text)
+        self.assertIn("user-visible `final` response", skill_text)
+        self.assertIn("none of them satisfies or replaces the inline chat handoff", skill_text)
+
 
 class EndToEndRendererTests(unittest.TestCase):
     def test_cli_renders_truthful_active_checkpoint(self):

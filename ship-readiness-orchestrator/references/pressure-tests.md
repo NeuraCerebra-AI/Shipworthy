@@ -69,6 +69,7 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent ends after exactly three waves even though major coverage gaps remain.
 - The agent sends a full final verdict while material `path_frontier` rows remain `unattempted`, `unknown`, or `maybe`.
 - The agent ends an incomplete response without listing every remaining row/difference/debt/gate and without asking whether to continue and whether to use persistent goal mode.
+- The HTML report contains Remaining Work and both questions, but the inline chat final response omits them or only links to the report.
 - The agent asks to fix confirmed defects before offering to finish unresolved audit paths and proof.
 - The agent stops while the last discovery/testing pass still found new material routes, controls, roles, states, device variants, or user intents.
 - A user follow-up says "do another round" and the agent finds material new paths, proving the first run was not exhausted.
@@ -506,6 +507,7 @@ Expected behavior:
 - The final response contains a **Remaining Work** section derived from the canonical frontier/checkpoint, not memory.
 - Every fixture item appears with its stable ID/key, status, owner, blocker/reason, next proof/action, and resume condition; no count-only summary or “and more” is accepted.
 - The mandatory HTML report renders the same unresolved set.
+- The inline chat final response independently contains the Remaining Work summary and both questions; “see HTML report” or an artifact link is not accepted as a substitute.
 - The response ends with the exact continuation question followed by the persistent-goal question; no user-facing prose follows those questions.
 - If goal mode is already active, it asks whether to keep the goal active; if unavailable, it offers the resumable checkpoint as the goal-equivalent.
 - A fully covered completed `not_ready` audit with only confirmed defects does not falsely claim unfinished audit paths and uses the fix handoff instead.
