@@ -44,7 +44,7 @@ Deep Review is a repo-agnostic companion workflow for evidence-heavy investigati
 
 The core rule: **no wave intelligence summary may be written until the orchestrator has read every agent output for that wave, created a claim ledger, an independent verifier has checked the raw outputs and ledger, and the summary records that verification.**
 
-Evidence-state rule: the claim ledger is the truth layer, the coverage matrix is the scope layer, the evidence debt register is the uncertainty layer, and prose is only the delivery layer. Summaries and final reports must map material claims back to those artifacts and pass a drift check before being treated as complete.
+Evidence-state rule: source-backed candidate inventories prove what was discoverable; the canonical coverage manifest/path frontier is the work and scope layer; the claim ledger is the truth layer; the evidence debt register is the uncertainty layer; and prose is only the delivery layer. Summaries and final reports must map material claims back to those artifacts and pass a drift check before being treated as complete.
 
 ## Required References
 
@@ -86,7 +86,7 @@ Before dispatching agents or writing a plan:
 
 Read `references/platform-profiles.md` before agent dispatch.
 
-For Codex, use at most 6 concurrent agents. Prefer `gpt-5.5` with `xhigh` reasoning for the coordinator, specialist agents, wave verifiers, and final synthesis whenever available.
+For Codex, use at most 6 concurrent agents. Prefer the strongest available frontier GPT-5-class agentic coding model with `xhigh` reasoning for the coordinator, specialist agents, wave verifiers, and final synthesis.
 
 For Claude Code, use mostly Sonnet for specialist agents, with Opus for each wave's independent verification and final no-overclaiming verification. Claude Code does not have Codex's 6-agent limit; when a wave has 13 or fewer independent agents with non-conflicting scopes, launch the whole wave at once.
 
@@ -96,9 +96,9 @@ At the end of every wave:
 
 1. Wait for all expected agents or mark missing outputs explicitly.
 2. Read every completed agent output in full.
-3. Create or update the evidence state: claim ledger, coverage matrix, and evidence debt register. This is not a wave intelligence summary.
+3. Create or update the evidence state: candidate inventories, canonical coverage manifest/path frontier, claim ledger, coverage matrix, and evidence debt register. This is not a wave intelligence summary.
 4. Dispatch one independent verification agent using the strongest platform model:
-   - Codex: `gpt-5.5` `xhigh` if available.
+   - Codex: strongest available frontier GPT-5-class agentic coding model with `xhigh` reasoning.
    - Claude Code: Opus.
 5. Give the verifier the raw wave outputs, evidence state, preflight facts, and target brief. Do not give it a draft narrative summary, because that makes the verifier less independent.
 6. Ask it to do a shadow read first: independently extract findings from raw outputs, then compare that extraction to the orchestrator ledger.
@@ -120,9 +120,9 @@ If context compaction/resume happens after a wave has begun, first list and read
 4. **Verified Barrier 1.** Read all outputs, update evidence state, run independent shadow verification, then write Wave 1 intelligence summary with certificate.
 5. **Wave 2: targeted reproduction and contradiction resolution.** Focus on strongest findings, missing proof, and high-impact cascades.
 6. **Verified Barrier 2.** Repeat the read-all + evidence-state + independent-verifier + certified-summary gate.
-7. **Wave 3: prove nothing material disappeared.** Shadow-read every raw packet, browser receipt, source inventory, candidate finding, absence signal, and rejected hypothesis; reconcile each material observation to the frontier, finding, evidence debt, explicit rejection, or justified out-of-scope record. Ask what plausible paths were missed, then require two consecutive zero-yield discovery passes from distinct canonical method families before closure.
+7. **Wave 3: prove nothing material disappeared.** Independently regenerate and shadow-read declared, static, and runtime candidate inventories; compare raw locators and candidates with the manifest rather than trusting frontier keys; reconcile each candidate and material observation to the frontier, finding, evidence debt, explicit rejection, or justified out-of-scope record. Ask what plausible paths were missed, then require two consecutive source-backed zero-yield discovery passes from distinct canonical method families before exhaustion.
 8. **Verified Barrier 3.** Repeat the wave verification gate before final synthesis.
-9. **Final synthesis.** The orchestrator writes the final synthesis because it owns the full continuity of user intent, preflight truth, all wave outputs, all verifier decisions, and retargeting history. Use Opus or `gpt-5.5 xhigh` to verify the final claim ledger, evidence debt, and coverage gaps before writing, not to replace the orchestrator as author.
+9. **Final synthesis.** The orchestrator writes the final synthesis because it owns the full continuity of user intent, preflight truth, all wave outputs, all verifier decisions, and retargeting history. Use Opus or the strongest available frontier GPT-5-class agentic coding model with `xhigh` reasoning to verify the final claim ledger, evidence debt, and coverage gaps before writing, not to replace the orchestrator as author.
 10. **Final report.** Lead with product/research truth, blockers, evidence, false positives, tests/browser proof, and exact uncertainty boundaries.
 
 ## Superpowers Integration
@@ -155,7 +155,7 @@ Do not let the presence of this skill override user constraints. If the user say
 - Lead with the truth the user needs, not the process.
 - Preserve exact evidence: file anchors, screenshots, command output, API payloads, URLs, or local paths.
 - Separate confirmed findings, likely findings, needs-proof items, false positives, and rejected claims.
-- Keep coverage gaps and evidence debt visible; do not silently drop unresolved items.
+- Keep coverage gaps and evidence debt visible; do not silently drop unresolved items. Report audit lifecycle, coverage finality/qualification, and readiness disposition separately; a completed audit may truthfully conclude `not_ready`.
 - State what was not run or not proven.
 - Do not claim readiness, safety, or correctness without verification evidence.
 - When the user requests a written artifact, save it to an appropriate repo-local or scratch path and report the exact location.

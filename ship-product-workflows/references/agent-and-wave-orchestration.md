@@ -99,7 +99,7 @@ For ledger-required audits, the coordinator writes the ledger. Agents return com
 Each lane packet should include:
 
 - lane scope and safe-test boundary;
-- paths covered, sampled, blocked, avoided, inferred, and out of scope;
+- source candidate inventory/manifest references and paths covered, sampled with justification, blocked, avoided, missing, evidence debt, and out of scope;
 - new paths, states, roles, or mutation risks discovered;
 - artifacts and evidence references;
 - confirmed findings, hypotheses, and non-findings;

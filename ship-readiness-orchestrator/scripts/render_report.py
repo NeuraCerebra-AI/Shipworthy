@@ -11,6 +11,12 @@ Every text field is HTML-escaped. Legacy input degrades gracefully; canonical
 frontier input fails closed on broken lineage, evidence, digest, or checkpoint data.
 """
 import sys, json, html, datetime, re, os, tempfile, hashlib
+try:
+    import jsonschema
+    from referencing import Registry, Resource
+except ImportError:  # Current full runs fail closed below; historical renders remain readable.
+    jsonschema = None
+    Registry = Resource = None
 sys.dont_write_bytecode = True
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 MAX_CHECKPOINT_BYTES = 256 * 1024
@@ -32,6 +38,15 @@ GOAL_COMPLETION_STATUSES = {"active", "complete", "blocked", "user_stopped", "no
 BROWSER_FAILOVER_STATUSES = {"not_needed", "active", "succeeded", "blocked", "user_stopped"}
 RECOVERY_STATUSES = {"not_needed", "active", "succeeded", "blocked", "user_stopped"}
 CONTROL_CENSUS_METHODS = {"runtime_structural_inventory", "static_implementation_inventory"}
+CANONICAL_METHOD_FAMILIES = {
+    "runtime_human_interaction", "runtime_structural_inventory",
+    "static_implementation_inventory", "declared_behavior_inventory",
+}
+TERMINAL_FRONTIER_STATUSES = {
+    "covered", "sampled_with_justification", "blocked", "avoided",
+    "missing", "out_of_scope", "evidence_debt",
+}
+UNRESOLVED_FRONTIER_STATUSES = {"unattempted", "unknown", "maybe"}
 
 
 def recovery_projection(declared_status, attempts):
@@ -366,16 +381,16 @@ def validate_validation_completion_receipt(
                 errors.append("validation completion receipt report digest does not match")
 
 COV = {
-    "covered": "#34D399", "sampled": "#3B82F6", "blocked": "#F59E0B",
-    "avoided": "#9F5B6B", "inferred": "#38BDF8", "missing": "#F43F5E",
+    "covered": "#34D399", "sampled_with_justification": "#3B82F6", "blocked": "#F59E0B",
+    "avoided": "#9F5B6B", "missing": "#F43F5E",
     "out_of_scope": "#64748B", "evidence_debt": "#3A4763",
-    "debt": "#3A4763",
+    "debt": "#3A4763", "sampled": "#3B82F6", "inferred": "#38BDF8",
 }
 COV_LABEL = {
-    "covered": "Tried + evidenced", "sampled": "Spot-checked", "blocked": "Blocked",
-    "avoided": "Skipped for safety", "inferred": "Inferred", "missing": "Missing",
+    "covered": "Tried + evidenced", "sampled_with_justification": "Sampled with justification", "blocked": "Blocked",
+    "avoided": "Skipped for safety", "missing": "Missing",
     "out_of_scope": "Out of scope", "evidence_debt": "Proof missing",
-    "debt": "Proof missing",
+    "debt": "Proof missing", "sampled": "Legacy sampled", "inferred": "Legacy inferred",
 }
 SECTION = {
     "clear_before_ship": ("#F43F5E", "Clear Before Ship", "tier-clear-before-ship"),
@@ -467,7 +482,7 @@ V1_SEVERITY = {
 }
 V1_VERDICT = {
     "ready": "READY", "conditionally_ready": "CONDITIONAL",
-    "not_ready": "NOT READY", "cannot_determine": "NOT READY",
+    "not_ready": "NOT READY", "cannot_determine": "CANNOT DETERMINE",
 }
 CLOSURE_STATES = {"closed_multi_source", "incomplete", "single_source", "blocked", "static_only"}
 PARENT_KIND = {"feature": "intent", "surface": "feature", "control": "surface", "transition": "control"}
@@ -478,6 +493,264 @@ def _semantic_digest(keys):
 
 def _frontier_digest(rows):
     return _semantic_digest(row.get("semantic_key") for row in rows if isinstance(row, dict))
+
+
+def _candidate_digest(candidates):
+    canonical_candidates = sorted(
+        (item for item in (candidates or []) if isinstance(item, dict)),
+        key=lambda item: str(item.get("candidate_id") or ""),
+    )
+    return hashlib.sha256(
+        json.dumps(
+            canonical_candidates, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _combined_candidate_digest(inventories):
+    bound_inventories = sorted(
+        (
+            {
+                field: inventory.get(field)
+                for field in (
+                    "inventory_id", "method_taxonomy_version", "method_family",
+                    "role", "state", "viewport", "fixture", "source_locator",
+                    "source_artifacts", "artifact_ref", "artifact_sha256",
+                    "candidate_digest", "action_signaling_candidate_count",
+                )
+            }
+            for inventory in (inventories or []) if isinstance(inventory, dict)
+        ),
+        key=lambda inventory: str(inventory.get("inventory_id") or ""),
+    )
+    return hashlib.sha256(
+        json.dumps(
+            bound_inventories, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def reconcile_candidate_inventories(
+    frontier, evidence_root=None, require_closure=False,
+    require_complete_mapping=False,
+):
+    """Reconcile raw source/runtime candidates to the authored frontier."""
+    rows = frontier.get("rows", []) if isinstance(frontier, dict) else []
+    inventories = frontier.get("candidate_inventories", []) if isinstance(frontier, dict) else []
+    if not isinstance(inventories, list):
+        raise ValueError("candidate_inventories must be an array")
+    row_by_id = {row.get("id"): row for row in rows if isinstance(row, dict)}
+    frontier_keys = {
+        row.get("semantic_key") for row in rows
+        if isinstance(row, dict) and isinstance(row.get("semantic_key"), str)
+    }
+    inventory_ids = set()
+    inventory_artifact_refs = set()
+    source_ref_families = {}
+    source_digest_families = {}
+    candidate_ids = set()
+    mapped_keys = set()
+    method_families = set()
+    for inventory_index, inventory in enumerate(inventories):
+        if not isinstance(inventory, dict):
+            raise ValueError(f"candidate inventory[{inventory_index}] must be an object")
+        inventory_id = inventory.get("inventory_id")
+        if not isinstance(inventory_id, str) or not inventory_id or inventory_id in inventory_ids:
+            raise ValueError(f"candidate inventory[{inventory_index}] id is missing or duplicated")
+        inventory_ids.add(inventory_id)
+        method = inventory.get("method_family")
+        if method not in CANONICAL_METHOD_FAMILIES:
+            raise ValueError(f"candidate inventory {inventory_id} method family is not canonical")
+        method_families.add(method)
+        candidates = inventory.get("candidates")
+        if not isinstance(candidates, list):
+            raise ValueError(f"candidate inventory {inventory_id} candidates must be an array")
+        if inventory.get("candidate_digest") != _candidate_digest(candidates):
+            raise ValueError(f"candidate inventory {inventory_id} digest does not reconcile")
+        source_locator = inventory.get("source_locator")
+        source_artifacts = inventory.get("source_artifacts")
+        if not isinstance(source_locator, str) or not source_locator.strip():
+            raise ValueError(f"candidate inventory {inventory_id} source locator is missing")
+        if not isinstance(source_artifacts, list) or not source_artifacts:
+            raise ValueError(f"candidate inventory {inventory_id} source artifacts are missing")
+        artifact_ref = inventory.get("artifact_ref")
+        manifest_ref = frontier.get("manifest_artifact")
+        if artifact_ref == manifest_ref or artifact_ref in inventory_artifact_refs:
+            raise ValueError(f"candidate inventory {inventory_id} reuses a manifest or inventory artifact")
+        inventory_artifact_refs.add(artifact_ref)
+        source_refs = set()
+        for source_index, source_artifact in enumerate(source_artifacts):
+            if not isinstance(source_artifact, dict):
+                raise ValueError(f"candidate inventory {inventory_id} source artifact[{source_index}] is invalid")
+            source_ref = source_artifact.get("ref")
+            if not isinstance(source_ref, str) or not source_ref or "#" in source_ref or source_ref in source_refs:
+                raise ValueError(f"candidate inventory {inventory_id} source artifact reference is invalid or duplicated")
+            if source_ref in {artifact_ref, manifest_ref}:
+                raise ValueError(f"candidate inventory {inventory_id} source artifact is circular")
+            source_refs.add(source_ref)
+            source_ref_families.setdefault(source_ref, set()).add(method)
+            source_digest = source_artifact.get("sha256")
+            source_digest_families.setdefault(source_digest, set()).add(method)
+        if evidence_root is not None:
+            artifact_path = _evidence_path(artifact_ref, evidence_root)
+            if not artifact_path or not os.path.isfile(artifact_path) or os.path.getsize(artifact_path) == 0:
+                raise ValueError(f"candidate inventory {inventory_id} artifact is missing")
+            with open(artifact_path, "rb") as handle:
+                artifact_bytes = handle.read()
+                if hashlib.sha256(artifact_bytes).hexdigest() != inventory.get("artifact_sha256"):
+                    raise ValueError(f"candidate inventory {inventory_id} artifact digest does not match")
+            try:
+                extract = json.loads(artifact_bytes.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                raise ValueError(f"candidate inventory {inventory_id} artifact is not canonical JSON")
+            expected_extract = {
+                "schema_name": "shipworthy/candidate-inventory-source",
+                "schema_version": "1.0",
+                **{
+                    field: inventory.get(field)
+                    for field in (
+                        "inventory_id", "method_taxonomy_version", "method_family",
+                        "role", "state", "viewport", "fixture", "source_locator",
+                        "source_artifacts", "candidate_digest",
+                        "action_signaling_candidate_count", "candidates",
+                    )
+                    if inventory.get(field) is not None
+                },
+            }
+            if extract != expected_extract:
+                raise ValueError(f"candidate inventory {inventory_id} artifact does not exactly match its extracted candidates")
+            for source_artifact in source_artifacts:
+                source_path = _evidence_path(source_artifact.get("ref"), evidence_root)
+                if not source_path or not os.path.isfile(source_path) or os.path.getsize(source_path) == 0:
+                    raise ValueError(f"candidate inventory {inventory_id} raw source artifact is missing")
+                with open(source_path, "rb") as handle:
+                    if hashlib.sha256(handle.read()).hexdigest() != source_artifact.get("sha256"):
+                        raise ValueError(f"candidate inventory {inventory_id} raw source artifact digest does not match")
+        for candidate_index, candidate in enumerate(candidates):
+            if not isinstance(candidate, dict):
+                raise ValueError(f"candidate inventory {inventory_id} candidate[{candidate_index}] is invalid")
+            candidate_id = candidate.get("candidate_id")
+            if not isinstance(candidate_id, str) or not candidate_id or candidate_id in candidate_ids:
+                raise ValueError(f"candidate inventory {inventory_id} candidate id is missing or duplicated")
+            candidate_ids.add(candidate_id)
+            candidate_evidence = candidate.get("evidence_refs")
+            if not isinstance(candidate_evidence, list) or not candidate_evidence:
+                raise ValueError(f"candidate {candidate_id} lacks raw source evidence")
+            evidence_bases = {reference.split("#", 1)[0] for reference in candidate_evidence if isinstance(reference, str)}
+            if not evidence_bases.intersection(source_refs):
+                raise ValueError(f"candidate {candidate_id} evidence does not cite its inventory source artifact")
+            if evidence_root is not None:
+                for evidence_ref in candidate_evidence:
+                    evidence_path = _evidence_path(evidence_ref, evidence_root)
+                    if not evidence_path or not os.path.isfile(evidence_path) or os.path.getsize(evidence_path) == 0:
+                        raise ValueError(f"candidate {candidate_id} evidence does not resolve")
+            key = candidate.get("semantic_key")
+            row = row_by_id.get(candidate.get("frontier_row_id"))
+            if candidate.get("disposition") == "mapped":
+                if not isinstance(row, dict) or row.get("semantic_key") != key:
+                    raise ValueError(f"candidate {candidate_id} does not map to its exact frontier row")
+                if row.get("kind") != candidate.get("kind"):
+                    raise ValueError(f"candidate {candidate_id} kind does not match its frontier row")
+                mapped_keys.add(key)
+            elif candidate.get("disposition") == "reconciliation_difference":
+                differences = frontier.get("reconciliation_differences") or []
+                if key not in {item.get("semantic_key") for item in differences if isinstance(item, dict)}:
+                    raise ValueError(f"candidate {candidate_id} lacks a reconciliation difference")
+            else:
+                raise ValueError(f"candidate {candidate_id} lacks a terminal inventory disposition")
+        if method == "runtime_structural_inventory":
+            action_count = inventory.get("action_signaling_candidate_count")
+            derived_action_count = sum(
+                candidate.get("kind") in {"control", "transition"}
+                for candidate in candidates if isinstance(candidate, dict)
+            )
+            if action_count != derived_action_count:
+                raise ValueError(f"candidate inventory {inventory_id} action-signaling count does not reconcile")
+    if require_closure:
+        required_sources = {
+            "declared_behavior_inventory",
+            "runtime_structural_inventory",
+            "static_implementation_inventory",
+        }
+        if not required_sources.issubset(method_families):
+            raise ValueError("closed coverage requires declared, runtime-structural, and static candidate inventories")
+        reused_sources = any(len(families) > 1 for families in source_ref_families.values())
+        reused_source_content = any(
+            isinstance(digest, str) and len(families) > 1
+            for digest, families in source_digest_families.items()
+        )
+        if reused_sources or reused_source_content:
+            raise ValueError("closed coverage requires source artifacts independent across method families")
+    if require_closure or require_complete_mapping:
+        if mapped_keys != frontier_keys:
+            missing = sorted(frontier_keys - mapped_keys)
+            extra = sorted(mapped_keys - frontier_keys)
+            raise ValueError(
+                "candidate inventories do not reconcile with the canonical frontier "
+                f"(unmapped_frontier={missing[:5]}, extra_candidates={extra[:5]})"
+            )
+    return {
+        "inventory_ids": inventory_ids,
+        "candidate_ids": candidate_ids,
+        "method_families": method_families,
+        "candidate_digest": _combined_candidate_digest(inventories),
+    }
+
+
+def validate_source_backed_discovery_passes(
+    frontier, evidence_root=None, require_closure=False,
+    require_complete_mapping=False,
+):
+    inventory_summary = reconcile_candidate_inventories(
+        frontier, evidence_root=evidence_root, require_closure=require_closure,
+        require_complete_mapping=require_complete_mapping,
+    )
+    inventory_ids = inventory_summary["inventory_ids"]
+    inventory_family = {
+        inventory.get("inventory_id"): inventory.get("method_family")
+        for inventory in frontier.get("candidate_inventories", [])
+        if isinstance(inventory, dict)
+    }
+    passes = frontier.get("discovery_passes") or []
+    for pass_index, item in enumerate(passes):
+        if not isinstance(item, dict):
+            raise ValueError(f"discovery pass[{pass_index}] is invalid")
+        if (
+            item.get("method_taxonomy_version") != "shipworthy-methods-v1"
+            or item.get("method_family") not in CANONICAL_METHOD_FAMILIES
+        ):
+            raise ValueError(f"discovery pass[{pass_index}] method family is not canonical")
+        referenced_inventories = set(item.get("inventory_ids") or [])
+        if not referenced_inventories or not referenced_inventories.issubset(inventory_ids):
+            raise ValueError(f"discovery pass[{pass_index}] inventory ids do not resolve")
+        if item.get("method_family") not in {
+            inventory_family.get(inventory_id)
+            for inventory_id in referenced_inventories
+        }:
+            raise ValueError(f"discovery pass[{pass_index}] does not reference an inventory from its method family")
+        if not item.get("evidence_refs"):
+            raise ValueError(f"discovery pass[{pass_index}] lacks source evidence")
+        if evidence_root is not None:
+            for evidence_ref in item.get("evidence_refs", []):
+                evidence_path = _evidence_path(evidence_ref, evidence_root)
+                if not evidence_path or not os.path.isfile(evidence_path) or os.path.getsize(evidence_path) == 0:
+                    raise ValueError(f"discovery pass[{pass_index}] evidence does not resolve")
+        for field in ("starting_candidate_digest", "ending_candidate_digest"):
+            digest = item.get(field)
+            if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+                raise ValueError(f"discovery pass[{pass_index}] {field} is invalid")
+        if not isinstance(item.get("new_candidate_ids"), list):
+            raise ValueError(f"discovery pass[{pass_index}] new_candidate_ids must be an array")
+    if require_closure:
+        candidate_digest = inventory_summary["candidate_digest"]
+        for item in passes[-2:]:
+            if (
+                item.get("starting_candidate_digest") != candidate_digest
+                or item.get("ending_candidate_digest") != candidate_digest
+                or item.get("new_candidate_ids") != []
+            ):
+                raise ValueError("zero-yield pass does not prove stable source candidates")
+    return inventory_summary
 
 
 AFFORDANCE_CLASSES = {
@@ -517,12 +790,46 @@ def validate_input_mode(data):
     return "canonical" if data.get("schema_name", "").startswith("shipworthy/") else "unknown"
 
 
+def validate_bundled_schema(document, strict_run=False):
+    """Apply the bundled Draft 2020-12 schema before cross-artifact checks."""
+    if not isinstance(document, dict) or not str(document.get("schema_name") or "").startswith("shipworthy/"):
+        return True
+    if jsonschema is None:
+        if strict_run:
+            raise ValueError(
+                "current full runs require the jsonschema package for bundled schema validation"
+            )
+        return True
+    schema_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "references", "schemas")
+    )
+    ledger_path = os.path.join(schema_dir, "readiness-ledger.schema.json")
+    report_path = os.path.join(schema_dir, "report-input.schema.json")
+    with open(ledger_path, encoding="utf-8") as handle:
+        ledger_schema = json.load(handle)
+    schema_path = report_path if document.get("schema_name") == "shipworthy/readiness-report-input" else ledger_path
+    with open(schema_path, encoding="utf-8") as handle:
+        schema = json.load(handle)
+    registry = Registry().with_resource(
+        ledger_schema["$id"], Resource.from_contents(ledger_schema)
+    )
+    validator = jsonschema.Draft202012Validator(schema, registry=registry)
+    errors = sorted(validator.iter_errors(document), key=lambda error: list(error.absolute_path))
+    if errors:
+        error = errors[0]
+        path = ".".join(str(part) for part in error.absolute_path) or "$"
+        raise ValueError(f"bundled schema validation failed at {path}: {error.message}")
+    return True
+
+
 def validate_discovery_exhaustion(frontier):
     """Reject closure while discovery still yields material paths."""
     if not isinstance(frontier, dict):
         raise ValueError("frontier must be an object")
     passes = frontier.get("discovery_passes") or []
     if frontier.get("closure_state") == "closed_multi_source":
+        if frontier.get("finality") != "exhausted":
+            raise ValueError("closed discovery requires exhausted frontier finality")
         # Earlier passes may legitimately grow the frontier.  Only the final
         # closure attempt is incompatible with a positive yield.
         if any(item.get("new_semantic_keys") for item in passes[-2:] if isinstance(item, dict)):
@@ -982,13 +1289,28 @@ def validate_affordance_census(census):
     return True
 
 
-def reconcile_affordance_census(ledger, census):
-    """Require every action-signalling census entry in the raw discovery set."""
+def reconcile_affordance_census(ledger, census, frontier):
+    """Require action-signalling census entries to resolve as runtime actions."""
     validate_affordance_census(census)
     discoveries = [
         item for item in (ledger.get("raw_discoveries") or [])
         if isinstance(item, dict)
     ]
+    rows_by_key = {
+        row.get("semantic_key"): row
+        for row in (frontier.get("rows") or [])
+        if isinstance(row, dict) and isinstance(row.get("semantic_key"), str)
+    }
+    runtime_candidates_by_key = {
+        candidate.get("semantic_key"): candidate
+        for inventory in (frontier.get("candidate_inventories") or [])
+        if isinstance(inventory, dict)
+        and inventory.get("method_family") == "runtime_structural_inventory"
+        for candidate in (inventory.get("candidates") or [])
+        if isinstance(candidate, dict)
+        and candidate.get("disposition") == "mapped"
+        and candidate.get("kind") in {"control", "transition"}
+    }
     for entry in census.get("entries", []):
         if entry.get("action_signaling") is not True:
             continue
@@ -1002,6 +1324,18 @@ def reconcile_affordance_census(ledger, census):
         ):
             raise ValueError(
                 f"apparent affordance {affordance_id} has no matching raw discovery"
+            )
+        row = rows_by_key.get(key)
+        candidate = runtime_candidates_by_key.get(key)
+        if (
+            not isinstance(row, dict)
+            or row.get("kind") not in {"control", "transition"}
+            or not isinstance(candidate, dict)
+            or candidate.get("frontier_row_id") != row.get("id")
+            or candidate.get("kind") != row.get("kind")
+        ):
+            raise ValueError(
+                f"action-signalling affordance {affordance_id} must map to a runtime control or transition candidate"
             )
     return True
 
@@ -1535,6 +1869,130 @@ def validate_derived_closure(frontier):
     return True
 
 
+def has_confirmed_blocker(ledger):
+    return any(
+        isinstance(finding, dict)
+        and finding.get("action") == "Fix"
+        and finding.get("section") == "clear_before_ship"
+        and finding.get("severity") == "P0 Blocker"
+        and finding.get("confidence") == "Confirmed"
+        and finding.get("proof") == "Confirmed"
+        and finding.get("verifier_status") == "approved"
+        for finding in (ledger.get("findings") or [])
+    )
+
+
+def validate_decision_state(ledger, frontier, audit_status=None):
+    """Keep operational completion, coverage qualification, and verdict independent."""
+    completion = ledger.get("completion_status")
+    disposition = ledger.get("readiness_disposition")
+    closure = frontier.get("closure_state") if isinstance(frontier, dict) else None
+    finality = frontier.get("finality") if isinstance(frontier, dict) else None
+    remaining = frontier.get("remaining_safe_work") if isinstance(frontier, dict) else None
+    material_rows = [
+        row for row in (frontier.get("rows") or [])
+        if isinstance(row, dict) and row.get("material", True)
+    ]
+    unresolved_rows = [
+        row for row in material_rows
+        if row.get("status") in UNRESOLVED_FRONTIER_STATUSES
+    ]
+    blocker = has_confirmed_blocker(ledger)
+    if finality not in {"open", "exhausted"}:
+        raise ValueError("path_frontier finality must be open or exhausted")
+    if not isinstance(remaining, list):
+        raise ValueError("path_frontier remaining_safe_work must be an array")
+    if finality == "exhausted" and remaining:
+        raise ValueError("exhausted frontier cannot retain remaining safe work")
+    if finality == "open" and not remaining:
+        raise ValueError("open frontier must name remaining safe work")
+    if finality == "exhausted" and unresolved_rows:
+        raise ValueError("exhausted frontier cannot retain nonterminal material rows")
+    if blocker and disposition != "not_ready":
+        raise ValueError("confirmed approved P0 blocker requires not_ready readiness disposition")
+    if disposition in {"ready", "conditionally_ready"} and (
+        audit_status not in {None, "complete"}
+        or completion != "complete"
+        or closure != "closed_multi_source"
+        or finality != "exhausted"
+        or ledger.get("evidence_debt")
+        or any(row.get("status") != "covered" for row in material_rows)
+    ):
+        raise ValueError("affirmative readiness requires every material row covered in a complete exhausted closed multi-source audit with no evidence debt")
+    if disposition == "cannot_determine" and blocker:
+        raise ValueError("cannot_determine cannot hide a confirmed approved P0 blocker")
+    if completion == "complete" and (
+        closure != "closed_multi_source"
+        or finality != "exhausted"
+        or ledger.get("evidence_debt")
+        or disposition == "cannot_determine"
+    ):
+        raise ValueError("complete ledger requires closed exhausted multi-source coverage, no evidence debt, and a conclusive disposition")
+    if audit_status == "active" and (completion != "incomplete" or finality != "open"):
+        raise ValueError("active audit requires incomplete ledger and open frontier")
+    if audit_status == "active" and disposition != ("not_ready" if blocker else "cannot_determine"):
+        raise ValueError("active audit disposition must reflect whether a confirmed P0 already proves a no-go")
+    if audit_status == "blocked" and (completion != "incomplete" or finality != "exhausted"):
+        raise ValueError("blocked audit requires incomplete ledger and exhausted frontier")
+    if audit_status == "user_stopped" and completion != "incomplete":
+        raise ValueError("user-stopped audit requires an incomplete ledger")
+    if audit_status in {"blocked", "user_stopped"} and disposition != (
+        "not_ready" if blocker else "cannot_determine"
+    ):
+        raise ValueError("constrained audit disposition must reflect whether a confirmed P0 already proves a no-go")
+    if audit_status == "complete" and (completion != "complete" or finality != "exhausted"):
+        raise ValueError("complete audit requires complete ledger and exhausted frontier")
+    return True
+
+
+def validate_frontend_walk_proof(ledger, frontier):
+    rows = [row for row in (frontier.get("rows") or []) if isinstance(row, dict)]
+    by_id = {row.get("id"): row for row in rows}
+    actionable_rows = [
+        row for row in rows
+        if row.get("material", True)
+        and row.get("kind") in {"control", "transition"}
+    ]
+    if not actionable_rows:
+        runtime_inventories = [
+            inventory for inventory in (frontier.get("candidate_inventories") or [])
+            if isinstance(inventory, dict)
+            and inventory.get("method_family") == "runtime_structural_inventory"
+        ]
+        if runtime_inventories and all(
+            inventory.get("action_signaling_candidate_count") == 0
+            for inventory in runtime_inventories
+        ):
+            return True
+        raise ValueError("no-control frontend requires runtime structural proof of zero action-signaling candidates")
+    receipts = [
+        receipt for receipt in (ledger.get("execution_receipts") or [])
+        if isinstance(receipt, dict)
+    ]
+    proven = False
+    for row in actionable_rows:
+        if row.get("status") != "covered" or not any(
+            isinstance(observation, dict)
+            and observation.get("method_family") == "runtime_human_interaction"
+            for observation in row.get("observations", [])
+        ):
+            continue
+        parent = by_id.get(row.get("parent_id"))
+        expected_control = (
+            parent.get("control_identity")
+            if row.get("kind") == "transition" and isinstance(parent, dict)
+            else row.get("control_identity")
+        )
+        if any(validate_execution_receipt(row, receipt, expected_control) for receipt in receipts):
+            proven = True
+            break
+    if not proven:
+        raise ValueError(
+            "full frontend path-walk requires a covered material control/transition with a valid runtime-human execution receipt"
+        )
+    return True
+
+
 def validate_behavioral_identity(finding):
     identity = finding.get("behavioral_identity") if isinstance(finding, dict) else None
     affected = finding.get("affected_semantic_keys") if isinstance(finding, dict) else None
@@ -1837,20 +2295,23 @@ def validate_canonical_input(data, evidence_root=None):
         return
     if schema_name not in {"shipworthy/readiness-report-input", "shipworthy/readiness-ledger"}:
         raise ValueError(f"unknown Shipworthy schema name: {schema_name}")
-    if data.get("schema_version") != "1.0":
-        raise ValueError("unsupported Shipworthy schema version; expected 1.0")
+    if data.get("schema_version") not in {"1.0", "1.1"}:
+        raise ValueError("unsupported Shipworthy schema version; expected 1.0 or 1.1")
     wrapper = data if schema_name == "shipworthy/readiness-report-input" else None
     ledger = data.get("source_ledger") if wrapper else data
     if wrapper and (
         not isinstance(ledger, dict)
         or ledger.get("schema_name") != "shipworthy/readiness-ledger"
-        or ledger.get("schema_version") != "1.0"
+        or ledger.get("schema_version") != data.get("schema_version")
     ):
         raise ValueError(
-            "shipworthy/readiness-report-input source_ledger must be a Shipworthy readiness-ledger 1.0 object"
+            "shipworthy/readiness-report-input source_ledger must be a same-version Shipworthy readiness-ledger object"
         )
     errors = []
     strict_run = data.get("run_scope") == "full" or ledger.get("run_scope") == "full"
+    if strict_run and data.get("schema_version") != "1.1":
+        raise ValueError("current full Shipworthy runs require schema version 1.1")
+    validate_bundled_schema(data, strict_run=strict_run)
     try:
         validate_input_mode(data)
     except ValueError as error:
@@ -1877,6 +2338,15 @@ def validate_canonical_input(data, evidence_root=None):
             errors.append("path_frontier semantic keys must be present and unique")
         else:
             semantic_keys.add(key)
+        if strict_run and row.get("material", True) and not str(row.get("owner_lane") or "").strip():
+            errors.append(f"path_frontier rows[{index}] material row lacks owner_lane")
+        status = row.get("status")
+        if strict_run and status not in TERMINAL_FRONTIER_STATUSES | UNRESOLVED_FRONTIER_STATUSES:
+            errors.append(f"path_frontier rows[{index}] status is not canonical")
+        if strict_run and status in TERMINAL_FRONTIER_STATUSES - {"covered"} and not str(row.get("terminal_reason") or "").strip():
+            errors.append(f"path_frontier rows[{index}] terminal non-covered row lacks terminal_reason")
+        if status == "sampled_with_justification" and not str(row.get("sample_justification") or "").strip():
+            errors.append(f"path_frontier rows[{index}] sampled row lacks sample_justification")
     for index, row in enumerate(rows):
         kind = row.get("kind")
         key = row.get("semantic_key")
@@ -2017,6 +2487,16 @@ def validate_canonical_input(data, evidence_root=None):
             errors.append(f"discovery_passes[{index}] digest chain does not reconcile")
         if item.get("new_semantic_keys") and item.get("starting_frontier_digest") == item.get("ending_frontier_digest"):
             errors.append(f"discovery_passes[{index}] claims new semantic keys without changing digest")
+    if strict_run:
+        try:
+            validate_source_backed_discovery_passes(
+                frontier,
+                evidence_root=evidence_root,
+                require_closure=frontier.get("closure_state") == "closed_multi_source",
+                require_complete_mapping=True,
+            )
+        except ValueError as error:
+            errors.append(str(error))
     if frontier.get("closure_state") == "closed_multi_source":
         final_digest = _frontier_digest(rows)
         qualifying = [item for item in passes[-2:] if isinstance(item, dict) and item.get("new_semantic_keys") == [] and item.get("starting_frontier_digest") == item.get("ending_frontier_digest") == final_digest]
@@ -2028,7 +2508,7 @@ def validate_canonical_input(data, evidence_root=None):
             row.get("semantic_key")
             for row in rows
             if row.get("material", True)
-            and row.get("status") in {"unattempted", "unknown", "maybe", "evidence_debt", "blocked", "missing"}
+            and row.get("status") in UNRESOLVED_FRONTIER_STATUSES
         ]
         if unresolved:
             errors.append("closed_multi_source contains unresolved material frontier rows")
@@ -2042,6 +2522,31 @@ def validate_canonical_input(data, evidence_root=None):
                 errors.append(str(error))
 
     if strict_run and frontier:
+        try:
+            validate_decision_state(ledger, frontier)
+            reconcile_candidate_inventories(
+                frontier,
+                evidence_root=evidence_root,
+                require_closure=(
+                    frontier.get("closure_state") == "closed_multi_source"
+                    and ledger.get("readiness_disposition") in {"ready", "conditionally_ready"}
+                ),
+                require_complete_mapping=True,
+            )
+        except ValueError as error:
+            errors.append(str(error))
+        manifest_ref = frontier.get("manifest_artifact")
+        manifest_path = _evidence_path(manifest_ref, evidence_root) if evidence_root is not None else None
+        if not manifest_path or not os.path.isfile(manifest_path) or os.path.getsize(manifest_path) == 0:
+            errors.append("current full runs require a retained coverage manifest artifact")
+        else:
+            try:
+                with open(manifest_path, encoding="utf-8") as handle:
+                    manifest = json.load(handle)
+                if manifest != frontier:
+                    errors.append("coverage manifest artifact does not exactly match path_frontier")
+            except (OSError, json.JSONDecodeError):
+                errors.append("coverage manifest artifact is unreadable")
         if not isinstance(ledger.get("raw_discoveries"), list):
             errors.append("current full runs require raw discoveries for raw-to-final reconciliation")
         else:
@@ -2286,15 +2791,10 @@ def load_orchestration_checkpoint(input_path, data):
         errors.append("persistent goal cannot be complete while audit is not complete")
     if checkpoint.get("exhaustion_status") != frontier.get("closure_state"):
         errors.append("exhaustion_status does not match path_frontier closure_state")
-    if audit_status in {"active", "blocked", "user_stopped"} and (
-        ledger.get("completion_status") == "complete"
-        or ledger.get("readiness_disposition") != "cannot_determine"
-        or frontier.get("closure_state") == "closed_multi_source"
-    ):
-        errors.append(
-            "non-complete audit_status requires an incomplete ledger, cannot_determine readiness, "
-            "and a non-closed frontier"
-        )
+    try:
+        validate_decision_state(ledger, frontier, audit_status=audit_status)
+    except ValueError as error:
+        errors.append(str(error))
 
     ledger_document = _checkpoint_json(checkpoint.get("ledger_path"), root, "ledger_path", errors)
     if ledger_document is not None and ledger_document != ledger:
@@ -2306,6 +2806,44 @@ def load_orchestration_checkpoint(input_path, data):
     ):
         for reference in checkpoint.get(field, []):
             _checkpoint_file(reference, root, label, errors)
+    requires_terminal_accounting = strict_full_run and audit_status in {
+        "complete", "blocked", "user_stopped"
+    }
+    if requires_terminal_accounting:
+        for index, reference in enumerate(
+            checkpoint.get("raw_lane_output_paths", [])
+            + checkpoint.get("raw_verifier_output_paths", [])
+        ):
+            packet = _checkpoint_json(
+                reference, root, f"raw operational packet[{index}]", errors
+            )
+            if isinstance(packet, dict):
+                if packet.get("artifact_path") != reference:
+                    errors.append(
+                        f"raw operational packet[{index}] artifact_path does not match its retained path"
+                    )
+                original_packets.append(packet)
+        try:
+            checkpoint["_original_evidence_summary"] = (
+                reconcile_original_evidence_packets(original_packets, ledger)
+            )
+        except ValueError as error:
+            errors.append(str(error))
+        for index, reference in enumerate(
+            checkpoint.get("apparent_affordance_census_paths", [])
+        ):
+            census = _checkpoint_json(
+                reference, root, f"apparent affordance census[{index}]", errors
+            )
+            if isinstance(census, dict):
+                affordance_entries.extend(
+                    entry for entry in census.get("entries", [])
+                    if isinstance(entry, dict)
+                )
+                try:
+                    reconcile_affordance_census(ledger, census, frontier)
+                except ValueError as error:
+                    errors.append(str(error))
     if audit_status == "complete":
         if checkpoint.get("omitted"):
             errors.append("audit_status complete cannot retain an omitted gate")
@@ -2313,23 +2851,6 @@ def load_orchestration_checkpoint(input_path, data):
             certificate_paths = checkpoint.get("wave_certificate_paths")
             if not isinstance(certificate_paths, list) or len(certificate_paths) != len(checkpoint.get("verified_wave_ids", [])):
                 errors.append("full audit requires one wave certificate per verified wave")
-            # Current full runs retain machine-readable raw packets.  A plain
-            # narrative can be retained as evidence, but cannot be shadow-read
-            # for raw-to-final reconciliation.
-            for index, reference in enumerate(checkpoint.get("raw_lane_output_paths", []) + checkpoint.get("raw_verifier_output_paths", [])):
-                packet = _checkpoint_json(reference, root, f"raw operational packet[{index}]", errors)
-                if isinstance(packet, dict):
-                    if packet.get("artifact_path") != reference:
-                        errors.append(
-                            f"raw operational packet[{index}] artifact_path does not match its retained path"
-                        )
-                    original_packets.append(packet)
-            try:
-                checkpoint["_original_evidence_summary"] = (
-                    reconcile_original_evidence_packets(original_packets, ledger)
-                )
-            except ValueError as error:
-                errors.append(str(error))
             retained_receipt_refs = set(
                 reference.split("#", 1)[0]
                 for field in (
@@ -2369,16 +2890,6 @@ def load_orchestration_checkpoint(input_path, data):
             or set(certified_wave_ids) != set(checkpoint.get("verified_wave_ids", []))
         ):
             errors.append("full audit requires one-to-one wave certificate coverage")
-        for index, reference in enumerate(checkpoint.get("apparent_affordance_census_paths", [])):
-            census = _checkpoint_json(reference, root, f"apparent affordance census[{index}]", errors)
-            if isinstance(census, dict):
-                affordance_entries.extend(
-                    entry for entry in census.get("entries", []) if isinstance(entry, dict)
-                )
-                try:
-                    reconcile_affordance_census(ledger, census)
-                except ValueError as error:
-                    errors.append(str(error))
 
     rows = frontier.get("rows") if isinstance(frontier.get("rows"), list) else []
     frontier_digest = _frontier_digest(rows)
@@ -2422,7 +2933,7 @@ def load_orchestration_checkpoint(input_path, data):
         census_controls.update(keys)
         census_unmatched.extend(unmatched)
 
-    if strict_full_run and audit_status == "complete":
+    if requires_terminal_accounting:
         try:
             accounting = reconcile_upstream_inventory(
                 original_packets, census_controls, affordance_entries
@@ -2443,7 +2954,7 @@ def load_orchestration_checkpoint(input_path, data):
         for row in rows
         if isinstance(row, dict)
         and row.get("material", True)
-        and row.get("status") in {"unattempted", "unknown", "maybe", "evidence_debt", "blocked", "missing"}
+        and row.get("status") in UNRESOLVED_FRONTIER_STATUSES
     ]
     if audit_status == "complete":
         if not rows:
@@ -2468,6 +2979,10 @@ def load_orchestration_checkpoint(input_path, data):
             errors.append("audit_status complete has unresolved frontier reconciliation differences")
         if checkpoint.get("frontend_path_walk_performed") is not True or checkpoint.get("path_walk_status") != "full":
             errors.append("audit_status complete requires a full frontend path-walk")
+        try:
+            validate_frontend_walk_proof(ledger, frontier)
+        except ValueError as error:
+            errors.append(str(error))
         if checkpoint.get("verifier") != "approved":
             errors.append("audit_status complete requires approved verifier")
         if len(passes) < 2 or zero_yield_ids != pass_ids[-2:]:
@@ -2482,10 +2997,13 @@ def load_orchestration_checkpoint(input_path, data):
             errors.append("control census lacks runtime and static method families")
         if census_unmatched:
             errors.append("control census contains unmatched controls")
-        if browser_status not in {"not_needed", "succeeded"}:
-            errors.append("audit_status complete cannot retain active, blocked, or user-stopped browser failover")
-        if recovery_status not in {"not_needed", "succeeded"}:
-            errors.append("audit_status complete cannot retain active or blocked recovery")
+        if ledger.get("readiness_disposition") in {"ready", "conditionally_ready"}:
+            if browser_status not in {"not_needed", "succeeded"}:
+                errors.append("affirmative readiness cannot retain active, blocked, or user-stopped browser failover")
+            if recovery_status not in {"not_needed", "succeeded"}:
+                errors.append("affirmative readiness cannot retain active or blocked recovery")
+        elif browser_status == "active" or recovery_status == "active":
+            errors.append("complete audit cannot retain active recovery work")
 
     for index, reference in enumerate(checkpoint.get("recovery_receipt_paths", [])):
         _checkpoint_json(reference, root, f"recovery receipt[{index}]", errors)
@@ -2605,6 +3123,7 @@ def load_orchestration_checkpoint(input_path, data):
     if errors:
         raise ValueError("; ".join(errors[:20]))
     checkpoint["_validated_checkpoint"] = True
+    checkpoint["_checkpoint_path"] = path
     checkpoint["_control_census_summary"] = (
         f"{len(census_controls)} controls; {', '.join(sorted(census_methods))}; "
         f"{len(census_unmatched)} unmatched"
@@ -2649,7 +3168,7 @@ def summarize_frontier(frontier):
 
 def coverage_confidence_html(
     frontier, checkpoint=None, record_counts=None, reconciliation_summary=None,
-    backend_correlation_summary=None,
+    backend_correlation_summary=None, decision=None,
 ):
     """Render a bounded early explanation of scope and honest closure."""
     summary = summarize_frontier(frontier)
@@ -2659,7 +3178,7 @@ def coverage_confidence_html(
                 'Coverage confidence was not recorded for this run.</p></section>')
     material = [row for row in summary["rows"] if row.get("material", True)]
     status_counts = {status: sum(row.get("status") == status for row in material) for status in (
-        "covered", "sampled_with_justification", "blocked", "avoided", "inferred",
+        "covered", "sampled_with_justification", "blocked", "avoided",
         "missing", "out_of_scope", "evidence_debt",
     )}
     covered = status_counts["covered"]
@@ -2667,10 +3186,8 @@ def coverage_confidence_html(
     roles = ", ".join(summary["roles"]) or "not recorded"
     states = ", ".join(summary["states"]) or "not recorded"
     viewports = ", ".join(summary["viewports"]) or "not recorded"
-    closure_achieved = summary["closure_state"] == "closed_multi_source"
-    closure = "Closure achieved" if closure_achieved else "Closure not achieved"
     limits = (
-        f'{status_counts["avoided"]} avoided for safety; {status_counts["inferred"]} inferred; '
+        f'{status_counts["avoided"]} avoided for safety; '
         f'{status_counts["blocked"]} blocked; {not_proven} NOT_PROVEN'
     )
     recovery = (checkpoint or {}).get("_recovery_summary") or {
@@ -2766,6 +3283,9 @@ def coverage_confidence_html(
     return (
         '<section class="confidence-summary"><div class="section-head"><h2>Coverage Confidence</h2></div>'
         '<div class="confidence-grid">'
+        f'<p><b>Release decision</b><span>{esc(title_case(norm_token(decision or "cannot_determine")))}</span></p>'
+        f'<p><b>Coverage finality</b><span>{esc(title_case(norm_token(frontier.get("finality") or "open")))}</span></p>'
+        f'<p><b>Coverage qualification</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
         f'<p><b>What was tested</b><span>{covered} of {len(material)} material frontier items were covered by evidence.</span></p>'
         f'<p><b>Coverage conditions</b><span>Roles: {esc(roles)} · States: {esc(states)} · Viewports: {esc(viewports)}</span></p>'
         f'<p><b>What was not tested / Important proof limits</b><span>{esc(limits)}. '
@@ -2777,7 +3297,6 @@ def coverage_confidence_html(
         f'{backend_html}'
         f'{completion_html}'
         f'<p><b>Why testing stopped</b><span>{esc(summary["closure_reason"])}</span></p>'
-        f'<p><b>{closure}</b><span>{esc(title_case(norm_token(summary["closure_state"])))}</span></p>'
         f'{recovery_html}'
         '</div></section>'
     )
@@ -2882,12 +3401,13 @@ def project_input(data, orchestration_checkpoint=None):
         "source_report_input": wrapper.get("report_input_id") if wrapper else None,
         "frontier_total": len((ledger.get("path_frontier") or {}).get("rows", [])),
         "exhaustion_status": (ledger.get("path_frontier") or {}).get("closure_state"),
-        "omitted": ["lane roster and agent execution are not encoded by canonical ledger v1.0"],
+        "omitted": ["lane roster and agent execution are not encoded by the canonical ledger alone"],
     }
     projected = {
         "target": checkpoint.get("target_name") or ledger.get("ledger_id", "target"),
         "generated_at": ledger.get("generated_at"),
         "verdict": V1_VERDICT.get(ledger.get("readiness_disposition"), "NOT READY"),
+        "readiness_disposition": ledger.get("readiness_disposition"),
         "findings": findings,
         "evidence_debt": evidence_debt,
         "record_counts": derive_record_counts(ledger),
@@ -2917,6 +3437,7 @@ def project_input(data, orchestration_checkpoint=None):
                 strict_full
                 and (ledger.get("path_frontier") or {}).get("closure_state")
                 == "closed_multi_source"
+                and ledger.get("readiness_disposition") in {"ready", "conditionally_ready"}
             ),
         ),
     }
@@ -3255,6 +3776,7 @@ def render(data, interactive=False, orchestration_checkpoint=None):
         data.get("record_counts"),
         data.get("reconciliation_summary"),
         data.get("backend_correlation_summary"),
+        data.get("readiness_disposition"),
     )
     product_cov_block = product_coverage_html(frontier)
     traceability_block = traceability_html(data.get("traceability"))
@@ -3397,13 +3919,13 @@ def render(data, interactive=False, orchestration_checkpoint=None):
     frontier_fields = [
         ("frontier total", "frontier_total"),
         ("frontier covered", "frontier_covered"),
-        ("frontier sampled", "frontier_sampled"),
+        ("frontier sampled with justification", "frontier_sampled_with_justification"),
         ("frontier blocked", "frontier_blocked"),
         ("frontier missing", "frontier_missing"),
         ("frontier evidence debt", "frontier_evidence_debt"),
         ("frontier unattempted", "frontier_unattempted"),
-        ("new paths last wave", "new_paths_last_wave"),
-        ("new paths previous wave", "new_paths_previous_wave"),
+        ("new candidates last pass", "new_candidates_last_pass"),
+        ("new candidates previous pass", "new_candidates_previous_pass"),
         ("exhaustion status", "exhaustion_status"),
         ("exhaustion downgrade reason", "exhaustion_downgrade_reason"),
         ("next frontier batch", "next_frontier_batch"),
@@ -3713,6 +4235,12 @@ def main():
         if checkpoint:
             checkpoint["report_generation_status"] = "rendered"
             checkpoint["report_path"] = os.path.abspath(out)
+            checkpoint_path = checkpoint.get("_checkpoint_path")
+            if checkpoint_path:
+                atomic_write_text(
+                    checkpoint_path,
+                    json.dumps(_public_checkpoint(checkpoint), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                )
         html_out = render(data, interactive=interactive, orchestration_checkpoint=checkpoint)
         if (
             isinstance(checkpoint, dict)

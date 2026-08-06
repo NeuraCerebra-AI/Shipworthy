@@ -10,7 +10,7 @@
       "$ref": "readiness-ledger.schema.json#/$defs/path_frontier"
     }
   },
-  "$id": "https://shipworthy.local/schemas/v1/report-input.schema.json",
+  "$id": "https://shipworthy.local/schemas/v1.1/report-input.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
@@ -38,7 +38,7 @@
       "type": "string"
     },
     "schema_version": {
-      "pattern": "^1\\.0$",
+      "pattern": "^1\\.(0|1)$",
       "title": "Schema Version",
       "type": "string"
     },

@@ -4,6 +4,7 @@
 
 - Purpose
 - Coverage Principle
+- Candidate Inventories And Coverage Manifest
 - Path Frontier For Full Shipworthy Runs
 - Discovery Inventory
 - Path Selection
@@ -14,14 +15,14 @@
 
 ## Purpose
 
-Use this reference before auditing. A product workflow audit is only as strong as its map of what could be tried, what was tried, what was inferred, and what was avoided.
+Use this reference before auditing. A product workflow audit is only as strong as the independent source inventories that establish what could be tried and the exact manifest that records what happened to every candidate.
 
 ## Coverage Principle
 
 Do not claim "all paths" unless the path universe is truly bounded and inspected. Prefer:
 
 - "covered these paths";
-- "sampled these variants";
+- "sampled these variants with justification";
 - "blocked by missing access";
 - "avoided because mutation risk";
 - "not in scope";
@@ -29,7 +30,20 @@ Do not claim "all paths" unless the path universe is truly bounded and inspected
 
 The user may say "try every path." Interpret that as "build a serious coverage map and go as far as safe evidence permits."
 
-When a living audit ledger exists, the first coverage map is provisional. Append newly discovered paths, states, roles, and hidden routes to the ledger before deciding whether they are in scope, out of scope, blocked, avoided, or deferred.
+When a living audit ledger exists, its first map is provisional. Candidate inventories are discovery sources; the canonical coverage manifest/path frontier is the only coverage authority. Never generate inventories by copying frontier rows.
+
+## Candidate Inventories And Coverage Manifest
+
+For every full run, read the orchestrator's `references/coverage-manifest.md` and execute this sequence:
+
+1. Freeze declared-behavior and static-implementation candidates with raw locators and artifact digests.
+2. Freeze a runtime structural inventory for each supplied material role, state, viewport, and fixture.
+3. Map every raw candidate exactly to one frontier row or a retained reconciliation difference.
+4. Walk safe authorized controls to the spawned-surface fixpoint: every revealed menu, dialog, drawer, popover, palette, nested route, and materially changed state is inventoried and mapped before continuing.
+5. Reconcile lifecycle, role, state, viewport, input-mode, recovery, and persistence variants.
+6. Independently regenerate inventories and run two negative discovery passes from distinct canonical method families. A pass is zero-yield only when its source-backed candidate delta is empty.
+
+The bounded universe is the union of the retained inventories plus retained reconciliation differences, not an authored list of expected paths. Each inventory retains its canonical method family, role/state/viewport/fixture coordinates, source-specific locator, independently retained raw source artifacts/digests, and a canonical JSON extract whose parsed candidates exactly equal the inventory candidates. Every candidate cites a raw source artifact and maps exactly to the frontier or retained debt; the manifest itself cannot be reused as source evidence.
 
 ## Path Frontier For Full Shipworthy Runs
 
@@ -80,7 +94,7 @@ Use only the `shipworthy-methods-v1` canonical method families:
 
 A renamed method_detail does not create an independent method family. Reconcile runtime discovery against at least one independent canonical family at both feature and surface levels; preserve every discrepancy in `reconciliation_differences` until resolved or the run is downgraded. Runtime-only work may use two genuinely independent runtime families. Full-evidence work should reconcile runtime with static or declared behavior.
 
-Closed multi-source exhaustion requires two qualifying zero-yield discovery passes from distinct canonical method families. Each pass records its family, role, fixture, viewport, starting and ending frontier digests, and new semantic keys. A pass qualifies only when it began from the current frontier, produced no new semantic keys, and did not merely relabel the same method.
+Closed multi-source coverage requires two qualifying zero-yield discovery passes from distinct canonical method families. Each pass references retained candidate inventories and evidence, records starting/ending candidate digests, and lists any new candidate IDs. A pass qualifies only when it began from the current source-backed inventory state, produced no new candidates, and did not merely relabel the same method.
 
 Do not call the lane exhausted while material paths remain `unattempted`, `unknown`, or `maybe`, or while the last discovery/testing pass found new material routes, controls, roles, states, device variants, or user intents.
 
@@ -92,10 +106,12 @@ target explicitly claims they are. Test their role-dependent surfaces without
 inventing a security escalation finding. Real production role changes still
 require the normal authorization and mutation safeguards.
 
-When the supplied target is a resettable synthetic fixture and its controller
-provides a working reset contract, use the supplied reset mechanism and treat
-reversible local create, edit, validation-retry, publish, export, and download
-behavior as safe to exercise. A download may be proven from the initiated
+When the user's authorization covers the exact action and the supplied target
+is a verified resettable non-production fixture, use the supplied reset
+mechanism and treat authorized reversible local create, edit, validation-retry,
+export, and download behavior as safe to exercise. A disposable fixture alone
+does not grant authority, and publish still requires explicit action-level
+authorization. A download may be proven from the initiated
 runtime response when reading the browser's default download directory would
 cross the declared filesystem boundary. Continue to avoid any explicitly destructive, external-message, payment, credential, or production action. If
 the reset contract is incomplete or fails, record the exact operational gap;
@@ -145,15 +161,15 @@ For `audit_all`, enumerate the full scoped path universe and path_frontier, then
 Use these labels consistently:
 
 - `covered`: executed or traced with sufficient evidence.
-- `sampled`: checked one or more representative variants, not the full variant set.
+- `sampled_with_justification`: checked representative variants with an evidence-backed explanation for why full execution was infeasible or unnecessary. Safe material controls still require direct proof.
 - `blocked`: could not inspect because of missing access, setup, credentials, data, environment, or tool failure.
 - `avoided`: intentionally not clicked due to mutation, privacy, payment, publishing, approval, production, or destructive risk.
-- `inferred`: likely behavior based on code, docs, network contracts, or adjacent traces, but not directly observed.
 - `missing`: a reasonable user goal or promised capability has no discoverable UX path.
 - `out_of_scope`: excluded by user request, route, time, artifact, or risk boundary.
 - `evidence_debt`: material proof is still required and no stronger label is justified.
 
 Do not merge `blocked` and `avoided`. Blocked means unable. Avoided means intentionally not safe.
+Do not use `sampled` or `inferred` in a full frontier. An inference is evidence debt until direct proof or an explicit non-coverage disposition resolves it. Every non-covered terminal row includes a reason and evidence/candidate reference.
 
 ## Changed-Only Coverage
 
@@ -212,8 +228,8 @@ A usable coverage map includes:
 - linked findings;
 - exclusions or next evidence needed.
 
-Use `templates/coverage-map.json` when the map should survive beyond the response.
+Use `templates/coverage-map.json` only as a provisional candidate-inventory seed. It is never a second coverage authority.
 
-For major or long-running audits, mirror the coverage map into the living audit ledger so compaction does not erase what was already covered, sampled, blocked, avoided, inferred, or excluded.
+For major or long-running audits, mirror inventory and manifest references into the living audit ledger so compaction does not erase what was already covered, sampled with justification, blocked, avoided, missing, debt-bearing, or excluded.
 
-For full Shipworthy runs, also mirror frontier burn-down: total frontier rows, covered, sampled, blocked, missing, evidence debt, unattempted, new paths found in the last pass, and new paths found in the previous pass.
+For full Shipworthy runs, also mirror audit lifecycle, frontier finality, coverage qualification, release disposition, and burn-down: total frontier rows, covered, sampled with justification, blocked, missing, evidence debt, unattempted, new candidates in the last pass, and new candidates in the previous pass. A lane may report evidence and finality facts but only the orchestrator derives the release disposition.

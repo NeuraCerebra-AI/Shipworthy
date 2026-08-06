@@ -52,7 +52,8 @@ readiness-report.html
 /.agents/
 /.claude-plugin/
 /.gitattributes
-/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/shipworthy-validate.yml
 /assets/
 /CONTRIBUTING.md
 /docs/

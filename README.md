@@ -58,14 +58,20 @@ authorization when the platform requires it, uses agents where authorized and
 safe, runs verified waves, and generates a self-contained HTML report from the
 final ledger.
 
-Full Shipworthy ends by frontier closure, not vibes, a fixed wave count, or a
-timer. It keeps a path frontier open until every material path is covered,
-sampled with justification, blocked, avoided, missing, out of scope, or evidence
-debt — and until repeated discovery passes stop finding new material paths.
+Full Shipworthy ends from source-backed exhaustion, not vibes, a fixed wave
+count, or a timer. It freezes independent declared, static, and runtime
+candidate inventories, maps every raw candidate to one canonical frontier, and
+keeps that frontier open while safe authorized work remains. Two distinct
+negative discovery methods must independently find no new candidates before
+coverage can qualify as closed.
 It also audits the evidence chain of custody: observations collected by runtime
-lanes, control censuses, and verifiers must survive into the canonical ledger
+lanes, source inventories, control censuses, and verifiers must survive into the canonical ledger
 without being dropped, merged across different behaviors, or assigned to the
 wrong role, state, viewport, or control.
+
+Audit completion, coverage qualification, and the release decision are separate:
+a fully completed audit can still conclude **not ready**, while insufficient
+proof concludes **cannot determine** rather than being mislabeled as a no-go.
 
 For the flagship run, "tries every safe discoverable user path" means using the
 actual frontend when one is available: browser, in-app browser, Chrome,
@@ -122,7 +128,7 @@ Keep, plus how strong the proof is.
   goal_mode_status: explicitly authorized
   authorization: yes
   mode: 5 lane agents · verifier: Opus, APPROVED
-  frontier: 34 total · 0 unattempted · exhaustion_status complete
+  frontier: 34 total · 0 unattempted · finality exhausted · qualification incomplete
   omitted: load test (no safe env) → logged as evidence debt, NOT as "passed"
 ```
 </details>
@@ -164,15 +170,21 @@ Shipworthy isn't a "ship faster" boilerplate and it isn't a linter. It's the thi
 
 ## 🔒 Safe by design
 
-Skills are **self-contained folders** — markdown instructions and local resources,
-plus three optional standard-library output scripts that never run during
-installation. There is no telemetry, credential access, network call, or
+Skills are **self-contained folders** — markdown instructions, local resources,
+and three optional local output scripts that never run during installation.
+The current full-run renderer uses Python `jsonschema` to execute the bundled
+schemas and fails closed if it is unavailable. There is no telemetry,
+credential access, network call, or
 auto-update of their own. When auditing, Shipworthy is **read-only by default**
 and uses only the tools you already have (browser, agents) inside an explicit
 safe-test boundary; it stops at mutating, paid, destructive, publishing, or
-production actions unless you authorize the exact action in a disposable
-environment. It reports the smallest useful fix and an exact verification step
+production actions unless you authorize the exact action and a verified
+non-production reset/sandbox contract exists. It reports the smallest useful fix and an exact verification step
 — it does not apply fixes unless you ask after the review.
+
+Repository validation runs the renderer regression suite and bundled-schema
+checks on Python 3.9 and 3.13. The renderer's validation dependency is declared
+in `ship-readiness-orchestrator/requirements-validation.txt`.
 
 ## 🙋 FAQ
 

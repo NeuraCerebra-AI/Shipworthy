@@ -5,8 +5,8 @@ Use these limits and model preferences when Deep Review dispatches agents or ver
 ## Codex
 
 - Hard concurrent-agent cap: 6.
-- Use `gpt-5.5` with `xhigh` reasoning for the coordinator, all specialist agents, every wave verifier, and final synthesis when the tool surface supports it.
-- If `gpt-5.5` is unavailable, use the strongest available GPT-5-class model with `xhigh` reasoning and disclose the fallback in the final report.
+- Use the strongest available frontier GPT-5-class agentic coding model with `xhigh` reasoning for the coordinator, all specialist agents, every wave verifier, and final synthesis when the tool surface supports it.
+- If that model is unavailable, use the strongest available GPT-5-class fallback with `xhigh` reasoning and disclose the fallback in the final report.
 - Prefer bounded lanes with non-overlapping scope. Six good default lanes for repo/product work are runtime interaction, visual/UX polish, copy/simplification, state/API integration, backend/product trust, and tests/docs/release gate.
 - Do not exceed the cap by leaving completed agents open. Close completed agents when their outputs have been read.
 - For each wave, run the verifier after all specialist outputs are read and before the wave intelligence summary is written.

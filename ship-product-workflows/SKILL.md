@@ -49,7 +49,7 @@ Wrong-route recovery: if evidence shows the route was wrong, state the mismatch,
 - Prefer runtime evidence when available. Static screenshots, docs, and code-only review produce bounded confidence; if no actual frontend path walk occurs, do not call the result a full Shipworthy run.
 - Never claim screenshot-only certainty about behavior, accessibility, persistence, state transitions, or unreachable paths.
 - For fixture-only, screenshot-only, or supplied-diff-only audits, do not blend in ambient workspace/repo context unless the user named it or it is necessary to explain an adjacent risk. If used, label it as supporting context, not as truth about the supplied artifact.
-- Do not click mutating, paid, destructive, permission-changing, privacy-sensitive, publishing, approval, production, or irreversible actions without explicit safe-test permission or a disposable fixture.
+- Do not click mutating, paid, destructive, permission-changing, privacy-sensitive, publishing, approval, production, or irreversible actions unless the user's authorization covers that action and a verified non-production reset/sandbox contract exists. A disposable fixture alone does not grant authority.
 - For broad, high-stakes, or runtime-heavy audits, use agents, waves, Playwright, browser tools, or Computer Use when available and permitted. If tools or agents are unavailable, report the evidence gap instead of implying they ran.
 
 ### Browser evidence route
@@ -70,7 +70,7 @@ Every browser-capable agent instruction must require this behavior: if the nativ
 
 ## Behavioral Proof Gate
 
-For `audit_all` and full Shipworthy runs, read `references/path-discovery-and-coverage.md` before collection. Build a **material-state control census** across every material role, state, viewport, and input mode; enumerate every visible or discoverable interactive control, including duplicate labels, disabled controls, keyboard/context-menu paths, and controls revealed by another action. Record noninteractive false affordances as observed surfaces, never working controls.
+For `audit_all` and full Shipworthy runs, read `references/path-discovery-and-coverage.md` and the orchestrator's `references/coverage-manifest.md` before collection. Freeze independent declared/static/runtime candidate inventories before execution, then build the canonical manifest through exact candidate-to-frontier mappings. Build a **material-state control census** across every material role, state, viewport, and input mode; enumerate every visible or discoverable interactive control, including duplicate labels, disabled controls, keyboard/context-menu paths, and controls revealed by another action. Record noninteractive false affordances as observed surfaces, never working controls. Copying frontier keys into a census is circular and receives no coverage credit.
 
 Before claiming closure:
 
@@ -105,7 +105,7 @@ prove that it was exercised.
 1. Capture the ask, artifact, environment, credentials, fixture data, device targets, safe-test permission, and mutation boundaries.
 2. Run a provisional router pass: process route, audit mode, evidence path, risk gate, likely tools, and whether a clarity lane is needed.
 3. For major, full-pass, long-running, agent-assisted, or compaction-prone audits, start or update a living audit ledger after the provisional route. Record only the safe-test boundary, provisional route, and initial unknowns before discovery; do not pretend the path universe is known yet. Keep newly discovered paths visible instead of treating them as scope creep.
-4. Discover product surfaces and build a coverage map plus the material-state control census: screens/routes/windows, roles, states, actions, variants, hidden paths, data dependencies, integrations, and mutation risks. Update the ledger after discovery when one exists.
+4. Run the source-backed discovery sequence: freeze declared behavior candidates; freeze static route/component/flag/handler/test candidates; freeze runtime structural candidates; map every raw candidate to the canonical frontier or a reconciliation difference; assign every material row to an owner; then walk the frontend to a spawned-surface fixpoint while re-inventorying after state changes. Build the material-state control census across screens/routes/windows, roles, states, actions, variants, hidden paths, data dependencies, integrations, and mutation risks.
 5. Finalize scope and audit mode:
    - `audit_all`: audit the discoverable product-workflow surface in scope, with explicit coverage limits.
    - `audit_selected`: audit user-selected flows, screens, routes, or roles.
@@ -118,7 +118,7 @@ prove that it was exercised.
 9. Execute or trace safe user paths through the actual frontend when available. Exercise every safe control once per materially different behavior. Cover success, empty, loading, error, invalid input, back/forward, cancel, save, refresh, role mismatch, permission denial, responsive, and recovery states when in scope.
 10. Inspect backend/API/data symptoms only where they affect product workflows: failed requests, stale state, missing persistence, authorization leaks, inconsistent payloads, job/status drift, broken imports/exports, or misleading UI after backend failure.
 11. Call `$ship-workflow-clarity` for the clarity lane when comprehension, consequence, recovery, proof, governance, or human-obviousness risks are present. Pass path evidence and constraints; merge only evidence-backed clarity findings.
-12. Update the ledger after each major discovery pass, material evidence-changing tool batch, agent packet, wave, reroute, major finding, and final synthesis when a ledger exists.
+12. Update the candidate inventories, manifest, and ledger after each major discovery pass, material evidence-changing tool batch, agent packet, wave, reroute, major finding, and final synthesis. A lane is not exhausted until every assigned material row is terminal and two independent negative-discovery passes find no new raw candidates.
 13. Deduplicate findings across lanes. Separate confirmed findings, strong findings, provisional hypotheses, non-findings, and untested paths.
 14. Stress-test every fix: what could it break for another role, path, state, device, accessibility route, data condition, or governance boundary?
 15. Report findings first with evidence, severity, confidence, user consequence, likely cause, smallest useful fix, regression risk, and verification step.

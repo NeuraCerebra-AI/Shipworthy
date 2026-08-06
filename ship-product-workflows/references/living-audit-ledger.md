@@ -119,7 +119,7 @@ The coordinator owns the ledger. Agents should return packets that the coordinat
 Ask lanes to return:
 
 - lane name and scope;
-- paths covered, sampled, blocked, avoided, inferred, and out of scope;
+- candidate inventory/manifest references and paths covered, sampled with justification, blocked, avoided, missing, evidence debt, and out of scope;
 - new paths or states discovered;
 - artifacts and evidence references;
 - findings with severity/confidence;

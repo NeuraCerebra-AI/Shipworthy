@@ -15,8 +15,8 @@ Everything below is downstream of that rule.
 | Concern | Owner | Notes |
 |---|---|---|
 | Canonical **claim ledger** (truth layer) | `ship-readiness-orchestrator` | The only place material claims are promoted. Lanes return raw packets. |
-| **Coverage matrix** (scope layer) | `ship-readiness-orchestrator` | Every discovered path is labeled: covered · sampled · blocked · avoided · inferred · missing · out_of_scope · evidence_debt. |
-| **Path frontier** (exhaustion layer) | `ship-readiness-orchestrator` | The live queue of material expected/discovered paths. Full runs require frontier closure plus diminishing-discovery proof, not just three waves. |
+| **Candidate inventories + coverage manifest** (scope layer) | `ship-readiness-orchestrator` | Independent declared/static/runtime sources retain raw locators and digests; every candidate maps exactly to the single canonical frontier or a retained difference. |
+| **Path frontier** (execution/finality layer) | `ship-readiness-orchestrator` | The live queue of material candidates. Full runs remain open while safe work exists and require source-backed negative discovery, not just three waves. |
 | **Evidence-debt register** (uncertainty layer) | `ship-readiness-orchestrator` | Needs-proof items live here until proved, rejected, blocked, or scoped out. Never silently dropped between waves. |
 | **Wave barriers, verifier gates, final synthesis** | `ship-deep-review` | No wave summary is written until every agent output is read, the ledger is updated, and an *independent* verifier has shadow-read the raw outputs. |
 | **Path discovery + safe execution + backend-symptom tracing** | `ship-product-workflows` | Produces product-evidence packets. Escalates to the clarity lane when comprehension/consequence risks appear. |
@@ -32,7 +32,7 @@ Start Gate -> Sub-Skill Load Gate -> Goal Mode Persistence Gate
 Multi-Agent Authorization Gate -> Frontend Path-Walk Gate
     |
     v
-Path-universe discovery -> path frontier -> lane roster
+Declared/static/runtime candidate inventories -> canonical manifest/frontier -> lane roster
     |
     v
 Wave 1 (authorized parallel lanes or sequential fallback)
@@ -57,15 +57,15 @@ major route families, roles, state variants, runtime proof, contradictions, or
 evidence debt that could change the verdict, Shipworthy continues with adaptive
 extra waves instead of stopping because the minimum happened.
 
-Every full Shipworthy run must reach path-universe closure and frontier closure
-before readiness language: each material expected intent and discovered path is
-covered, sampled with justification, blocked, avoided, inferred, missing,
-out_of_scope, or evidence_debt, and no material `path_frontier` row remains
-unattempted, unknown, or maybe. Frontier closure also requires
-diminishing-discovery proof: two consecutive discovery/testing passes find no
-new material routes, controls, roles, states, device variants, or user intents.
-If a target is too large or blocked, Shipworthy reports `exhaustion_status:
-incomplete`, includes the next frontier batch, and refuses a fake full verdict.
+Every full run freezes independent candidate inventories before execution,
+retains their raw locators and digests, and maps every candidate exactly into
+the canonical manifest/frontier or a reconciliation difference. The full
+frontier taxonomy is `covered`, `sampled_with_justification`, `blocked`,
+`avoided`, `missing`, `out_of_scope`, and `evidence_debt`; `unattempted`,
+`unknown`, and `maybe` are nonterminal, and inference remains evidence debt.
+Two distinct canonical discovery families must independently produce no new
+source candidates. Audit lifecycle, frontier finality/qualification, and
+release disposition remain separate: a completed audit may be `not_ready`.
 Every operational Shipworthy run, full or downgraded, must also generate the
 mandatory HTML report from the final ledger at
 `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the
@@ -108,7 +108,7 @@ policy.
 
 ## Safe-test boundary (why it's read-only by default)
 
-Every run records a target fingerprint (repo/branch/commit/dirty state, runtime URL or launch command, account/role/fixture, viewport, evidence output location) and a **safe-test boundary**: allowed actions, forbidden actions, mutation risks, reset plan, and stop conditions. The run is read-only unless the user explicitly authorizes a specific action *and* a disposable/resettable environment exists. Mutating, paid, destructive, publishing, permissioned, privacy-sensitive, or production actions are stopped at the boundary. The tool reports the smallest useful fix and an exact verification step; it does not apply fixes unless explicitly asked after the review.
+Every run records a target fingerprint (repo/branch/commit/dirty state, runtime URL or launch command, account/role/fixture, viewport, evidence output location) and a **safe-test boundary**: allowed actions, forbidden actions, mutation risks, reset plan, and stop conditions. The run is read-only unless the user explicitly authorizes the exact action *and* a verified non-production reset/sandbox contract exists; a disposable fixture alone does not grant authority. Mutating, paid, destructive, publishing, permissioned, privacy-sensitive, or production actions are stopped at the boundary. The tool reports the smallest useful fix and an exact verification step; it does not apply fixes unless explicitly asked after the review.
 
 ## Degradation
 
@@ -118,8 +118,9 @@ If a required sub-skill can't be found or read, the orchestrator's **Sub-Skill L
 
 The product is exactly four independently usable, top-level skills. Detailed
 contracts and schemas live under each skill's own references; deterministic
-HTML, SARIF, and evidence-bundle transforms are the three standard-library
-scripts inside the orchestrator.
+HTML, SARIF, and evidence-bundle transforms live inside the orchestrator. The
+current full-run renderer also executes the bundled Draft 2020-12 schemas using
+Python `jsonschema` and fails closed if that validator is unavailable.
 
 Install each top-level skill folder directly into the host's skills directory.
 The repository itself is not a skill and must not become an extra nesting layer.

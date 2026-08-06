@@ -108,7 +108,7 @@ Expected behavior:
 - Attempts or safely traces every safe discoverable material path inside the declared boundary.
 - Continues until all material path_frontier rows leave `unattempted`, `unknown`, and `maybe`, and two consecutive discovery/testing passes find no new material routes, controls, roles, states, device variants, or user intents.
 - Tests happy, empty, loading, invalid-input, error, recovery, role/permission, responsive, persistence/reload, and reasonable edge-state variants where safe.
-- Labels every discovered material path or expected intent covered, sampled, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
+- Labels every full-frontier material candidate `covered`, `sampled_with_justification`, `blocked`, `avoided`, `missing`, `out_of_scope`, or `evidence_debt`; `sampled` and `inferred` are rejected.
 - Flags expected user goals with no discoverable path as missing.
 - Flags technically working but unreasonable workflows as overcomplicated.
 - Produces evidence debt for anything not proven.
@@ -144,7 +144,7 @@ Expected behavior:
 - Plans at least three verified waves and records that three is a floor, not a ceiling.
 - Uses adaptive continuation when path families, roles, contradictions, runtime proof, verifier objections, or evidence debt could change the verdict.
 - Uses the Adaptive Exhaustion Gate: no full final verdict while material path_frontier rows remain `unattempted`, `unknown`, or `maybe`; no closure until two consecutive discovery/testing passes find zero new material path surface.
-- Requires path-universe closure: every material expected intent and discovered path is covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt.
+- Requires source-backed path-universe reconciliation: independent declared/static/runtime candidates all map exactly to rows or retained differences, and every material row is terminal under the canonical taxonomy.
 - Generates a mandatory HTML report from compact ledger JSON at `~/.shipworthy/runs/<target-slug>/<timestamp>/readiness-report.html` unless the user explicitly requests repo-local artifacts.
 - Verifies `readiness-report.html` exists before the final answer and links its path in the final answer. If the file cannot be created, the final answer leads with `HTML report: MISSING/BLOCKED` and treats the run as incomplete.
 - Uses agents for discovery and verification only after explicit authorization when platform policy requires it, and uses a single coordinated runtime driver for a shared runtime unless isolated contexts are proven safe.
@@ -232,7 +232,7 @@ Expected behavior:
 
 - Builds the Path Frontier Ledger `path_frontier` before quality judgment.
 - Uses the Human-Tester Matrix: first-time user, confused user, impatient user, returning stale-state user, mobile user, keyboard-only user, role variants, and empty/loading/error states.
-- Records frontier burn-down after each wave: frontier_total, frontier_covered, frontier_sampled, frontier_blocked, frontier_missing, frontier_evidence_debt, frontier_unattempted, new_paths_last_wave, new_paths_previous_wave, and exhaustion_status.
+- Records frontier burn-down after each wave: frontier total, covered, sampled with justification, blocked, missing, evidence debt, unattempted, new candidates in the last two passes, finality, and coverage qualification.
 - Does not send a full final verdict after the first pass if new material paths are still being discovered.
 - If a follow-up "do another round" would reveal material new paths, the first run was not exhausted and must continue or report `exhaustion_status: incomplete`.
 - Runs an adversarial verifier pass asking what plausible paths were missed before final synthesis.
@@ -374,7 +374,7 @@ Expected behavior:
 - Declares evidence limits early.
 - Does not fake runtime, persistence, accessibility, or deployability proof.
 - Calls the result a static constrained pass.
-- Labels screenshots as sampled or inferred unless sequential trace evidence supports covered.
+- Labels screenshot-only variants `sampled_with_justification` where permitted and behavior inference as `evidence_debt` unless sequential trace evidence supports `covered`.
 - Separates package-script existence from command success.
 - Uses source/docs/screenshots for provisional findings only.
 - Produces an evidence debt list and exact next checks.
@@ -459,3 +459,34 @@ Expected behavior:
 - Requires two qualifying zero-yield passes from distinct canonical method families; renamed method details do not qualify.
 - Rejects exhaustive closure for missing semantic rows, duplicate identities, unresolved evidence, caller/row count drift, reconciliation debt, or a JSON/HTML closure contradiction.
 - Keeps the HTML action-first and human-readable; exhaustive proof lives in compact coverage summaries and collapsed details, not a wall of control rows.
+
+## Scenario 13: Circular Census Omission
+
+Fixture: a static route and runtime accessibility tree expose an additional
+dialog control, but the authored frontier and both legacy control censuses omit
+it.
+
+Expected behavior:
+
+- Retains the raw static/runtime candidates and their artifact digests.
+- Fails candidate-to-frontier reconciliation even though the legacy census union equals the authored frontier.
+- Rejects closure until the candidate maps to a row or retained difference.
+- Rejects arbitrary method-family labels and zero-yield passes without source inventory/evidence references.
+
+## Scenario 14: Completion Is Not Readiness
+
+Expected behavior:
+
+- Accepts a complete, exhausted, closed-multi-source audit that concludes `not_ready` because an approved confirmed P0 exists.
+- Forces `not_ready` for that P0 even when unrelated evidence debt exists.
+- Rejects `cannot_determine` when a confirmed P0 already proves a no-go.
+- Rejects `ready` or `conditionally_ready` for any non-complete, open, constrained, or debt-bearing audit.
+- Renders `CANNOT DETERMINE` with neutral treatment and never aliases it to `NOT READY`.
+
+## Scenario 15: Declared Frontend Walk Without Proof
+
+Expected behavior:
+
+- Rejects `frontend_path_walk_performed: true` and `path_walk_status: full` unless at least one retained `runtime_human_interaction` observation has a matching execution receipt.
+- Rejects full closure when bundled JSON Schema validation fails, including legacy `sampled`/`inferred` frontier statuses, missing `owner_lane`, or unexplained terminal non-covered rows.
+- Requires current full runs to use schema 1.1; 1.0 is historical-import only.

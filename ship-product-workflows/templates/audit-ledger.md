@@ -28,9 +28,16 @@
 
 ## Discovery And Cartography Inventory
 
-| Surface or state | Source | Status | Notes |
-| --- | --- | --- | --- |
-|  |  | discovered / inferred / blocked |  |
+This section is a discovery source, not a second frontier. Retain raw locators
+and artifact/candidate digests; never populate it by copying canonical rows.
+
+| Inventory ID | Canonical method family | Role/state/viewport/fixture | Artifact + SHA-256 | Candidate digest |
+| --- | --- | --- | --- | --- |
+|  | declared / static / runtime structural |  |  |  |
+
+| Candidate ID | Raw locator | Proposed semantic key | Frontier row or retained difference | Evidence |
+| --- | --- | --- | --- | --- |
+|  | accessible role/name, selector, route, symbol, or document heading |  |  |  |
 
 ## New Paths Discovered
 
@@ -44,11 +51,19 @@
 | --- | --- | --- | --- |
 |  |  | include / defer / reject |  |
 
-## Coverage Map
+## Canonical Coverage Manifest Reference
 
-| Path ID | Role and state | Device | Coverage | Evidence |
+- Manifest artifact path and digest:
+- Audit lifecycle: active / complete / blocked / user_stopped
+- Coverage finality: open / exhausted
+- Coverage qualification: closed_multi_source / incomplete / single_source / blocked / static_only
+- Readiness disposition: ready / conditionally_ready / not_ready / cannot_determine
+- Remaining safe work:
+- Resume conditions:
+
+| Frontier row | Owner lane | Coverage status | Terminal reason / sample justification | Evidence |
 | --- | --- | --- | --- | --- |
-|  |  |  | covered / sampled / blocked / avoided / inferred / out of scope |  |
+|  |  | covered / sampled_with_justification / blocked / avoided / missing / out_of_scope / evidence_debt |  |  |
 
 ## Execution Log
 
@@ -75,7 +90,7 @@
 ## Agent And Wave Packets
 
 - Lane or wave:
-- Covered, sampled, blocked, avoided, inferred, and out-of-scope paths:
+- Covered, sampled-with-justification, blocked, avoided, missing, evidence-debt, and out-of-scope paths:
 - New paths or states:
 - Evidence, findings, conflicts, warnings, and recommended next path:
 
@@ -107,3 +122,5 @@
 - Unmerged lane packets:
 - Highest-priority unverified findings:
 - Files, servers, URLs, fixtures, screenshots, traces, and commands needed next:
+- Source inventory IDs and candidate digest to resume from:
+- Coverage finality and exact resume conditions:

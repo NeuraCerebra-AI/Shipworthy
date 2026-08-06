@@ -59,4 +59,4 @@ The final verifier checks the claim ledger against verified evidence and unresol
 - Avoid saying "all good" unless all required evidence exists.
 - Mention model/tool fallbacks when the requested verifier model was unavailable.
 - Every material factual, severity, readiness, or safety claim must map to a ledger entry or explicit coverage/debt statement.
-- The orchestrator writes the final synthesis. Independent Opus or `gpt-5.5 xhigh` verification checks the final claim ledger, evidence debt, and coverage gaps before that synthesis is written; it does not replace orchestrator authorship.
+- The orchestrator writes the final synthesis. Independent Opus or strongest-available frontier GPT-5-class `xhigh` verification checks the final claim ledger, evidence debt, and coverage gaps before that synthesis is written; it does not replace orchestrator authorship.

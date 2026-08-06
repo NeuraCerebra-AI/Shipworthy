@@ -24,7 +24,7 @@ Before writing the final report, assemble:
 - ledger path/artifact location or inline ledger snapshot;
 - lane roster with launched, sequential, skipped, collapsed, or blocked lanes;
 - goal_mode_status, persistent goal objective if active, or goal-equivalent resumable ledger status if goal mode was unavailable/not authorized;
-- `audit_status` and `goal_completion_status`, kept separate from goal availability;
+- `audit_status`, frontier `finality`/coverage qualification, `readiness_disposition`, and `goal_completion_status`, kept separate from one another and from goal availability;
 - multi-agent authorization status, agent/tool execution status, and any platform limits that affected the run;
 - frontend path-walk status: whether actual frontend path-walking occurred, the frontend tool used, runtime target, path-walk status, and downgrade reason if absent or partial;
 - confirmation that `browser-evidence-routing.md` was read, plus browser evidence mode and selection reason, observed step boundary, artifact references, limitations, and not-proven statements; a screenshot proves only the state visible at capture time and does not prove an entire workflow;
@@ -32,7 +32,7 @@ Before writing the final report, assemble:
 - for canonical frontier reports, the separate `orchestration-checkpoint.json` beside `report-input.json` (do not add it to the closed wrapper);
 - final claim ledger;
 - final coverage matrix;
-- canonical path_frontier: derived closure state/reason, exact feature/surface/control/transition counts, role and discovery-family summaries, reconciliation differences, and manifest artifact; caller totals must reconcile exactly with canonical rows;
+- canonical path_frontier: source candidate inventories and digests, finality/reason, remaining safe work/resume conditions, derived qualification state/reason, exact feature/surface/control/transition counts, role and discovery-family summaries, reconciliation differences, and manifest artifact; caller totals must reconcile exactly with canonical rows;
 - evidence debt register with each item closed, blocked, scoped out, or carried as an explicit gap;
 - verified wave summaries and certificates, or for rapid/narrow/static runs, one verified checkpoint plus a list of omitted full-run gates;
 - raw lane outputs or artifact references;
@@ -60,7 +60,12 @@ Before any final answer for an operational Shipworthy invocation, assert:
 Every Shipworthy final answer must include: verdict, report HTML path, ledger path, evidence path(s), omitted gates, downgrade reason when applicable, goal_mode_status, multi-agent authorization status, frontend path-walk status, frontier burn-down, exhaustion status, and report generation status. If `readiness-report.html` is missing, do not imply the Shipworthy run is complete.
 
 The report may honestly finalize an `active`, `blocked`, or `user_stopped`
-checkpoint, but it must say closure was not achieved. It must not mark the
+checkpoint. It must show lifecycle, finality, qualification, and release
+decision separately. A completed audit may be `not_ready`; a blocked or
+user-stopped audit is `not_ready` when a confirmed P0 establishes a no-go and
+otherwise `cannot_determine`. User-stopped finality may remain open when safe
+work can resume. Terminal full reports still retain and reconcile at least one
+pre-synthesis packet; constrained status never bypasses source accounting. It must not mark the
 persistent goal complete until the fail-closed renderer accepts
 `audit_status: complete` and the matching `goal_completion_status`.
 
@@ -84,11 +89,11 @@ Shipworthy final answer with this concise next-step ask:
    - Skill bodies read, references read, target fingerprint, safe-test boundary.
    - Ledger location or inline snapshot, including claim, coverage, evidence-debt, and fix-cascade ID ranges.
    - Goal mode status: Codex `/goal` active/authorized, unavailable, not authorized, or goal-equivalent resumable ledger.
-   - Audit status and goal completion status; do not conflate either with goal-mode availability.
+   - Audit status, coverage finality, coverage qualification, readiness disposition, and goal completion status; do not conflate them or goal-mode availability.
    - Multi-agent authorization status: explicitly authorized, denied, unavailable, not received, or not required for this constrained pass.
    - Frontend path-walk status: performed or not performed, frontend tool, runtime target, path-walk status, and downgrade reason.
    - Report generation status: rendered, blocked, failed, or intentionally not generated because the user forbade file creation; include HTML report path, JSON/ledger path, and evidence locations.
-   - Frontier burn-down: `frontier_total`, `frontier_covered`, `frontier_sampled`, `frontier_blocked`, `frontier_missing`, `frontier_evidence_debt`, `frontier_unattempted`, `new_paths_last_wave`, `new_paths_previous_wave`, and exhaustion status.
+   - Frontier burn-down: `frontier_total`, `frontier_covered`, `frontier_sampled_with_justification`, `frontier_blocked`, `frontier_missing`, `frontier_evidence_debt`, `frontier_unattempted`, new candidates from the last two discovery passes, finality, and qualification.
    - Lane roster table with columns: lane, scope, required skill/reference, execution status, output/evidence location, skipped/collapsed/blocking reason.
    - Actual agent/tool execution mode, verifier status, raw output/evidence locations, omitted gates, and evidence debt created by unavailable agents, missing authorization, or runtime limits.
    - Control-census reconciliation, qualifying zero-yield pass IDs, active evidence-debt actions, and browser failover receipts/status.
@@ -116,7 +121,7 @@ Shipworthy final answer with this concise next-step ask:
    - Include the proof condition and any regression guard worth keeping.
 
 8. **Product Coverage**
-   - Near the beginning, add a compact Coverage Confidence summary: tested/not tested scope; roles, states, and viewports; stop reason; closure; inferred, blocked, avoided, and NOT_PROVEN limits.
+   - Near the beginning, add a compact Coverage Confidence summary: release decision; coverage finality; coverage qualification; tested/not tested scope; roles, states, and viewports; stop reason; blocked, avoided, and NOT_PROVEN limits.
    - In that summary, show compact end-to-end evidence accounting: execution receipts, census controls, action-signalling affordances, original observations, ledger observations, unresolved count, and renderer-validation receipt status. Do not expose the full inventories by default.
    - When backend-effecting actions exist, show renderer-derived frontend-to-backend counts: correlated actions and denominator, mismatches, correlated backend errors, and NOT_PROVEN actions. Keep request and bounded log-range detail collapsed; never render secrets or payload bodies.
    - After the action-first finding sections, show canonical closure/reason, exact counts and each exact denominator, discovery families, and bounded feature rows.
@@ -154,7 +159,7 @@ Shipworthy final answer with this concise next-step ask:
    - Note redaction boundaries and sensitive evidence omitted from the report.
 
 17. **Evidence Debt**
-   - Needs-proof, blocked, avoided, untested, inferred, missing, and out-of-scope items.
+   - Needs-proof, blocked, avoided, untested, missing, and out-of-scope items; inference appears here as evidence debt, not a frontier status.
 
 18. **Fix Cascade And Counterfactuals**
    - For major recommendations, state the no-change consequence, smallest useful fix, what the fix could break, and whether the fix is reversible.
@@ -214,7 +219,7 @@ Monitor: signal to watch after shipping, if relevant
 - Say "covered paths inside the declared boundary", not "all paths", unless every path in the declared universe truly has evidence.
 - Say "missing path" when a reasonable user goal has no discoverable UX path.
 - Say "overcomplicated path" when a workflow technically works but has excessive steps, hidden prerequisites, repeated decisions, needless context switches, or fragile recovery.
-- Say "not fully covered" when discovered material paths remain only sampled, blocked, avoided, inferred, missing, or evidence debt.
+- Say "not fully covered" when material paths remain sampled with justification, blocked, avoided, missing, or evidence debt.
 - Say "frontier incomplete" when `frontier_unattempted` is above zero, material rows remain `unknown` or `maybe`, or the last two discovery/testing passes have not reached zero new material paths.
 - Say "sequential fallback" when full-blast lanes were run in the main session because agent tooling was unavailable, unsafe, overlapping, or multi-agent authorization was not granted. If authorization was the reason, include `sequential fallback because multi-agent authorization was not granted`.
 - Say "goal-equivalent resumable ledger" when Codex `/goal` or platform persistent goal mode was unavailable or not authorized.
@@ -223,7 +228,7 @@ Monitor: signal to watch after shipping, if relevant
 - Say "HTML report: MISSING/BLOCKED" when the mandatory `readiness-report.html` file does not exist or could not be written before the final answer.
 - Say "not in ledger" or remove the claim when a final conclusion cannot be mapped to a claim, coverage, evidence-debt, or fix-cascade row.
 - Say "static constrained pass" when only screenshots, docs, README, package scripts, or source snippets were available.
-- Say "cannot determine" when evidence is missing.
+- Say "cannot determine" when evidence is insufficient and no confirmed blocker already establishes `not_ready`.
 - Say "script exists" or "command is documented", not "command passes", unless command output proves it.
 - Say "beloved/viral hypothesis" or "activation/shareability signal", not "this will go viral".
 - Separate release blockers from product polish.

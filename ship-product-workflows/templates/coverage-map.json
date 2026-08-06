@@ -1,127 +1,101 @@
 {
+  "artifact_kind": "provisional_candidate_inventory_seed",
+  "authority": "discovery_source_only_not_canonical_frontier",
+  "normalization_version": "shipworthy-semantic-v1",
+  "method_taxonomy_version": "shipworthy-methods-v1",
   "audit": {
     "product": "",
     "environment": "",
-    "processRoute": "",
-    "auditMode": "",
-    "evidencePath": "",
-    "riskGate": "",
-    "safeTestBoundary": {
-      "allowedActions": [],
-      "avoidedActions": [],
-      "mutationPolicy": "",
-      "resetPlan": ""
+    "process_route": "",
+    "audit_mode": "",
+    "evidence_path": "",
+    "risk_gate": "",
+    "safe_test_boundary": {
+      "authorized_actions": [],
+      "forbidden_actions": [],
+      "verified_nonproduction_reset_contract": "",
+      "resume_conditions": []
     }
   },
-  "paths": [
+  "candidate_inventories": [
     {
-      "pathId": "P1",
-      "name": "",
-      "role": "",
-      "device": "",
-      "entryPoint": "",
-      "goal": "",
-      "statesCovered": [],
-      "actionsTested": [],
-      "coverageLabel": "covered",
-      "mutationRisk": "none",
-      "evidence": [],
-      "result": "",
-      "linkedFindings": [],
-      "blockedOrAvoidedReason": "",
-      "nextEvidenceNeeded": ""
-    }
-  ],
-  "path_frontier": {
-    "normalization_version": "shipworthy-semantic-v1",
-    "method_taxonomy_version": "shipworthy-methods-v1",
-    "closure_state": "incomplete",
-    "closure_reason": "Material controls remain unattempted.",
-    "summary": {
-      "intent": 1,
-      "feature": 1,
-      "surface": 1,
-      "control": 1,
-      "transition": 0
-    },
-    "rows": [
-      {
-        "id": "PF-I-001",
-        "kind": "intent",
-        "semantic_key": "intent:role:goal",
-        "normalization_version": "shipworthy-semantic-v1",
-        "method_taxonomy_version": "shipworthy-methods-v1",
-        "status": "covered",
-        "material": true,
-        "attempt_count": 1,
-        "evidence_refs": ["evidence/intent.json"],
-        "observations": []
-      },
-      {
-        "id": "PF-F-001",
-        "kind": "feature",
-        "parent_id": "PF-I-001",
-        "semantic_key": "feature:feature-name",
-        "normalization_version": "shipworthy-semantic-v1",
-        "method_taxonomy_version": "shipworthy-methods-v1",
-        "status": "covered",
-        "material": true,
-        "attempt_count": 1,
-        "evidence_refs": ["evidence/feature.json"],
-        "observations": []
-      },
-      {
-        "id": "PF-S-001",
-        "kind": "surface",
-        "parent_id": "PF-F-001",
-        "semantic_key": "surface:/route:state:role:viewport",
-        "normalization_version": "shipworthy-semantic-v1",
-        "method_taxonomy_version": "shipworthy-methods-v1",
-        "status": "covered",
-        "material": true,
-        "attempt_count": 1,
-        "evidence_refs": ["evidence/surface.json"],
-        "observations": []
-      },
-      {
-        "id": "PF-C-001",
-        "kind": "control",
-        "parent_id": "PF-S-001",
-        "semantic_key": "control:surface:/route:state:role:viewport:label:button:purpose",
-        "normalization_version": "shipworthy-semantic-v1",
-        "method_taxonomy_version": "shipworthy-methods-v1",
-        "status": "unattempted",
-        "material": true,
-        "attempt_count": 0,
-        "evidence_refs": [],
-        "observations": [],
-        "control_identity": {
-          "name": "Label",
-          "control_type": "button",
-          "disambiguator": "purpose"
+      "inventory_id": "INV-RUNTIME-001",
+      "method_taxonomy_version": "shipworthy-methods-v1",
+      "method_family": "runtime_structural_inventory",
+      "role": "member",
+      "state": "normal",
+      "viewport": "desktop",
+      "fixture": "verified-nonproduction-fixture",
+      "source_locator": "runtime accessibility/DOM snapshot for /settings",
+      "source_artifacts": [
+        {
+          "ref": "evidence/raw-runtime-structure.json",
+          "sha256": "replace-with-sha256"
         }
-      }
-    ],
-    "discovery_passes": [],
-    "reconciliation_differences": []
-  },
-  "findings": [
+      ],
+      "artifact_ref": "evidence/runtime-candidate-extract.json",
+      "artifact_sha256": "replace-with-sha256",
+      "candidate_digest": "replace-with-canonical-candidate-digest",
+      "action_signaling_candidate_count": 1,
+      "candidates": [
+        {
+          "candidate_id": "CAND-RUNTIME-001",
+          "kind": "control",
+          "raw_locator": "role=button; accessible-name=Save",
+          "material": true,
+          "semantic_key": "control:surface:/settings:editing:member:desktop:save:button:persist",
+          "frontier_row_id": "PF-C-001",
+          "disposition": "mapped",
+          "reason": "Direct runtime structural candidate.",
+          "evidence_refs": ["evidence/raw-runtime-structure.json"]
+        }
+      ]
+    },
     {
-      "findingId": "F1",
-      "severity": "",
-      "confidence": "",
-      "pathId": "",
-      "title": "",
-      "likelyCause": "",
-      "verification": ""
+      "inventory_id": "INV-STATIC-001",
+      "method_taxonomy_version": "shipworthy-methods-v1",
+      "method_family": "static_implementation_inventory",
+      "role": "member",
+      "state": "normal",
+      "viewport": "desktop",
+      "fixture": "verified-nonproduction-fixture",
+      "source_locator": "repository route/component/handler scan",
+      "source_artifacts": [
+        {
+          "ref": "evidence/raw-static-scan.txt",
+          "sha256": "replace-with-sha256"
+        }
+      ],
+      "artifact_ref": "evidence/static-candidate-extract.json",
+      "artifact_sha256": "replace-with-sha256",
+      "candidate_digest": "replace-with-canonical-candidate-digest",
+      "candidates": [
+        {
+          "candidate_id": "CAND-STATIC-001",
+          "kind": "surface",
+          "raw_locator": "src/routes/settings.tsx#SettingsRoute",
+          "material": true,
+          "semantic_key": "surface:/settings:normal:member:desktop",
+          "frontier_row_id": "PF-S-001",
+          "disposition": "mapped",
+          "reason": "Static route candidate corroborates runtime inventory.",
+          "evidence_refs": ["evidence/raw-static-scan.txt"]
+        }
+      ]
     }
   ],
-  "clarityLane": {
-    "used": false,
-    "skill": "ship-workflow-clarity",
-    "pathIdsSent": [],
-    "summary": ""
-  },
-  "exclusions": [],
-  "assumptions": []
+  "mapping_queue": [
+    {
+      "candidate_id": "CAND-UNMAPPED-001",
+      "required_disposition": "map_to_frontier_or_retain_reconciliation_difference",
+      "owner_lane": "ship-product-workflows",
+      "reason": "Every raw candidate remains visible until exactly reconciled."
+    }
+  ],
+  "negative_discovery_passes": [],
+  "notes": [
+    "Do not copy frontier rows into this file.",
+    "The orchestrator writes the only canonical path_frontier and coverage manifest.",
+    "Replace placeholder hashes and digests before using an inventory as evidence."
+  ]
 }

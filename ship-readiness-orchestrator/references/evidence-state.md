@@ -48,7 +48,7 @@ Record:
 - production or provider risk;
 - stop conditions.
 
-Stop before paid, destructive, publishing, approval, permission-changing, privacy-sensitive, production, external-message, or irreversible actions unless the user explicitly approved a disposable fixture action.
+Stop before paid, destructive, publishing, approval, permission-changing, privacy-sensitive, production, external-message, or irreversible actions unless the user's authorization covers the exact action and a verified non-production reset/sandbox contract exists. A disposable fixture alone does not grant authority.
 
 ## Ledger Lifecycle And Write Gates
 
@@ -184,7 +184,7 @@ Before judging quality, inventory:
 
 ## Path Frontier Ledger
 
-The **Path Frontier Ledger** is the active, canonical `path_frontier` burn-down queue. Build it before judging readiness or design quality, then update it after each discovery/testing wave. It exists to make hidden work visible: if a follow-up "do another round" could reasonably find more material paths, the first run was not exhausted. The schema authority is `references/schemas/readiness-ledger.schema.json#/$defs/path_frontier`; do not maintain a second frontier shape.
+The **Path Frontier Ledger** is the active, canonical `path_frontier` burn-down queue. Build it from independent source-backed candidate inventories before judging readiness or design quality, then update it after each discovery/testing wave. It exists to make hidden work visible: if a follow-up "do another round" could reasonably find more material candidates, `finality` remains `open`. The schema authority is `references/schemas/readiness-ledger.schema.json#/$defs/path_frontier`; do not maintain a second frontier shape. Read `coverage-manifest.md` for the mandatory inventory and reconciliation protocol.
 
 Frontier sources:
 
@@ -202,13 +202,19 @@ Human-Tester Matrix:
 
 Use semantic lineage `intent → feature → surface → control → transition`. Every row has a unique stable ID, kind, `shipworthy-semantic-v1` semantic key, parent ID when applicable, materiality, status, attempt count, evidence refs, and `shipworthy-methods-v1` observations. Control rows include label/accessibility name, control type, and disambiguator. Transition rows include `before_state` and `after_state`; caller-supplied counts must exactly equal counts derived from rows.
 
-The only closure states are `closed_multi_source`, `incomplete`, `single_source`, `blocked`, and `static_only`.
+Keep three axes separate:
 
-**Closure precedence:** unresolved material rows, evidence debt, or reconciliation differences produce `incomplete`; a material blocker may produce `blocked`; static evidence without runtime produces `static_only`; one canonical discovery family produces `single_source`; only reconciled terminal rows with multiple independent families and two qualifying zero-yield discovery passes from distinct canonical method families produce `closed_multi_source`. Preserve reconciliation differences instead of smoothing them into narrative agreement.
+- `audit_status`: operational lifecycle (`active`, `complete`, `blocked`, `user_stopped`);
+- `path_frontier.finality`: whether safe authorized coverage work remains (`open`, `exhausted`), alongside the evidence qualification in `closure_state`;
+- `readiness_disposition`: release decision (`ready`, `conditionally_ready`, `not_ready`, `cannot_determine`).
 
-A full final verdict is forbidden unless the derived state is `closed_multi_source`. Two qualifying zero-yield discovery passes must begin from the current frontier, end with the same digest, produce no new semantic keys, and use distinct canonical method families. Time, attempt count, repeated agents, or renamed method details never establish closure.
+Coverage qualification states are `closed_multi_source`, `incomplete`, `single_source`, `blocked`, and `static_only`.
 
-If closure is impossible in the current run, record `closure_state: incomplete`, the unresolved rows, differences, and resume prompt. This is evidence/orchestration debt, not a passed gate.
+**Qualification precedence:** unresolved nonterminal rows or reconciliation differences produce `incomplete`; unavailable execution may produce `blocked`; static evidence without runtime produces `static_only`; one canonical discovery family produces `single_source`; only reconciled source inventories, terminal rows, multiple independent families, and two qualifying source-backed zero-yield passes from distinct canonical method families produce `closed_multi_source`. Preserve differences instead of smoothing them into narrative agreement.
+
+An affirmative verdict is forbidden unless the derived state is `closed_multi_source`, finality is `exhausted`, and no material evidence debt remains. A completed or constrained audit may truthfully conclude `not_ready` when confirmed defects establish a no-go, or `cannot_determine` when proof is insufficient. Two qualifying zero-yield passes must begin from the current candidate-inventory state, retain evidence and inventory IDs, end with the same candidate digest, produce no new candidates, and use distinct canonical method families. Time, attempt count, repeated agents, renamed method details, or copying frontier keys never establish closure.
+
+If no safe authorized available action can improve coverage, terminalize every material row and record `finality: exhausted`, the constrained `closure_state`, terminal reasons, differences, and exact resume conditions. If work remains, use `finality: open` and list it in `remaining_safe_work`; this includes user-stopped runs that can resume. Neither state is a passed gate by itself.
 
 ## Claim Ledger Fields
 
@@ -251,17 +257,17 @@ Track:
 ## Path Coverage Labels
 
 - `covered`: executed or traced with sufficient evidence.
-- `sampled`: representative variants checked, not full variant set.
+- `sampled_with_justification`: representative variants checked with an evidence-backed justification; safe material controls still require direct proof.
 - `blocked`: could not inspect because of missing access, setup, credentials, data, environment, or tool failure.
 - `avoided`: intentionally not clicked due to mutation, privacy, payment, publishing, approval, production, or destructive risk.
-- `inferred`: likely behavior from code, docs, network contracts, or adjacent traces, but not directly observed.
 - `missing`: a reasonable user goal or promised capability has no discoverable UX path or entry point in the inspected scope.
 - `out_of_scope`: excluded by user request, route, time, artifact, or risk boundary.
 - `evidence_debt`: material proof is still required and no stronger coverage label is justified yet.
 
 Do not merge blocked and avoided.
+Do not use `sampled` or `inferred` in a full frontier. Inference remains `evidence_debt` until directly proved or explicitly dispositioned. Require `terminal_reason` and evidence/candidate linkage for every non-covered terminal row.
 
-For screenshot-only or static-artifact audits, do not label a workflow `covered` unless the artifact includes enough sequential trace evidence to support that label. Usually label visible surfaces `sampled`, behavior claims `inferred`, and unavailable runtime checks `blocked` or `evidence_debt`.
+For screenshot-only or static-artifact audits, do not label a workflow `covered` unless the artifact includes enough sequential trace evidence to support that label. In a full frontier, use `sampled_with_justification` only where allowed, and represent inferred behavior or unavailable runtime proof as `evidence_debt` or `blocked`.
 
 ## Backend Correlation In Execution Receipts
 
@@ -320,9 +326,9 @@ If sensitive evidence is necessary, record the minimum useful fact and the locat
 
 Use:
 
-- ready only when required gates have direct proof;
-- conditionally ready when blockers are absent but gaps remain;
+- ready only when every material row and required gate has direct proof;
+- conditionally ready only when every material row is covered and the complete exhausted closed-multi-source contract permits explicitly accepted non-material conditions;
 - not ready when confirmed blockers exist;
-- cannot determine when evidence is insufficient.
+- cannot determine when evidence is insufficient and no confirmed blocker already establishes a no-go.
 
 Never claim ready, safe, passing, persistent, accessible, secure, beloved, viral, or fixed without evidence.

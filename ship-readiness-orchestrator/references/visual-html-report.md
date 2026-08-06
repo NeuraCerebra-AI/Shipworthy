@@ -62,7 +62,7 @@ report style drift.
 
 ## Coverage Confidence And Product Coverage
 
-Render a short **Coverage Confidence** summary near the beginning: what was tested, what was not tested, roles/states/viewports, why testing stopped, closure, and important proof limits. Keep findings prominent. Render **Product Coverage** after the action-first finding sections with canonical closure/reason, exact counts and denominators, discovery families, and bounded feature rows.
+Render a short **Coverage Confidence** summary near the beginning with three explicit lines: release decision, coverage finality, and coverage qualification. Then show what was tested, what was not tested, roles/states/viewports, why testing stopped, and important proof limits. `CANNOT DETERMINE` uses a neutral treatment; it must never inherit the red `NOT READY` stamp. Keep findings prominent. Render **Product Coverage** after the action-first finding sections with source-inventory reconciliation, canonical qualification/reason, exact counts and denominators, discovery families, and bounded feature rows.
 
 Keep Control evidence, Role / state / device coverage, Blocked / avoided actions, Discovery reconciliation, and Frontier manifest in collapsed native `<details>`. Link bounded frontier JSON rather than dumping rows. Default rendering has no JavaScript. Escape canonical text and reject unknown closure labels or caller/row count drift.
 
@@ -82,7 +82,9 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
    no-JS. Other formats — SARIF, evidence bundle, merge gate — are in
    `references/exports-and-ci.md`.
 
-   Discover a compatible runtime in this order: `python3`, then `python`, then
+   Current full runs also require the Python `jsonschema` package so the bundled
+   Draft 2020-12 schemas actually execute; absence is a fail-closed validation
+   error. Discover a compatible runtime in this order: `python3`, then `python`, then
    Windows `py -3`. Verify `major.minor` first and require Python 3.11 or newer;
    do not run a candidate merely because the command exists. If none is
    compatible, use the **instruction-only fallback**: have the host write one
@@ -102,7 +104,7 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
 {
   "target": "string — what was audited",
   "generated_at": "YYYY-MM-DD (optional; defaults to today)",
-  "verdict": "NOT READY | READY WITH RISKS | CONDITIONAL | READY",
+  "verdict": "NOT READY | CANNOT DETERMINE | READY WITH RISKS | CONDITIONAL | READY",
   "summary": {
     "clear_before_ship": 0,
     "fix_next": 0,
@@ -112,7 +114,7 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
   "coverage": {
     "total_paths": 0,
     "segments": [
-      { "kind": "covered|sampled|blocked|avoided|inferred|missing|out_of_scope|evidence_debt",
+      { "kind": "covered|sampled_with_justification|blocked|avoided|missing|out_of_scope|evidence_debt",
         "label": "human label", "value": 0 }
     ]
   },
@@ -131,6 +133,10 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
   ],
   "checkpoint": {
     "lanes": ["ship-deep-review", "ship-product-workflows", "ship-workflow-clarity"],
+    "audit_status": "active | complete | blocked | user_stopped",
+    "readiness_disposition": "ready | conditionally_ready | not_ready | cannot_determine",
+    "coverage_finality": "open | exhausted",
+    "coverage_qualification": "closed_multi_source | incomplete | single_source | blocked | static_only",
     "goal_mode_status": "active | explicitly authorized | not_authorized | unavailable | goal-equivalent resumable ledger",
     "goal_mode_objective": "persistent objective or fallback ledger objective",
     "multi_agent_authorization": "explicitly authorized | denied | unavailable | not received | not required for this constrained pass",
@@ -145,16 +151,14 @@ Keep Control evidence, Role / state / device coverage, Blocked / avoided actions
     "evidence_locations": ["absolute paths or redacted artifact references"],
     "frontier_total": 0,
     "frontier_covered": 0,
-    "frontier_sampled": 0,
+    "frontier_sampled_with_justification": 0,
     "frontier_blocked": 0,
     "frontier_missing": 0,
     "frontier_evidence_debt": 0,
     "frontier_unattempted": 0,
-    "new_paths_last_wave": 0,
-    "new_paths_previous_wave": 0,
-    "exhaustion_status": "complete | incomplete | incomplete_budget_exhausted | downgraded",
-    "exhaustion_downgrade_reason": "required when frontier closure is incomplete",
-    "next_frontier_batch": ["frontier IDs or user-path names to resume next"],
+    "new_candidates_last_pass": 0,
+    "new_candidates_previous_pass": 0,
+    "resume_conditions": ["exact condition needed to continue a constrained run"],
     "mode": "e.g. 5 authorized parallel agents | sequential fallback",
     "verifier": "e.g. Opus → APPROVED",
     "omitted": ["gate skipped → logged as evidence debt, not passed"]
@@ -172,10 +176,10 @@ If `frontend_path_walk_performed` is false or `path_walk_status` is
 `downgrade_reason` for language such as `source/CLI/HTTP-only readiness audit is
 not a full Shipworthy run`. `report_generation_status`, `report_path`,
 `ledger_path`, and `evidence_locations` make the deliverable invariant auditable.
-Frontier fields make exhaustion auditable: if `frontier_unattempted` is above
-zero, `new_paths_last_wave` / `new_paths_previous_wave` still show discovery
-yield, or `exhaustion_status` is not `complete`, the report must show the
-downgrade and include a next frontier batch or resume path.
+Frontier fields make exhaustion auditable: finality is `open` while safe
+authorized work remains and `exhausted` only when none remains. Coverage
+qualification and release disposition remain separate; a complete exhausted
+audit may still be `not_ready`.
 If `report_generation_status` is not `rendered`, the final answer must say
 `HTML report: MISSING/BLOCKED` and treat the run as incomplete. `findings` are
 sorted by action section automatically; every text field is HTML-escaped; coverage

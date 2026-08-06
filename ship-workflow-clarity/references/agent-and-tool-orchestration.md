@@ -49,7 +49,7 @@ If subagents are not available or not allowed, write an agent-lane plan and proc
 
 Use the user's runtime norms when they are available:
 
-- Codex macOS/Codex app: maximum practical concurrency is 6 agents. For major tasks, use up to 6 specialist agents when the lanes are independent and use `gpt-5.5` with `xhigh` reasoning when model/effort controls exist. For smaller delegated tasks, use `gpt-5.5` with medium reasoning unless the user asks otherwise.
+- Codex macOS/Codex app: maximum practical concurrency is 6 agents. For major tasks, use up to 6 specialist agents when the lanes are independent and use the strongest available frontier GPT-5-class agentic coding model with `xhigh` reasoning when model/effort controls exist. For smaller delegated tasks, use the strongest suitable GPT-5-class model with medium reasoning unless the user asks otherwise.
 - Claude Code or Claude macOS: parallelism is much higher, but use 10 concurrent agents as the normal practical cap unless the user explicitly asks for more. Use Sonnet for most lanes; use Opus for major synthesis, adversarial review, or high-stakes lanes.
 
 Respect the active tool policy. Some runtimes require explicit user authorization before spawning agents. If the tool contract says not to spawn without an explicit user request, ask or provide the lane plan instead.
@@ -135,7 +135,7 @@ Use $ship-workflow-clarity at /path/to/ship-workflow-clarity.
 You are one lane in a parallel audit. Inspect only: [lane scope].
 Use evidence only. Do not click medium/high mutation actions.
 Return: workflow areas covered, artifacts/paths, confirmed findings, hypotheses, exclusions, and what a fix could break.
-Preferred runtime when available: gpt-5.5, xhigh for major audit lanes; medium for smaller lanes.
+Preferred runtime when available: strongest frontier GPT-5-class agentic coding model, xhigh for major audit lanes; strongest suitable GPT-5-class model with medium reasoning for smaller lanes.
 ```
 
 Claude major audit lane:

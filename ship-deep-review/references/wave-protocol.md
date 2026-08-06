@@ -22,6 +22,7 @@ Record where wave outputs will live. Acceptable forms include files in a scratch
 
 Maintain these artifacts after every wave:
 
+- **Candidate inventories and coverage manifest:** independently sourced declared/static/runtime candidates with raw locators, artifact/candidate digests, exact frontier mappings, and retained differences.
 - **Claim ledger:** claim ID, claim, evidence, target fingerprint, evidence class, severity, confidence, status, contradictions, falsifier, and next action.
 - **Coverage matrix:** target surface, checked-by agent, evidence class, status, gaps, and whether the focus lens received enough coverage.
 - **Evidence debt register:** unresolved needs-proof or blocked items, proof needed, owner/wave, deadline or retargeting plan, and final disposition.
@@ -37,7 +38,7 @@ Dispatch distinct agents across the main surfaces. Each agent should search broa
 The orchestrator must:
 
 1. Read every Wave 1 output in full.
-2. Create evidence state: claim ledger, coverage matrix, and evidence debt register, not a narrative summary.
+2. Create evidence state: candidate inventories, canonical coverage manifest/frontier, claim ledger, coverage matrix, and evidence debt register, not a narrative summary.
 3. Dispatch one independent verifier with raw Wave 1 outputs, evidence state, preflight facts, and target brief.
 4. Require the verifier to perform a shadow read first: extract its own findings from raw outputs before comparing with the orchestrator ledger.
 5. Require the verifier to approve, downgrade, reject, mark needs-proof, or mark blocked for each claim, and to name any missing claims.
@@ -65,21 +66,23 @@ Before Wave 3, every evidence-debt item from Wave 1 must be proved, rejected, do
 
 ## Wave 3: Release Gate / What-Did-We-Miss
 
-Run final smoke and adjacent-surface checks. Shadow-read every raw lane packet,
-browser receipt, source inventory, candidate finding, absence signal, and
-rejected hypothesis. Reconcile each material observation into the canonical
+Run final smoke and adjacent-surface checks. Independently regenerate declared,
+static, and runtime candidate inventories and compare raw locators/digests with
+the manifest; never accept a census copied from frontier keys. Shadow-read every
+raw lane packet, browser receipt, source inventory, candidate finding, absence
+signal, and rejected hypothesis. Reconcile each material candidate and observation into the canonical
 frontier, a finding, evidence debt, an evidence-backed rejection, or justified
 out-of-scope disposition. Ask what plausible paths were missed and continue
-while discovery yields material paths; closure requires two consecutive
-zero-yield passes from distinct canonical method families.
+while discovery yields material candidates; closure requires two consecutive
+source-backed zero-yield passes from distinct canonical method families.
 
 Use the coverage matrix to choose the final pass. Do not spend Wave 3 only rechecking already-proven lanes while untouched surfaces remain relevant to the user request.
 
 ## Minimum And Adaptive Waves
 
-A full Shipworthy run has a minimum of three verified waves after Wave 0. Treat the first three verified waves as the floor, not the finish line. Additional waves are required when the coverage matrix still has major route families, user roles, state variants, runtime proof, contradictions, disconfirmation needs, safe path attempts, or evidence debt that could change the readiness verdict.
+A full Shipworthy run has a minimum of three verified waves after Wave 0. Treat the first three verified waves as the floor, not the finish line. Additional waves are required while safe authorized available work can still resolve major route families, user roles, state variants, runtime proof, contradictions, disconfirmation needs, path attempts, or evidence debt that could change the readiness verdict.
 
-Adaptive continuation is driven by verified evidence, not by anxiety or time. If every material expected intent and discovered path is labeled covered, sampled with justification, blocked, avoided, inferred, missing, out_of_scope, or evidence_debt, the orchestrator may proceed to the final no-overclaim verifier. If the independent verifier says coverage is too thin, run additional waves or mark the run incomplete instead of writing a normal final report.
+Adaptive continuation is driven by verified evidence, not by anxiety or time. Continue while `path_frontier.finality` is `open`. A full frontier uses only `covered`, `sampled_with_justification`, `blocked`, `avoided`, `missing`, `out_of_scope`, or `evidence_debt` as terminal statuses; inference remains evidence debt. When no safe authorized available action can improve coverage, set finality to `exhausted`, retain resume conditions, and proceed to the final no-overclaim verifier. Keep audit lifecycle, coverage finality/qualification, and release disposition separate: a finished audit may truthfully be `not_ready`.
 
 ## Verified Barrier After Wave 3
 

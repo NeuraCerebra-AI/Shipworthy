@@ -32,7 +32,7 @@ Use a provisional route from the prompt, then re-route after cartography if evid
 - Never claim screenshot-only certainty about workflow behavior, accessibility, or absence.
 - If evidence is thin, produce bounded findings and evidence requests rather than pretending workflow truth is confirmed.
 - For major, broad, high-stakes, or multi-surface audits, use parallel agents and/or waves when the runtime and user instructions permit it; keep small audits single-agent unless delegation would materially improve evidence.
-- Do not click mutating, irreversible, paid, privacy-sensitive, permissioned, publishing, or destructive actions without explicit safe-test permission or a disposable fixture.
+- Do not click mutating, irreversible, paid, privacy-sensitive, permissioned, publishing, or destructive actions unless the user's authorization covers the exact action and a verified non-production reset/sandbox contract exists. A disposable fixture alone does not grant authority.
 - Report findings first. Put scores last, omit them by default, and use only coarse labels when requested.
 - Never provide naked scores, decimal grades, or generic advice such as "make it cleaner" without workflow evidence and user consequence.
 - Preserve necessary complexity, proof, governance, expert controls, accessibility paths, recovery paths, and productive friction.
@@ -42,7 +42,7 @@ Use a provisional route from the prompt, then re-route after cartography if evid
 
 1. Run the router pass: classify process route, audit mode, evidence path, and risk gate. Load only the references specified below. Name the route briefly when useful.
 2. Discover the artifact under review: app type, launch path, target surface, available credentials, seed data, device constraints, safe-test boundaries, user-stated goals, and requested audit mode.
-3. Map workflow cartography before auditing: surfaces, actors, states, actions, hidden paths, variants, and mutation risks. Even for narrow requests, produce a small inventory and name excluded areas. Re-route once if cartography changes the process route, audit mode, evidence path, or risk gate.
+3. Map workflow cartography before auditing: surfaces, actors, states, actions, hidden paths, variants, and mutation risks. Under a full Shipworthy run, consume the orchestrator's source-backed candidate inventories and canonical coverage manifest; return newly observed raw candidates and exact proposed mappings, never a competing frontier or a frontier-derived census. Re-route once if cartography changes the process route, audit mode, evidence path, or risk gate.
 4. Select the audit mode:
    - `audit_all`: audit the whole discoverable workflow surface.
    - `audit_selected`: audit user-selected workflows or surfaces.
@@ -104,6 +104,8 @@ Lead with findings unless the user explicitly asks for only a map or only a plan
 10. Open questions
 11. Non-findings or bounded hypotheses
 12. Recommended next pass
+
+When operating as a Shipworthy lane, also return coverage limitations and newly discovered candidates. Do not derive readiness. The orchestrator alone reports audit lifecycle, coverage finality/qualification, and release disposition; a completed audit may still be `not_ready`.
 
 For each finding, include:
 

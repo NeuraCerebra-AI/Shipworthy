@@ -1,0 +1,50 @@
+name: Shipworthy validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: ship-readiness-orchestrator/requirements-validation.txt
+      - name: Install validation dependency
+        run: python -m pip install -r ship-readiness-orchestrator/requirements-validation.txt
+      - name: Run regression suite
+        run: python -m unittest discover -s ship-readiness-orchestrator/tests -v
+      - name: Compile renderer scripts
+        run: >-
+          python -m py_compile
+          ship-readiness-orchestrator/scripts/render_report.py
+          ship-readiness-orchestrator/scripts/make_bundle.py
+          ship-readiness-orchestrator/scripts/to_sarif.py
+          ship-readiness-orchestrator/tests/test_render_report.py
+      - name: Validate bundled JSON and schemas
+        run: |
+          python -m json.tool ship-readiness-orchestrator/references/schemas/readiness-ledger.schema.json >/dev/null
+          python -m json.tool ship-readiness-orchestrator/references/schemas/browser-evidence-envelope.schema.json >/dev/null
+          python -m json.tool ship-readiness-orchestrator/references/schemas/report-input.schema.json >/dev/null
+          python -m json.tool ship-product-workflows/templates/coverage-map.json >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          for path in sorted(Path("ship-readiness-orchestrator/references/schemas").glob("*.schema.json")):
+              Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
+              print("OK", path)
+          PY
