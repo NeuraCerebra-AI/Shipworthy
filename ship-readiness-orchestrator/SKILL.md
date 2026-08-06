@@ -73,6 +73,36 @@ HTML report. Positive recent yield keeps discovery active;
 small targets and strong findings never waive these controls. Closure is
 derived from retained receipts, not authored by a report builder.
 
+## Incomplete-Run Continuation Gate
+
+Before every user-facing final response, derive a **Remaining Work** register from the canonical frontier, candidate-inventory differences, evidence debt, omitted gates, failed capabilities, `remaining_safe_work`, and `resume_conditions`. Do this even for a truthful `active`, `blocked`, `user_stopped`, downgraded, or otherwise constrained report. Never replace exact remaining rows with “and more,” “other paths,” or a count-only summary.
+
+The register must account for every material row that is `sampled_with_justification`, `blocked`, `avoided`, `evidence_debt`, `unattempted`, `unknown`, or `maybe`; every unresolved inventory difference and evidence-debt item; every omitted required gate; and every named resume condition. For each item show its stable ID or semantic key, status, owner, reason/blocker, next action or proof needed, and resume condition when applicable. If the inline list would be unwieldy, write a complete `remaining-work.json` beside the report, link it, and show exact grouped counts plus the next frontier batch inline; the artifact must contain every item.
+
+The continuation ask is mandatory whenever the audit is not truly finished. “Truly finished” means `audit_status: complete`, `path_frontier.finality: exhausted`, `closure_state: closed_multi_source`, no unfinished statuses above, no unresolved inventory differences or evidence debt, no omitted required gate, full required frontend proof, approved verification, and successful report validation. A completed `not_ready` audit with fully resolved coverage may skip the continuation ask and use the fix handoff instead: confirmed defects are known outcomes, not unfinished audit paths.
+
+When continuation is required, make **Remaining Work** the last substantive section and end the final response with the applicable two-question block below. Put no user-facing prose, citations, or generic closing after it; host-required machine directives may follow.
+
+Default or goal not yet active:
+
+> Would you like me to continue through every remaining safe, authorized path and proof item?
+>
+> Would you like me to make that continuation a persistent goal so it resumes from the saved checkpoint until the frontier is exhausted?
+
+Goal already active:
+
+> Would you like me to continue through every remaining safe, authorized path and proof item under the active goal?
+>
+> Should I keep the persistent goal active and resume from the saved checkpoint until the frontier is exhausted?
+
+Goal mode unavailable or failed:
+
+> Would you like me to continue through every remaining safe, authorized path and proof item?
+>
+> Persistent goal mode is unavailable here; would you like me to use the resumable checkpoint as the goal-equivalent and continue until the frontier is exhausted?
+
+Do not ask these questions in lane packets, commentary updates, or while the same turn is actively continuing. Lane packets return the complete unresolved register to the orchestrator. The gate applies when yielding a user-facing final response.
+
 ## Raw-Evidence-to-Ledger Reconciliation Gate
 
 ### Original-Evidence Closure Gate
@@ -391,7 +421,7 @@ For a current full run, `path_frontier` must be an object, never a list. It must
 
 Do not implement fixes unless the user explicitly asks for implementation after the review.
 
-End every operational Shipworthy final answer with this concise fix handoff unless the user explicitly forbids follow-up work:
+Only when the audit is truly finished and no continuation handoff is required, end an operational Shipworthy final answer that contains **Clear Before Ship** items with this fix handoff unless the user explicitly forbids follow-up work:
 
 > Recommended next step: reply **yes** and I'll start a persistent fix goal for the **Clear Before Ship** items using authorized subagents where helpful. I'll apply the fixes safely, verify each one, regenerate the Shipworthy HTML report, and stop only when every remaining item is either passed, intentionally scoped out, or still clearly listed as not proven.
 
@@ -409,6 +439,8 @@ The ledger JSON is itself the canonical machine-readable export.
 - Treating Shipworthy instructions as overriding Codex or Claude Code tool policy.
 - Pretending `/goal` or persistent goal mode was activated when platform goal-mode policy, missing authorization, or missing tooling prevented it.
 - Sending a full final verdict while a material path_frontier row is still `unattempted`, `unknown`, or `maybe`.
+- Ending an incomplete user-facing response without an exhaustive Remaining Work register and the required continuation/persistent-goal questions as the final text.
+- Asking for a fix goal before offering to finish unresolved paths, proof, inventory differences, or omitted gates.
 - Stopping because no one asked "do another round" even though the frontier burn-down or verifier still names plausible untested paths.
 - Hiding sequential fallback caused by missing multi-agent authorization instead of recording it as orchestration debt.
 - Delaying ledger creation until the end, treating the final prose as the ledger, or letting lane agents create competing ledgers.

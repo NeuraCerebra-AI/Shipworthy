@@ -66,6 +66,8 @@ Render a short **Coverage Confidence** summary near the beginning with three exp
 
 Keep Control evidence, Role / state / device coverage, Blocked / avoided actions, Discovery reconciliation, and Frontier manifest in collapsed native `<details>`. Link bounded frontier JSON rather than dumping rows. Default rendering has no JavaScript. Escape canonical text and reject unknown closure labels or caller/row count drift.
 
+For every audit that is not truly finished, render a **Remaining Work** section from the canonical frontier and checkpoint. List every unfinished material row, reconciliation difference, evidence-debt item, omitted gate, remaining safe action, and resume condition. End the visible report with the continuation question and the goal/goal-equivalent question; do not let a generic footer appear after those questions. Omit this continuation block only for a truly finished audit. A fully covered completed audit that is `not_ready` because of confirmed defects uses the fix handoff instead.
+
 ## How to generate it
 
 1. Serialize the completed canonical ledger as `readiness-ledger.json` and the

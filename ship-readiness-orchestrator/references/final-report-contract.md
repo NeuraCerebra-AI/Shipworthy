@@ -8,6 +8,7 @@ Write a findings-first readiness report that a senior engineering/design team ca
 
 - Required Pre-Synthesis Gate
 - Pre-Final Artifact Assertion
+- Final Continuation Handoff
 - Final Fix Handoff
 - Report Structure
 - Finding Template
@@ -54,6 +55,7 @@ Before any final answer for an operational Shipworthy invocation, assert:
 - `readiness-ledger.json` and `report-input.json` exist unless artifact writes are blocked; `readiness-report.json` is not a required redundant alias;
 - `readiness-report.html` exists unless artifact writes are blocked;
 - `readiness-report.html` was rendered from the final ledger/report JSON;
+- every unfinished frontier row, inventory difference, evidence-debt item, omitted gate, remaining safe action, and resume condition is present in the final **Remaining Work** register;
 - final answer includes the absolute HTML report path, ledger path or inline-ledger marker, and evidence locations;
 - if any item is missing, the final answer leads with `HTML report: MISSING/BLOCKED`, explains why, and records missing artifacts as deliverable debt.
 
@@ -69,10 +71,15 @@ pre-synthesis packet; constrained status never bypasses source accounting. It mu
 persistent goal complete until the fail-closed renderer accepts
 `audit_status: complete` and the matching `goal_completion_status`.
 
+## Final Continuation Handoff
+
+When the audit is not truly finished, the final response must include an exhaustive **Remaining Work** section derived from the canonical artifacts. Include every material `sampled_with_justification`, `blocked`, `avoided`, `evidence_debt`, `unattempted`, `unknown`, or `maybe` row; every inventory difference and debt item; every omitted gate; and every remaining safe action/resume condition. Show stable ID/key, status, owner, reason/blocker, next action/proof needed, and resume condition. If too large inline, write and link a complete `remaining-work.json`; never hide rows behind “and more.”
+
+After that register, end with the continuation question and the applicable persistent-goal question from `SKILL.md`. These questions are the final user-facing text; only host-required machine directives may follow. This gate applies to user-facing final responses, not progress commentary or lane packets while work is continuing.
+
 ## Final Fix Handoff
 
-Unless the user explicitly forbids follow-up work, end every operational
-Shipworthy final answer with this concise next-step ask:
+Only when the audit is truly finished and the continuation handoff is not required, end an operational Shipworthy final answer containing **Clear Before Ship** items with this concise next-step ask unless the user explicitly forbids follow-up work:
 
 > Recommended next step: reply **yes** and I'll start a persistent fix goal for the **Clear Before Ship** items using authorized subagents where helpful. I'll apply the fixes safely, verify each one, regenerate the Shipworthy HTML report, and stop only when every remaining item is either passed, intentionally scoped out, or still clearly listed as not proven.
 

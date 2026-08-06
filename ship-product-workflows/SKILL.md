@@ -150,6 +150,8 @@ Lead with findings unless the user asks only for a plan or map. For `quick`, com
 10. Verification plan
 11. Open questions and recommended next pass
 
+For every standalone user-facing final response with unfinished paths, states, controls, proof, exclusions that could be revisited, or blocked/omitted checks, add an exhaustive **Remaining Work** section. List each stable path/key, status, reason/blocker, next action/proof, and resume condition. End with: “Would you like me to continue through every remaining safe, authorized path and proof item?” followed by “Would you like me to make that continuation a persistent goal so it resumes from the saved checkpoint until the frontier is exhausted?” Put no user-facing prose after those questions. If goal mode is active or unavailable, use the corresponding active-goal or goal-equivalent wording from `$ship-readiness-orchestrator`. When lane-dispatched, return the complete unresolved register to the orchestrator instead of asking the user.
+
 For each finding, include:
 
 ```text

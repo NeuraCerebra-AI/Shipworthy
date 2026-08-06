@@ -427,6 +427,88 @@ class DecisionStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "runtime control or transition"):
             RENDERER.reconcile_affordance_census(ledger, census, frontier)
 
+    def test_incomplete_handoff_lists_every_unfinished_source(self):
+        row = frontier_row()
+        row.update({
+            "status": "blocked",
+            "terminal_reason": "Test account lacks the role.",
+            "owner_lane": "runtime",
+        })
+        frontier = {
+            "rows": [row],
+            "closure_state": "blocked",
+            "finality": "exhausted",
+            "remaining_safe_work": ["Retry with an admin fixture."],
+            "resume_conditions": ["Admin fixture becomes available."],
+            "reconciliation_differences": [
+                {"semantic_key": "surface:/admin:normal:admin:desktop", "reason": "Static-only candidate."}
+            ],
+        }
+        checkpoint = {
+            "audit_status": "blocked",
+            "goal_mode_status": "not_authorized",
+            "omitted": ["keyboard-only pass"],
+        }
+        debt = [{"record_id": "ED-1", "title": "Persistence proof is missing."}]
+
+        block, question = RENDERER.continuation_handoff_html(
+            frontier, checkpoint, debt
+        )
+
+        for expected in (
+            row["semantic_key"], "Test account lacks the role.",
+            "surface:/admin:normal:admin:desktop", "ED-1",
+            "keyboard-only pass", "Retry with an admin fixture.",
+            "Admin fixture becomes available.",
+        ):
+            self.assertIn(expected, block)
+        self.assertIn(RENDERER.CONTINUATION_QUESTION, question)
+        self.assertIn(RENDERER.GOAL_QUESTION, question)
+
+    def test_finished_not_ready_audit_does_not_ask_to_continue_paths(self):
+        missing = frontier_row()
+        missing.update({
+            "status": "missing",
+            "terminal_reason": "The promised cancellation entry point is absent.",
+        })
+        frontier = {
+            "rows": [missing],
+            "closure_state": "closed_multi_source",
+            "finality": "exhausted",
+            "remaining_safe_work": [],
+            "resume_conditions": [],
+            "reconciliation_differences": [],
+        }
+        block, question = RENDERER.continuation_handoff_html(
+            frontier,
+            {"audit_status": "complete", "omitted": []},
+            [],
+        )
+        self.assertEqual((block, question), ("", ""))
+
+    def test_continuation_goal_wording_tracks_goal_availability(self):
+        frontier = {
+            "rows": [],
+            "closure_state": "incomplete",
+            "finality": "open",
+            "remaining_safe_work": ["Finish discovery."],
+            "resume_conditions": [],
+            "reconciliation_differences": [],
+        }
+        cases = {
+            "not_authorized": RENDERER.GOAL_QUESTION,
+            "active": "Should I keep the persistent goal active",
+            "unavailable": "use the resumable checkpoint as the goal-equivalent",
+        }
+        for status, expected in cases.items():
+            with self.subTest(status=status):
+                _, question = RENDERER.continuation_handoff_html(
+                    frontier,
+                    {"audit_status": "active", "goal_mode_status": status},
+                    [],
+                )
+                self.assertIn(expected, question)
+
 
 class BundledSchemaTests(unittest.TestCase):
     @classmethod
@@ -584,7 +666,14 @@ class EndToEndRendererTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("Cannot Determine", output_path.read_text(encoding="utf-8"))
+            html = output_path.read_text(encoding="utf-8")
+            self.assertIn("Cannot Determine", html)
+            self.assertIn("Remaining Work", html)
+            self.assertIn(RENDERER.CONTINUATION_QUESTION, html)
+            self.assertIn("Should I keep the persistent goal active", html)
+            self.assertGreater(
+                html.rfind(RENDERER.CONTINUATION_QUESTION), html.rfind("</footer>")
+            )
             rendered_checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
             self.assertEqual(rendered_checkpoint["report_generation_status"], "rendered")
             self.assertEqual(rendered_checkpoint["audit_status"], "active")

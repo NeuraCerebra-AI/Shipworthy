@@ -72,6 +72,11 @@ wrong role, state, viewport, or control.
 Audit completion, coverage qualification, and the release decision are separate:
 a fully completed audit can still conclude **not ready**, while insufficient
 proof concludes **cannot determine** rather than being mislabeled as a no-go.
+Whenever paths, variants, proof, inventory differences, or required gates remain
+unfinished, the final response and HTML report include an exhaustive **Remaining
+Work** register and end by asking whether to continue and whether to make that
+continuation a persistent goal. A fully covered `not_ready` audit instead offers
+the fix handoff because the defects are known rather than untested.
 
 For the flagship run, "tries every safe discoverable user path" means using the
 actual frontend when one is available: browser, in-app browser, Chrome,

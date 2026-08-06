@@ -17,6 +17,7 @@ Everything below is downstream of that rule.
 | Canonical **claim ledger** (truth layer) | `ship-readiness-orchestrator` | The only place material claims are promoted. Lanes return raw packets. |
 | **Candidate inventories + coverage manifest** (scope layer) | `ship-readiness-orchestrator` | Independent declared/static/runtime sources retain raw locators and digests; every candidate maps exactly to the single canonical frontier or a retained difference. |
 | **Path frontier** (execution/finality layer) | `ship-readiness-orchestrator` | The live queue of material candidates. Full runs remain open while safe work exists and require source-backed negative discovery, not just three waves. |
+| **Continuation handoff** (unfinished-work layer) | `ship-readiness-orchestrator` | Every incomplete user-facing response lists the exact unresolved frontier/debt/gates and ends with continue + persistent-goal questions. |
 | **Evidence-debt register** (uncertainty layer) | `ship-readiness-orchestrator` | Needs-proof items live here until proved, rejected, blocked, or scoped out. Never silently dropped between waves. |
 | **Wave barriers, verifier gates, final synthesis** | `ship-deep-review` | No wave summary is written until every agent output is read, the ledger is updated, and an *independent* verifier has shadow-read the raw outputs. |
 | **Path discovery + safe execution + backend-symptom tracing** | `ship-product-workflows` | Produces product-evidence packets. Escalates to the clarity lane when comprehension/consequence risks appear. |

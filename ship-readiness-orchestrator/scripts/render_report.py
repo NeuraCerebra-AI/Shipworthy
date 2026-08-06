@@ -486,6 +486,12 @@ V1_VERDICT = {
 }
 CLOSURE_STATES = {"closed_multi_source", "incomplete", "single_source", "blocked", "static_only"}
 PARENT_KIND = {"feature": "intent", "surface": "feature", "control": "surface", "transition": "control"}
+CONTINUATION_QUESTION = (
+    "Would you like me to continue through every remaining safe, authorized path and proof item?"
+)
+GOAL_QUESTION = (
+    "Would you like me to make that continuation a persistent goal so it resumes from the saved checkpoint until the frontier is exhausted?"
+)
 
 def _semantic_digest(keys):
     keys = sorted(key for key in keys if isinstance(key, str))
@@ -493,6 +499,138 @@ def _semantic_digest(keys):
 
 def _frontier_digest(rows):
     return _semantic_digest(row.get("semantic_key") for row in rows if isinstance(row, dict))
+
+
+def continuation_handoff_html(frontier, checkpoint=None, evidence_debt=None):
+    """Render an exhaustive continuation handoff whenever audit proof is unfinished."""
+    checkpoint = checkpoint if isinstance(checkpoint, dict) else {}
+    frontier = frontier if isinstance(frontier, dict) else {}
+    rows = [row for row in (frontier.get("rows") or []) if isinstance(row, dict)]
+    unfinished_statuses = {
+        "sampled_with_justification", "blocked", "avoided", "evidence_debt",
+        "unattempted", "unknown", "maybe",
+    }
+    unfinished_rows = [
+        row for row in rows
+        if row.get("material", True) and row.get("status") in unfinished_statuses
+    ]
+    differences = [
+        item for item in (frontier.get("reconciliation_differences") or [])
+        if isinstance(item, dict)
+    ]
+    debts = [item for item in (evidence_debt or []) if isinstance(item, dict)]
+    omitted = [str(item) for item in (checkpoint.get("omitted") or []) if str(item).strip()]
+    remaining = [
+        str(item) for item in (frontier.get("remaining_safe_work") or [])
+        if str(item).strip()
+    ]
+    resume = [
+        str(item) for item in (frontier.get("resume_conditions") or [])
+        if str(item).strip()
+    ]
+    operational = []
+    verifier = checkpoint.get("verifier")
+    if verifier and verifier != "approved":
+        operational.append(f"Verifier gate: {verifier}")
+    if (
+        "frontend_path_walk_performed" in checkpoint
+        and (
+            checkpoint.get("frontend_path_walk_performed") is not True
+            or checkpoint.get("path_walk_status") != "full"
+        )
+    ):
+        operational.append(
+            "Frontend path-walk: " + str(checkpoint.get("path_walk_status") or "not performed")
+        )
+    validation_state = checkpoint.get("validation_state")
+    if validation_state and validation_state != "complete":
+        operational.append(f"Renderer validation: {validation_state}")
+    for label, field in (
+        ("Recovery", "recovery_status"),
+        ("Browser failover", "browser_failover_status"),
+    ):
+        value = checkpoint.get(field)
+        if value in {"active", "blocked", "user_stopped"}:
+            operational.append(f"{label}: {value}")
+    next_batch = checkpoint.get("next_frontier_batch")
+    if isinstance(next_batch, list):
+        operational.extend(f"Next frontier item: {item}" for item in next_batch)
+    continuation_required = bool(
+        checkpoint.get("audit_status") not in {None, "complete"}
+        or frontier.get("finality") not in {None, "exhausted"}
+        or frontier.get("closure_state") not in {None, "closed_multi_source"}
+        or unfinished_rows or differences or debts or omitted or remaining
+        or operational
+    )
+    if not continuation_required:
+        return "", ""
+
+    items = []
+    for row in unfinished_rows:
+        reason = row.get("terminal_reason") or "No terminal reason recorded."
+        owner = row.get("owner_lane") or "unassigned"
+        next_action = {
+            "sampled_with_justification": "execute or directly prove the remaining material variants",
+            "blocked": "satisfy the blocker or resume condition, then retry the path",
+            "avoided": "obtain the needed authorization and reset boundary, or retain the exclusion",
+            "evidence_debt": "collect the named direct proof and reconcile it to this row",
+            "unattempted": "execute the safe path and retain an exact receipt",
+            "unknown": "resolve the state with independent source and runtime evidence",
+            "maybe": "confirm or reject the candidate with direct evidence",
+        }.get(row.get("status"), "resolve and prove this frontier row")
+        items.append(
+            f'<li><code>{esc(row.get("semantic_key") or row.get("id"))}</code> — '
+            f'{esc(row.get("status"))}; owner: {esc(owner)}; {esc(reason)}; '
+            f'next action/proof: {esc(next_action)}</li>'
+        )
+    for item in differences:
+        items.append(
+            f'<li><code>{esc(item.get("semantic_key") or "inventory difference")}</code> — '
+            f'reconciliation difference; {esc(item.get("reason") or "unresolved")}; '
+            'next action/proof: map the candidate exactly or retain an evidenced disposition</li>'
+        )
+    for debt in debts:
+        next_action = debt.get("fix") or debt.get("proof_needed")
+        next_text = f"; next proof/action: {next_action}" if next_action else ""
+        items.append(
+            f'<li><code>{esc(debt.get("record_id") or debt.get("debt_id") or "evidence debt")}</code> — '
+            f'{esc(debt.get("title") or debt.get("reason") or "proof remains unavailable")}'
+            f'{esc(next_text)}</li>'
+        )
+    items.extend(
+        f'<li>Omitted gate: {esc(item)}; next action/proof: run the gate or retain its exact blocker</li>'
+        for item in omitted
+    )
+    items.extend(f'<li>Remaining safe work: {esc(item)}</li>' for item in remaining)
+    items.extend(f'<li>Resume condition: {esc(item)}</li>' for item in resume)
+    items.extend(f'<li>{esc(item)}</li>' for item in operational)
+    if not items:
+        items.append(
+            "<li>The audit is not canonically complete; rebuild or finish the source inventories, "
+            "frontier, execution proof, verifier gate, and report validation.</li>"
+        )
+    block = (
+        '<section class="section continuation"><div class="section-head">'
+        f'<h2>Remaining Work</h2><span class="count">{len(items)}</span></div>'
+        '<p class="muted-note">Every known unfinished path, proof item, omitted gate, and resume condition is listed below.</p>'
+        f'<ul class="remaining-list">{"".join(items)}</ul></section>'
+    )
+    goal_status = checkpoint.get("goal_mode_status")
+    if goal_status == "active":
+        goal_question = (
+            "Should I keep the persistent goal active and resume from the saved checkpoint until the frontier is exhausted?"
+        )
+    elif goal_status in {"unavailable", "failed", "goal_equivalent"}:
+        goal_question = (
+            "Persistent goal mode is unavailable here; would you like me to use the resumable checkpoint as the goal-equivalent and continue until the frontier is exhausted?"
+        )
+    else:
+        goal_question = GOAL_QUESTION
+    question = (
+        '<div class="continuation-question"><p><b>' + esc(CONTINUATION_QUESTION) +
+        '</b></p><p><b>' + esc(goal_question) + '</b></p></div>'
+    )
+    return block, question
 
 
 def _candidate_digest(candidates):
@@ -3865,6 +4003,9 @@ def render(data, interactive=False, orchestration_checkpoint=None):
         find_block += "".join(debt_cards)
 
     ck = data.get("checkpoint") if isinstance(data.get("checkpoint"), dict) else {}
+    continuation_block, continuation_question = continuation_handoff_html(
+        frontier, ck, debt_records
+    )
     ck_rows = []
     if ck.get("target_intent"): ck_rows.append(("target intent", ck["target_intent"]))
     if ck.get("target_calibration"): ck_rows.append(("target calibration", ck["target_calibration"]))
@@ -4041,6 +4182,8 @@ def render(data, interactive=False, orchestration_checkpoint=None):
   .coverage-metrics{{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}}.coverage-metric{{border:1px solid var(--hairline);background:var(--panel);border-radius:8px;padding:7px 10px;color:var(--muted);font-size:12px}}.coverage-metric b{{color:var(--paper);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
   .coverage-meta{{color:var(--muted);font-size:12.5px;line-height:1.7}}.coverage-meta b{{color:var(--prose)}}.coverage-features{{border:1px solid var(--hairline);border-radius:10px;overflow:hidden;margin-top:16px}}.coverage-feature,.coverage-proof{{display:flex;justify-content:space-between;gap:14px;padding:10px 12px;border-bottom:1px solid var(--hairline-soft);font-size:12.5px}}.coverage-feature:last-child,.coverage-proof:last-child{{border-bottom:0}}.coverage-feature span,.coverage-proof span{{color:var(--muted);text-align:right}}.coverage-tag{{display:inline-block;margin:3px 5px 3px 0;border:1px solid var(--hairline);border-radius:999px;padding:3px 8px;color:var(--muted);font-size:11px}}
   .muted-note{{color:var(--muted);font-size:13px;font-style:italic;margin-bottom:6px}}
+  .remaining-list{{margin:14px 0 0;padding-left:22px;color:var(--prose);font-size:13px;line-height:1.65}}.remaining-list li{{margin:0 0 9px}}.remaining-list code{{color:var(--paper)}}
+  .continuation-question{{margin:34px 0 0;border:1px solid #F59E0B88;background:#2A2112;border-radius:var(--radius);padding:16px 20px;color:var(--paper)}}.continuation-question p{{margin:0 0 10px}}.continuation-question p:last-child{{margin-bottom:0}}
   .finding{{background:var(--panel);border:1px solid var(--hairline);border-left:4px solid var(--hairline);border-radius:var(--radius);padding:19px 21px;margin-bottom:14px;overflow-wrap:anywhere}}
   .finding-top{{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap}}.finding-num{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted-dim)}}
   .pill{{font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid;white-space:nowrap}}.pill-proof{{color:var(--muted);border-color:var(--hairline)}}
@@ -4093,11 +4236,13 @@ def render(data, interactive=False, orchestration_checkpoint=None):
   {coverage_evidence_blocks}
   {cov_block}
   <section class="section"><div class="section-head"><h2>Orchestration Checkpoint</h2></div><div class="orch">{ck_html}</div></section>
+  {continuation_block}
   <footer>
     <b style="color:#7E8CAD">Proof labels:</b> Confirmed (directly observed) &gt; Partial (some proof, incomplete coverage) &gt; Inferred (not directly observed) &gt; Not tested.
     Findings lead; scores never appear naked. Read-only by default — fixes are proposed with a verification step, not applied.
     {illus}
   </footer>
+  {continuation_question}
 {script}
 </div></body></html>"""
 

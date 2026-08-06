@@ -28,6 +28,10 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - Scenario 10: Full-Blast Agent Launch
 - Scenario 11: Static Artifact Beside An Unrelated Repo
 - Scenario 12: Exhaustive Surface Gauntlet
+- Scenario 13: Circular Census Omission
+- Scenario 14: Completion Is Not Readiness
+- Scenario 15: Declared Frontend Walk Without Proof
+- Scenario 16: Incomplete Run Continuation Handoff
 
 ## Baseline Failure Patterns To Watch
 
@@ -64,6 +68,8 @@ Use these scenarios to validate whether this skill actually orchestrates the thr
 - The agent sends a final answer without an absolute `readiness-report.html` path, ledger path, evidence locations, omitted gates, and report generation status.
 - The agent ends after exactly three waves even though major coverage gaps remain.
 - The agent sends a full final verdict while material `path_frontier` rows remain `unattempted`, `unknown`, or `maybe`.
+- The agent ends an incomplete response without listing every remaining row/difference/debt/gate and without asking whether to continue and whether to use persistent goal mode.
+- The agent asks to fix confirmed defects before offering to finish unresolved audit paths and proof.
 - The agent stops while the last discovery/testing pass still found new material routes, controls, roles, states, device variants, or user intents.
 - A user follow-up says "do another round" and the agent finds material new paths, proving the first run was not exhausted.
 - The agent lets several agents click the same shared runtime without isolated users, resettable fixtures, independent browser profiles, or a single coordinated runtime driver.
@@ -490,3 +496,16 @@ Expected behavior:
 - Rejects `frontend_path_walk_performed: true` and `path_walk_status: full` unless at least one retained `runtime_human_interaction` observation has a matching execution receipt.
 - Rejects full closure when bundled JSON Schema validation fails, including legacy `sampled`/`inferred` frontier statuses, missing `owner_lane`, or unexplained terminal non-covered rows.
 - Requires current full runs to use schema 1.1; 1.0 is historical-import only.
+
+## Scenario 16: Incomplete Run Continuation Handoff
+
+Fixture: the run has one blocked control, one sampled variant, one evidence-debt row, one inventory difference, one omitted accessibility gate, and two named resume conditions. Goal mode is available but not active.
+
+Expected behavior:
+
+- The final response contains a **Remaining Work** section derived from the canonical frontier/checkpoint, not memory.
+- Every fixture item appears with its stable ID/key, status, owner, blocker/reason, next proof/action, and resume condition; no count-only summary or “and more” is accepted.
+- The mandatory HTML report renders the same unresolved set.
+- The response ends with the exact continuation question followed by the persistent-goal question; no user-facing prose follows those questions.
+- If goal mode is already active, it asks whether to keep the goal active; if unavailable, it offers the resumable checkpoint as the goal-equivalent.
+- A fully covered completed `not_ready` audit with only confirmed defects does not falsely claim unfinished audit paths and uses the fix handoff instead.

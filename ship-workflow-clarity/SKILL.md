@@ -107,6 +107,8 @@ Lead with findings unless the user explicitly asks for only a map or only a plan
 
 When operating as a Shipworthy lane, also return coverage limitations and newly discovered candidates. Do not derive readiness. The orchestrator alone reports audit lifecycle, coverage finality/qualification, and release disposition; a completed audit may still be `not_ready`.
 
+For every standalone user-facing final response with unfinished workflows, roles, states, variants, proof, or blocked/omitted checks, add an exhaustive **Remaining Work** section with stable IDs/keys, status, reason/blocker, next action/proof, and resume condition. End with: “Would you like me to continue through every remaining safe, authorized path and proof item?” followed by “Would you like me to make that continuation a persistent goal so it resumes from the saved checkpoint until the frontier is exhausted?” Put no user-facing prose after those questions. If goal mode is active or unavailable, use the corresponding active-goal or goal-equivalent wording from `$ship-readiness-orchestrator`. When lane-dispatched, return the unresolved register to the orchestrator rather than asking the user.
+
 For each finding, include:
 
 ```text
