@@ -1,88 +1,40 @@
 <div align="center">
 
-<img src=".github/assets/hero.svg" alt="Shipworthy — autonomous, evidence-graded product-readiness audits for apps and AI agents. Walks your whole product, proves it's worthy to ship, never overclaims." width="100%">
+<img src=".github/assets/hero.svg" alt="Shipworthy — free, open-source AI testing agent for automated frontend, end-to-end (E2E), and backend-symptom testing of web apps and AI agents. Walks every safe user path, proves it's ready to ship, never overclaims." width="100%">
 
-### Autonomous, evidence-graded product-readiness audits — for apps &amp; AI agents.
+### Automated frontend &amp; end-to-end (E2E) testing + backend-symptom analysis — an AI agent that proves your app is ready to ship.
 
-It walks your whole product like your most paranoid senior engineer — **every safe discoverable screen and path, plus the backend underneath** — then proves whether you're ready to ship.
+It walks your whole product like your most paranoid senior engineer — every safe, discoverable screen and path, plus the backend underneath — then proves whether you're ready to ship.
+
+Point it at your app, ask **"Are we shipworthy?"**, and get a proof-backed ship-or-don't verdict.
 
 [![GitHub stars](https://img.shields.io/github/stars/NeuraCerebra-AI/shipworthy?style=social)](https://github.com/NeuraCerebra-AI/shipworthy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/skills-4-8A2BE2?style=flat-square)](#-the-four-skills)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat-square)](https://github.com/NeuraCerebra-AI/shipworthy/releases)
 
-**✓ Read-only by default  ✓ Self-contained markdown  ✓ No telemetry  ✓ No credential access  ✓ No auto-update**
+**Read-only · self-contained markdown · no telemetry · no credential access · no auto-update**
 
 </div>
 
 ---
 
+> **Shipworthy** is a free, open-source **AI testing agent** that runs **automated frontend and end-to-end (E2E) tests** on your web app — and analyzes the **backend symptoms** behind each path. It walks every safe user path like a real user (browser, Playwright, or Computer Use), catches failures the UI hides (a 500 behind a "success" screen, data that never saved), installs as a **Claude Code or Codex skill**, runs **read-only**, and returns a proof-backed *ship-or-don't* verdict: **ready, conditionally ready, not ready, or cannot determine**. It works on normal apps and on AI-built ("vibe-coded") apps and AI agents — and it never overclaims.
+
 ## 😱 What silently breaks without this
 
 Most "it works on my machine" ships die on the things a quick look never catches:
 
-- The path that **technically completes** but is buried six clicks deep, repeats a decision, or dead-ends on reload.
-- The backend call that fails while the UI stays **cheerfully green** — nobody notices until a customer does.
-- The thing a user will **obviously** try — export, undo, invite a teammate, recover from a failed upload — that has **no path at all**.
-- The screen that *looks* finished, retains no attention, and quietly leaks trust.
-- And the meta-failure: an audit that declares **"ready"** after sampling three happy paths and calling it a day.
-- The audit that actually finds a path, then drops or mislabels it while merging agent output — leaving a final report that looks more complete than the evidence.
+- **Buried paths** — the flow that technically completes but sits six clicks deep, repeats a decision, or dead-ends on reload.
+- **Silent backend failures** — the API call that fails while the UI stays cheerfully green (a 500 behind a "Thank you" screen); nobody notices until a customer does.
+- **Missing paths** — the thing a user will obviously try (export, undo, invite a teammate, recover from a failed upload) that has no path at all.
+- **Trust leaks** — the screen that *looks* finished, holds no attention, and quietly leaks trust.
+- **The "ready" lie** — an audit that declares "ready" after sampling three happy paths and calling it a day.
+- **Lost evidence** — an audit that finds a real path, then drops or mislabels it while merging agent output, so the report looks more complete than the evidence.
 
-Shipworthy finds all of the above **and refuses the last two.** It treats "try every path" as a coverage ambition with honest exclusions — not a claim of omniscience — and keeps a live evidence ledger so every readiness statement traces back to proof. Every material observation must reach an exact path, finding, proof gap, rejection, or scope boundary; role, state, device, and interaction variants cannot be silently cross-credited.
+Shipworthy catches all of these — and refuses the last two itself. "Try every path" is an honest goal with stated exclusions, not a claim of omniscience: every readiness statement traces back to proof, and anything it couldn't test is labeled, not hidden.
 
-<div align="center"><img src=".github/assets/flow.svg" alt="How it works: map the path universe, walk every safe path across UI and backend, run an independent verifier, report coverage and evidence debt, then issue a proven ship-or-don't verdict" width="100%"></div>
-
-## ⚡ Install in 30 seconds
-
-Open Codex or Claude Code and ask:
-
-> Install the four top-level skills from
-> [NeuraCerebra-AI/Shipworthy](https://github.com/NeuraCerebra-AI/Shipworthy)
-> into this environment's skills directory. Install each folder as a separate
-> skill—not the repository as one nested skill.
-
-The four skill folders should end up directly beside the user's other skills.
-Start a new session after installation so the host discovers them.
-
-Then ask:
-
-```text
-Are we shipworthy?
-```
-
-That phrase is the flagship trigger: Shipworthy runs the full readiness
-orchestrator unless you explicitly ask for a rapid, narrow, changed-only, or
-static-only pass. It maps the path universe, tries every safe discoverable user
-path, hunts for missing and overcomplicated paths, asks for multi-agent
-authorization when the platform requires it, uses agents where authorized and
-safe, runs verified waves, and generates a self-contained HTML report from the
-final ledger.
-
-Full Shipworthy ends from source-backed exhaustion, not vibes, a fixed wave
-count, or a timer. It freezes independent declared, static, and runtime
-candidate inventories, maps every raw candidate to one canonical frontier, and
-keeps that frontier open while safe authorized work remains. Two distinct
-negative discovery methods must independently find no new candidates before
-coverage can qualify as closed.
-It also audits the evidence chain of custody: observations collected by runtime
-lanes, source inventories, control censuses, and verifiers must survive into the canonical ledger
-without being dropped, merged across different behaviors, or assigned to the
-wrong role, state, viewport, or control.
-
-Audit completion, coverage qualification, and the release decision are separate:
-a fully completed audit can still conclude **not ready**, while insufficient
-proof concludes **cannot determine** rather than being mislabeled as a no-go.
-Whenever paths, variants, proof, inventory differences, or required gates remain
-unfinished, the final response and HTML report include an exhaustive **Remaining
-Work** register and end by asking whether to continue and whether to make that
-continuation a persistent goal. A fully covered `not_ready` audit instead offers
-the fix handoff because the defects are known rather than untested.
-
-For the flagship run, "tries every safe discoverable user path" means using the
-actual frontend when one is available: browser, in-app browser, Chrome,
-Playwright, Computer Use, or the app UI itself. Repo/source, CLI, HTTP, tests,
-logs, provider checks, database probes, and docs are supporting evidence, not a
-substitute for walking the product like a user.
+<div align="center"><img src=".github/assets/flow.svg" alt="How Shipworthy works — automated end-to-end testing: map the path universe, walk every safe path across UI and backend, run an independent verifier, report coverage and evidence debt, then issue a proven ship-or-don't verdict" width="100%"></div>
 
 ## 🎬 What a run looks like
 
@@ -90,13 +42,7 @@ substitute for walking the product like a user.
 
 <sub>*Illustrative — the report format is real; the contents are a sample, not a live run.*</sub>
 
-> Every operational Shipworthy run renders a self-contained **HTML report** by default (verdict stamp, coverage bar, action-first findings, evidence-reconciliation summary, checkpoint — inline CSS, no JS, no network) via `scripts/render_report.py`. If a run is downgraded, the report still exists and shows why. See [`visual-html-report.md`](ship-readiness-orchestrator/references/visual-html-report.md).
-
-The report is meant to tell you what to do next, not bury you in audit prose:
-**Clear Before Ship** blocks readiness, **Fix Next** is real but non-blocking,
-**Not Proven / Not Tested** is not a pass, and **Passed / Keep** worked under
-the tested conditions. Each card says whether to Fix, Prove, Decide, Skip, or
-Keep, plus how strong the proof is.
+Every run ends in one self-contained **HTML report** that tells you what to do next instead of burying you in audit prose. Findings are grouped by action: **Clear Before Ship** blocks the release, **Fix Next** is real but non-blocking, **Not Proven / Not Tested** is never a pass, and **Passed / Keep** worked under the tested conditions. Each card says whether to Fix, Prove, Decide, Skip, or Keep — and how strong the proof is.
 
 <details><summary><b>See the same report as raw text</b></summary>
 
@@ -138,11 +84,24 @@ Keep, plus how strong the proof is.
 ```
 </details>
 
-Notice what it *doesn't* do: it never calls the app "ready," never claims the untested path passed, and never silently changes your code. It hands you the smallest fix and the exact way to verify it.
+Notice what it *doesn't* do: it never calls the app "ready," never claims an untested path passed, and never silently changes your code. It hands you the smallest fix and the exact way to verify it — and, if you reply `yes`, it will fix the **Clear Before Ship** items and re-run the report.
 
-At the end of a run, Shipworthy should ask whether you want to start a persistent fix goal
-for the **Clear Before Ship** items using authorized subagents where helpful. Reply `yes` when you want it to
-apply the fixes safely, verify each one, and regenerate the Shipworthy HTML report.
+## ⚡ Install in 30 seconds
+
+Open Codex or Claude Code and ask:
+
+> Install the four top-level skills from
+> [NeuraCerebra-AI/Shipworthy](https://github.com/NeuraCerebra-AI/Shipworthy)
+> into this environment's skills directory. Install each folder as a separate
+> skill—not the repository as one nested skill.
+
+Start a new session so the host discovers them. Then ask:
+
+```text
+Are we shipworthy?
+```
+
+That's the trigger for a full run — automated **end-to-end testing** across your whole frontend. It walks every safe path it can find (and flags the ones users expect but that don't exist), checks the backend under each one, has an **independent verifier** sign off, and writes the HTML report. A full run is a **minimum of three independently-verified waves**: it keeps going until two separate sweeps turn up nothing new — not a fixed number of rounds or a timer — and it labels every path with one of **seven coverage statuses** (from `covered` to `evidence_debt`). Want something lighter? Ask for a **rapid**, **narrow**, **changed-only**, or **static** pass. The full mechanics live in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## 🧩 The four skills
 
@@ -157,7 +116,7 @@ apply the fixes safely, verify each one, and regenerate the Shipworthy HTML repo
 
 <div align="center"><img src=".github/assets/architecture.svg" alt="Architecture: the ship-readiness-orchestrator owns the one evidence ledger, coverage matrix, verdict, and no-overclaim gate, and dispatches three lanes — ship-deep-review (waves and verifier gates), ship-product-workflows (walks every path across UI and backend), and ship-workflow-clarity (the human lens with harmful-simplify warnings); product-workflows feeds a clarity packet to workflow-clarity" width="100%"></div>
 
-One truth layer, proven. The lanes feed evidence *packets* into the orchestrator's single ledger — they never publish competing conclusions. Full control stack in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+**One** orchestrator, **three** specialist lanes, **one** evidence ledger. The lanes feed evidence *packets* into that single ledger and never publish competing conclusions — so a run yields one proof-backed verdict, not three. Full control stack in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## ⚖️ How it's different
 
@@ -171,27 +130,27 @@ One truth layer, proven. The lanes feed evidence *packets* into the orchestrator
 | Refuses to **overclaim** readiness | ✅ | ❌ | ❌ |
 | **Read-only**, hands you the fix + verify step | ✅ | 🟡 | 🟡 |
 
-Shipworthy isn't a "ship faster" boilerplate and it isn't a linter. It's the thing that tells you — with receipts — whether you *should* ship.
+Shipworthy isn't a linter, a boilerplate, or a paid QA platform that makes you write and maintain a test suite. It's a free, read-only AI agent that walks your app end-to-end and tells you — with receipts — whether you *should* ship.
+
+## 📊 Why this matters
+
+AI writes more code than ever — and ships more defects with it. Independent testing across 100+ current models found **45% of AI-generated code introduced an OWASP Top 10 vulnerability** ([Veracode, 2025](https://www.veracode.com/blog/genai-code-security-report/)), and a controlled Stanford study found developers using an AI assistant wrote *less* secure code while feeling **more** confident it was safe ([Perry et al., ACM CCS 2023](https://arxiv.org/abs/2211.03622)). The consequences already ship: one AI-built app exposed roughly **18,700 records** through what the researcher who found it called "a classic logic inversion that a human security reviewer would catch in seconds" ([The Register, 2026](https://www.theregister.com/2026/02/27/lovable_app_vulnerabilities/)). And you can't just ask the AI whether it's ready — across leading generative engines, only **51.5% of AI-generated sentences were fully supported by their own citations** ([Liu et al., Stanford, 2023](https://aclanthology.org/2023.findings-emnlp.467/)). That gap is the whole point of Shipworthy: it walks your product and **proves** what works, instead of trusting a model's say-so.
 
 ## 🔒 Safe by design
 
-Skills are **self-contained folders** — markdown instructions, local resources,
-and three optional local output scripts that never run during installation.
-The current full-run renderer uses Python `jsonschema` to execute the bundled
-schemas and fails closed if it is unavailable. There is no telemetry,
-credential access, network call, or
-auto-update of their own. When auditing, Shipworthy is **read-only by default**
-and uses only the tools you already have (browser, agents) inside an explicit
-safe-test boundary; it stops at mutating, paid, destructive, publishing, or
-production actions unless you authorize the exact action and a verified
-non-production reset/sandbox contract exists. It reports the smallest useful fix and an exact verification step
-— it does not apply fixes unless you ask after the review.
+Each skill is a self-contained folder — markdown instructions, local resources, and three optional output scripts that never run on install. When auditing, Shipworthy is **read-only by default**: it uses only the tools you already have (browser, agents) inside an explicit safe-test boundary, and it stops at any mutating, paid, destructive, publishing, or production action unless you authorize that exact action against a verified non-production sandbox. It reports the smallest useful fix and the way to verify it; it does not apply fixes unless you ask.
 
-Repository validation runs the renderer regression suite and bundled-schema
-checks on Python 3.9 and 3.13. The renderer's validation dependency is declared
-in `ship-readiness-orchestrator/requirements-validation.txt`.
+<sub>**Zero** telemetry, credential access, network calls, or auto-update. The report renderer validates every report against the bundled [JSON Schema](https://json-schema.org/) (Draft 2020-12) with Python `jsonschema` and fails closed if it's missing, and can export **SARIF** for GitHub code scanning. Repo CI runs the renderer suite and schema checks on **Python 3.9 and 3.13** (`ship-readiness-orchestrator/requirements-validation.txt`).</sub>
 
 ## 🙋 FAQ
+
+**How do I know if my app or AI agent is ready to ship?** Point Shipworthy at it and ask *"Are we shipworthy?"*. It walks every safe user path plus the backend, has an independent verifier check the evidence, and returns one of four proof-backed verdicts — **ready, conditionally ready, not ready, or cannot determine** — with the exact blockers and the way to verify each fix. It never marks an untested path as passing.
+
+**Can it test an app I built with AI (Lovable, Bolt, Replit, Cursor, v0)?** Yes. Shipworthy walks an AI-built ("vibe-coded") app's real user paths and checks the backend behind them, so you get an evidence-backed readiness verdict without having to read the generated code yourself.
+
+**Does it test the backend, or just the UI?** Both — from the user's side. It runs the frontend end-to-end and analyzes the backend *symptoms* that surface in each path: failed API calls, 500s behind "success" screens, data that doesn't persist, auth that leaks across accounts. It is **not** a load test, a penetration test, or a full backend/security audit.
+
+**Is it an alternative to QA Wolf, testRigor, or Cypress?** It's a free, open-source, read-only take on the same problem. Instead of writing and maintaining a test suite, it walks your app end-to-end on demand and reports what's ready and what isn't — runtime evidence is strongest, and it won't invent a passing result.
 
 **Is this a linter or a security scanner?** No. Those read code. Shipworthy walks the *product* — the paths a user takes and the backend behind them — and issues an evidence-backed readiness verdict.
 

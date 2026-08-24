@@ -1,0 +1,25 @@
+# Shipworthy
+
+> Free, open-source AI testing agent for automated frontend, end-to-end (E2E), and backend-symptom testing of web apps and AI agents. It walks every safe user path like a real user, checks the backend behind each one, runs an independent verifier over the evidence, and returns a proof-backed ship-or-don't verdict — ready, conditionally ready, not ready, or cannot determine. Read-only by default; it never overclaims.
+
+Shipworthy installs as four skills for Claude Code, Codex, or any SKILL.md-compatible agent. Trigger a full run by asking "Are we shipworthy?". A full run does automated end-to-end testing across the frontend (browser, Playwright, or Computer Use), analyzes backend symptoms (failed API calls, 500s behind "success" screens, data that never saved), runs a minimum of three independently-verified waves, labels every path with one of seven coverage statuses, and generates a self-contained HTML report. It is not a load test, a penetration test, or a full backend/security audit.
+
+## Docs
+
+- [README](https://raw.githubusercontent.com/NeuraCerebra-AI/shipworthy/HEAD/README.md): overview, install, what a run looks like, FAQ
+- [Architecture](https://raw.githubusercontent.com/NeuraCerebra-AI/shipworthy/HEAD/ARCHITECTURE.md): the control stack — who owns the evidence ledger, the coverage frontier, and the verifier gates
+
+## The four skills
+
+- [ship-readiness-orchestrator](https://raw.githubusercontent.com/NeuraCerebra-AI/shipworthy/HEAD/ship-readiness-orchestrator/SKILL.md): the conductor — owns the one evidence ledger, coverage map, and readiness verdict, and dispatches the three lanes without letting them overclaim
+- [ship-deep-review](https://raw.githubusercontent.com/NeuraCerebra-AI/shipworthy/HEAD/ship-deep-review/SKILL.md): the evidence engine — multi-wave agent dispatch, with no wave summary until an independent verifier has checked the raw outputs
+- [ship-product-workflows](https://raw.githubusercontent.com/NeuraCerebra-AI/shipworthy/HEAD/ship-product-workflows/SKILL.md): the path walker — safely tries or traces every meaningful user path across UI, state, forms, permissions, and backend symptoms
+- [ship-workflow-clarity](https://raw.githubusercontent.com/NeuraCerebra-AI/shipworthy/HEAD/ship-workflow-clarity/SKILL.md): the human lens — comprehension, next-action, recovery, trust, and harmful-simplification checks
+
+## Key facts
+
+- License: MIT (free, open-source)
+- Read-only by default; zero telemetry, zero credential access, zero network calls, zero auto-update
+- Platforms: Claude Code, Codex, and other SKILL.md-compatible agents
+- Output: a self-contained HTML report; can export SARIF for GitHub code scanning
+- Repository: https://github.com/NeuraCerebra-AI/shipworthy
