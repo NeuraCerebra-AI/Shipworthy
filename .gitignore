@@ -67,3 +67,12 @@ readiness-report.html
 !/.agents/plugins/marketplace.json
 /.claude-plugin/*
 !/.claude-plugin/marketplace.json
+
+# Local Claude Code settings (personal, not for the repo)
+.claude/settings.local.json
+
+# Generated SARIF exports (to_sarif.py output)
+*.sarif
+
+# macOS AppleDouble sidecars
+._*
