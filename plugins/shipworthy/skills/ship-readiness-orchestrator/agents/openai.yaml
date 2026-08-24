@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shipworthy Readiness Orchestrator"
+  short_description: "Evidence-backed readiness, workflow, and UX audit"
+  default_prompt: "Use $ship-readiness-orchestrator in full blast to launch capped independent lanes, try every safe discoverable user path, find missing or overcomplicated paths, and report ledger-backed readiness."

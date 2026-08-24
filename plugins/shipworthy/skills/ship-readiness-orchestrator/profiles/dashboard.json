@@ -1,0 +1,36 @@
+{
+  "archetype": "dashboard",
+  "description": "Data dashboard / analytics / admin console.",
+  "expected_intents": [
+    "load the dashboard and understand the primary metric at a glance",
+    "filter, date-range, and segment the data",
+    "drill from a summary into detail and back",
+    "handle empty, loading, partial, and error states per widget",
+    "export or share a view / report",
+    "act on a row (edit, assign, resolve) where applicable",
+    "understand stale vs live data (last-updated)"
+  ],
+  "critical_paths": [
+    "load -> primary metric legible -> filter -> data updates correctly",
+    "widget data fails -> that widget shows an error, page stays usable"
+  ],
+  "common_failure_modes": [
+    "one failed widget breaks or blanks the whole page",
+    "filters silently return stale or unfiltered data",
+    "no empty-state; a blank chart reads as broken",
+    "back / reload loses filter and drill state",
+    "no indication of data freshness or timezone",
+    "export reflects the unfiltered set, not the current view"
+  ],
+  "often_missing_paths": [
+    "recover a single failed widget without a full reload",
+    "share or deep-link the current filtered view",
+    "distinguish 'no data' from 'failed to load'",
+    "see when the data was last updated"
+  ],
+  "high_risk_areas": ["per-widget failure isolation", "filter/state correctness", "data freshness", "export fidelity"],
+  "evidence_cautions": [
+    "do not mutate real admin records; blocked -> evidence debt",
+    "large exports against prod may be avoided -> evidence debt"
+  ]
+}

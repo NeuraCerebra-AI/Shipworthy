@@ -1,0 +1,189 @@
+# Lane Prompts
+
+## Purpose
+
+Use these prompt contracts when dispatching agents or tool-heavy lanes. Keep lanes narrow, evidence-first, and non-overlapping. The main orchestrator owns canonical ledger writes, dedupe, severity, evidence state, verifier gates, and final synthesis. Lanes return candidate rows and raw evidence packets, not competing ledgers.
+
+## Contents
+
+- Controller Brief
+- Product Workflow Lane
+- Workflow Clarity Lane
+- Design And Attention Lane
+- Product Love And Activation Lane
+- Release Gate Lane
+- Fix Cascade Lane
+- Independent Verifier
+
+## Controller Brief
+
+```text
+Use ship-deep-review as the top-level controller for this product readiness investigation.
+
+Before target analysis or lane dispatch, read the full SKILL.md bodies for ship-readiness-orchestrator, ship-deep-review, ship-product-workflows, and ship-workflow-clarity. Then run the Goal Mode Persistence Gate: if `/goal`, persistent goal mode, or goal authorization is explicit, use it when platform policy allows; otherwise record `goal_mode_status` and continue with a goal-equivalent resumable ledger. Then run the Multi-Agent Authorization Gate: if the user has not already explicitly authorized parallel subagents, delegation, or multi-agent work, ask for that authorization and stop before any target analysis, tool work, lane dispatch, or sequential fallback. If the goal gate also needs authorization, emit the complete canonical authorization block from `ship-readiness-orchestrator/SKILL.md` verbatim as one message; do not shorten, split, paraphrase, or restate it here. Do not continue sequentially in the same response. "Not received" means the user failed to answer after the authorization question was asked, not merely that the original request lacked authorization. If authorization is denied, unavailable, or not received after the gate question, run the same roster sequentially and record "sequential fallback because multi-agent authorization was not granted." Then run the Flagship Frontend Path-Walk Gate: commit to actual frontend path-walking through browser, in-app browser, Chrome, Playwright, or Computer Use when a runnable UI/app surface is available; use source, CLI, HTTP, tests, logs, docs, provider checks, and database probes as supporting evidence, not as a substitute for frontend path-walking; and if no actual frontend path-walking occurred, label the result conditional/static/limited, not a full Shipworthy run. If the downgrade is caused by source/CLI/HTTP-only work, record "source/CLI/HTTP-only readiness audit is not a full Shipworthy run." Then read the target request, repo/app instructions, source-of-truth docs, and runtime facts. Record the target fingerprint, safe-test boundary, goal_mode_status, multi-agent authorization status, frontend tool plan, runtime target, path-walk status, and downgrade reason before dispatching agents or tools. Initialize the canonical claim ledger, path_frontier, coverage matrix, evidence debt register, raw lane outputs, verifier outputs, and final drift check before lane dispatch. Write target fingerprint, safe boundary, goal_mode_status, multi-agent authorization status, frontend path-walk status, lane roster, path universe, path_frontier, lane merges, verifier decisions, fix-cascade notes, and final dispositions into that state as the run proceeds.
+
+Use ship-product-workflows as the product/runtime QA lane family. Use ship-workflow-clarity only as a clarity/design/trust lane after product path evidence exists. Map first, judge second, choose audit depth third. Lane wave patterns are local evidence collection only; Deep Review owns wave barriers, verifier gates, summaries, and final synthesis. Do not write wave summaries until raw outputs have been shadow-read against the evidence state.
+
+For full Shipworthy invocations, plan for a minimum of three verified waves plus adaptive continuation while safe authorized coverage work remains. Read `coverage-manifest.md`; freeze independent declared/static/runtime candidate inventories with raw locators and digests, map every candidate exactly to the canonical frontier, and continue to the spawned-surface fixpoint. Use only `covered`, `sampled_with_justification`, `blocked`, `avoided`, `missing`, `out_of_scope`, or `evidence_debt` as terminal full-frontier statuses; `unattempted`, `unknown`, and `maybe` are nonterminal. Two negative discovery passes qualify only when distinct canonical method families independently produce no new source candidates. Generate the mandatory HTML report from compact ledger JSON after final verification; do not ask agents to generate full HTML by hand. Keep audit lifecycle, coverage finality/qualification, and readiness disposition separate; a completed audit may be `not_ready`.
+
+Before any user-facing final response, derive the exhaustive Remaining Work register and apply the Incomplete-Run Continuation Gate from `SKILL.md`. Put the handoff and both questions directly in the inline chat `final` response; an HTML report or artifact link cannot substitute for them. The continuation and persistent-goal questions must be the final user-facing text whenever work or proof remains. Lane agents return unresolved rows and next actions to the controller; they do not ask the user directly.
+
+For one shared runtime, designate a single coordinated runtime driver unless isolated users, resettable fixtures, disposable data, separate browser profiles, or read-only surfaces make parallel runtime drivers safe. Other agents should return path plans and evidence packets instead of clicking overlapping stateful workflows.
+
+Every browser-using lane prompt must carry the complete Block-Recovery Ladder from `browser-evidence-routing.md`: record failure; safe cleanup; continuity check and one transient retry; independent Playwright; another authorized frontend route such as Chrome, Computer Use, or target-owned E2E; lane reassignment or a sequential coordinated driver; supporting evidence only; then resume the unfinished wave. `tab.playwright` on the same locked native-browser binding is not a fallback. Refresh the capability inventory before exhaustion. Keep recovery active while a safe applicable authorized method remains, do not claim frontend coverage or closure for unresolved paths, and never install a capability or modify the target merely to recover evidence.
+
+Before final synthesis, write the schema-external operational fields in `orchestration-checkpoint.json`: `audit_status`, `goal_mode_status`, `goal_completion_status`, `raw_lane_output_paths`, `raw_verifier_output_paths`, `control_census_paths`, `zero_yield_pass_ids`, `evidence_debt_actions`, `recovery_status`, `recovery_attempts`, `recovery_receipt_paths`, `browser_failover_status`, `browser_failover_receipt_paths`, `validation_state`, `validation_attempts`, `validation_repair_queue_path`, and `validation_completion_receipt_path`. Keep the frozen ledger/report wrapper unchanged. Render the truthful checkpoint even when it is active, blocked, or user-stopped, but do not mark the persistent goal complete until `scripts/render_report.py` accepts a complete state and writes its completion receipt.
+
+Do not imply that the lane prompt or Shipworthy skill overrides platform tool policy. In Codex or any platform requiring explicit authorization, no subagent may be dispatched until the current user request or the user's answer explicitly authorizes subagents, delegation, or parallel-agent work.
+```
+
+## Product Workflow Lane
+
+```text
+Use ship-product-workflows as one lane inside a Deep Review readiness run.
+
+Scope: inspect only [lane scope].
+Route: major unless the controller assigned a narrower route.
+Default audit mode: audit_all plus audit_top_tasks plus audit_high_risk unless assigned otherwise.
+Safe-test boundary: [boundary].
+Target fingerprint: [fingerprint].
+
+Apply the orchestrator's stricter safety rule: no mutation unless the exact action is allowed, reset safety is known, and the environment is disposable or safely resettable. High-risk actions require explicit approval and a disposable/resettable environment.
+
+Start with independent expected-intent, declared-behavior, static-implementation, and runtime-structural candidate inventories. Retain source-specific locators, raw source artifacts/digests, canonical JSON candidate extracts, role/state/viewport/fixture coordinates, and exact mappings to proposed frontier rows or differences; every candidate must cite its raw source, and the extract must exactly equal the candidates returned. Never derive an inventory by copying the frontier or reuse the manifest as source evidence. Walk safe spawned surfaces to a fixpoint, then reconcile lifecycle, role, viewport, input-mode, recovery, and persistence variants. Build the material-state control census as supporting evidence, not as omission proof. Return every discovered candidate and reasonable missing user goal. Exercise every safe authorized control once per materially different behavior and record before/after proof; use terminal reasons for blocked or avoided controls.
+
+For a full flagship Shipworthy run with any runnable UI/app surface, begin from actual frontend path-walking through the designated browser, in-app browser, Chrome, Playwright, or Computer Use tool. Source/CLI/HTTP/tests/logs/docs evidence can map, explain, and corroborate paths, but it is supporting evidence, not as a substitute for frontend path-walking.
+
+Read `browser-evidence-routing.md` before browser work: native browser or computer-use is the default for adaptive exploration; existing target-owned Playwright is reserved for deterministic replay and regression needs. Include the selection reason and proof boundary in the lane packet. A screenshot proves only the state visible at capture time and does not prove an entire workflow. Neither route may silently upgrade proof to `Confirmed` or verifier status to `approved`.
+
+If browser access fails, follow the complete Block-Recovery Ladder in `browser-evidence-routing.md`, return a bounded `browser_failover_receipt` and recovery receipts, and resume the unfinished lane after successful recovery. An independent Playwright fallback must use an independent binding; `tab.playwright` on the same locked native-browser binding is not a fallback. Otherwise continue through an already-authorized Chrome, Computer Use, target-owned E2E, or reassigned/sequential frontend route. Supporting evidence cannot replace the frontend walk. Keep unresolved paths open and do not claim frontend coverage or closure. Never install a capability or modify the target merely to recover evidence.
+
+Assess path effort for each material goal: step count, decision count, context switches, repeated inputs, waits, hidden prerequisites, detours, dead ends, unclear labels, and recovery burden. Flag paths that technically work but are unreasonably long, fragile, buried, or cognitively expensive.
+
+Use runtime/browser evidence when available: screenshots, recordings, DOM/UI tree, accessibility tree, console, network, API/log snippets, route traces, state snapshots, persistence checks, and code anchors that explain user-visible behavior.
+
+For every material control that should affect backend state or truth, use the
+existing execution receipt as the single correlation record. With one
+designated runtime driver per browser/server instance: capture authorized
+backend stdout/stderr to a fresh external run log; record the current log
+offset/state; exercise the frontend action; capture request/response and
+console activity; read only the new log range; inspect authorized resulting
+state; reload/re-enter for persistence claims; then append and verify the
+receipt before continuing. Explicitly classify network, logs, state, and
+reentry as `observed`, `blocked`, or `not_applicable`, and the overall result as
+`matched`, `mismatch`, `blocked`, or `not_applicable`. A channel that cannot be
+observed remains NOT_PROVEN. Contradictory feedback/state, duplicate mutations,
+correlated unhandled errors, and failed persistence become distinct findings.
+Do not retain secrets, payload bodies, personal data, or unbounded logs.
+Presentational controls need only an explicit no-backend-effect reason unless
+they unexpectedly trigger a request.
+
+Label each discovered material path or expected intent `covered`, `sampled_with_justification`, `blocked`, `avoided`, `missing`, `out_of_scope`, or `evidence_debt`; do not use `sampled` or `inferred` in a full frontier. Return canonical semantic rows with `intent → feature → surface → control → transition` lineage, `owner_lane`, `shipworthy-semantic-v1` identities, `shipworthy-methods-v1` observations, evidence refs, attempt counts, control identity, and transition before/after states. Record source-backed discovery passes and all reconciliation differences. Do not present the lane packet as the canonical ledger or derive a release disposition.
+
+Before any frontier or finding synthesis, freeze an original evidence packet
+with `capture_phase: pre_synthesis`, its retained `artifact_path`,
+`observations`, and `execution_receipts`. Each observation carries a stable
+observation ID, source kind/source ID, material flag, semantic key,
+route/role/state/viewport/surface/control/input/before-after behavioral
+identity, evidence refs, and defect class when applicable. The packet must not
+contain terminal dispositions, `PF-*`/`FND-*` source identities, or observations
+reconstructed from frontier rows, findings, the ledger, report input, or HTML.
+Do not omit an observation because it appears duplicative; retain it so the
+controller can compare complete behavioral identity. The controller, not the
+lane, later copies each observation unchanged into ledger `raw_discoveries` and
+adds exactly one terminal disposition. Capture continuously: after each bounded
+behavior, append its observation and receipt, verify the retained write, then
+continue. Do not reconstruct the packet from memory at wave end.
+
+Return actual product failures as findings with `affected_semantic_keys`, `observed_effect_code`, and `evidence_refs`. Do not turn a normal blocked, avoided, missing, or out-of-scope disposition into a finding unless separately observed product behavior causes user harm. Return candidate claim/coverage/evidence-debt rows, lane-native severity, suggested canonical severity, evidence class, confidence, falsifier, false-positive notes, backend symptoms tied to user paths, new paths discovered, evidence debt, and exact verification steps.
+
+If the lane cannot safely attempt a path, label it with the reason rather than dropping it. `sampled_with_justification` requires an evidence-backed explanation; safe material controls require direct proof.
+
+If the lane only has screenshots, README, docs, package scripts, or source snippets, treat it as a static constrained pass. Do not mark runtime behavior, persistence, accessibility, deployability, or workflow completion as covered. A package script proves a command exists; only command output proves it passed.
+```
+
+## Workflow Clarity Lane
+
+```text
+Use ship-workflow-clarity as the clarity lane inside a product-readiness audit.
+
+Scope: inspect only workflow comprehension, orientation, state clarity, next action, missing expected paths, path effort/complexity, consequence and non-consequence clarity, recovery, trust/proof/governance, accessibility visibility, expert controls, attention/design hierarchy, and harmful simplification risk.
+
+Inputs: path IDs, expected user intents, missing-path candidates, path-effort notes, roles, states, devices, safe-test boundary, screenshots/recordings, DOM/UI/accessibility evidence, focus traces, code/docs/logs as supporting context only, and known exclusions.
+
+Do workflow cartography before findings. Do not click medium/high mutation actions unless the exact action is allowed under the orchestrator safety rule.
+
+Apply the orchestrator's stricter safety rule before interaction. Return a compact lane packet with candidate ledger rows: clarity findings, missing-path findings, overcomplicated-path findings, lane-native severity, suggested canonical severity, non-findings to preserve, assumptions, harmful-simplification warnings, trust/proof/governance notes, accessibility visibility notes, expert-control notes, hidden paths, blocked evidence, and verification suggestions. Do not create a competing ledger.
+```
+
+## Design And Attention Lane
+
+```text
+Act as a senior product designer and interaction designer, but stay evidence-backed.
+
+For each important surface, ask whether it is ugly, generic, overcluttered, hard to scan, attention-hostile, unclear, untrustworthy, or emotionally flat. Identify whether the user's attention goes to the right object, state, proof, and next action, and whether a reasonable user goal is missing a path or forced through an unnecessarily long path.
+
+Do not report pure taste as severity. Tie critique to user consequence: slower activation, missed action, false confidence, support burden, trust loss, abandonment, confusion, inaccessible path, or weak product value.
+
+For each issue, return observation, user consequence, severity/confidence, simplest useful fix, what the fix could harm, and verification step. Use buckets: Simplify, Preserve, Add Friction, Harden, Clarify, Investigate, Do Not Change.
+```
+
+## Product Love And Activation Lane
+
+```text
+Inspect product love, activation, retention, and shareability as hypotheses, not promises.
+
+Inputs: path map, screenshots/recordings, onboarding and first-run traces, primary value workflow evidence, design findings, support/recovery evidence, and known constraints.
+
+Evaluate time-to-value, first-run momentum, emotional payoff, perceived quality, repeat-use loop, share/referral moment, trust formation, abandonment risk, and support burden. Identify where the app feels beloved, useful, cold, generic, slow, confusing, embarrassing, overcomplicated, or not worth returning to.
+
+Do not claim the product will be viral or beloved. Return evidence-backed blockers/enablers, hypotheses to test, simplest useful changes, risks of over-optimizing for attention, and verification steps.
+```
+
+## Release Gate Lane
+
+```text
+Inspect deployability and operational readiness from the user's target context.
+
+Check available build, test, lint, typecheck, docs, env, seed data, migration, launch, health, smoke, packaging, and deployment evidence. Do not invent missing commands. Do not claim release readiness without command/runtime proof.
+
+Return commands/files checked, results, blocked checks, skipped checks, stale docs, missing scripts, risky assumptions, and exact verification needed before ship.
+
+For static-only input, separate `script/documented command exists` from `command was executed successfully`. Use source/doc evidence for the former and command evidence for the latter.
+```
+
+## Fix Cascade Lane
+
+```text
+Stress-test major recommendations before they reach the final roadmap.
+
+Inputs: confirmed/strong findings, proposed fixes, design simplifications, release gates, path map, safe-test boundary, and evidence debt.
+
+For each major fix, compare against the no-change baseline. Ask what the fix could break across user paths, roles, permissions, data contracts, devices, accessibility, recovery, proof, governance, privacy, expert controls, productive friction, and operational readiness. Classify reversibility as reversible, costly-to-reverse, or path-dependent.
+
+Return recommendation ID, addressed finding IDs, no-change consequence, smallest viable fix, downstream risk, preserved controls, verification step, and whether to keep, narrow, defer, or reject the recommendation.
+```
+
+## Independent Verifier
+
+```text
+You are the independent verifier for a Deep Review wave.
+
+You receive raw lane outputs, the target brief, target fingerprint, safe-test boundary, claim ledger, coverage matrix, and evidence debt register. Do not rely on a narrative summary.
+
+First enumerate the retained pre-synthesis original packets and execution
+receipts without inspecting synthesized frontier rows or findings. Reject any
+packet with a missing pre-synthesis marker, terminal dispositions, downstream
+frontier/finding identities, or observations reconstructed from the ledger,
+checkpoint, report input, or HTML. Then shadow-read those original outputs,
+independently extract candidate findings, contradictions, absence signals, and
+proof gaps, and only then compare that extraction to the ledger.
+
+For every material claim, mark approved, downgraded, rejected, needs-proof, or blocked. Check evidence class, provenance tags, canonical severity/confidence mapping, target fingerprint, contradictions, false-positive boundaries, missing caveats, overclaiming, duplicate ledgers, missing ledger rows, "all paths" overreach, redaction/storage safety, and required retargeting. For final-pass verification, also check that major recommendations have fix-cascade notes and every final claim maps to a claim, coverage, evidence-debt, or fix-cascade row. Ask "what plausible paths were missed?" and independently regenerate declared/static/runtime candidates before comparing raw locators and mappings against the coverage manifest; frontier-to-frontier comparison is circular.
+
+For any recovery, require a browser failover receipt and bounded receipts for the failure, cleanup result, continuity checks, one transient retry, independent Playwright, other authorized frontend routes, reassignment/sequential execution, capability-inventory refresh, resumed paths, and remaining debt. Playwright control through the same locked browser binding is not independent. Require a fresh independent verifier after verifier loss; controller self-verification is forbidden and unavailable replacement creates verifier debt. If the prompt omitted the recovery contract, an applicable safe authorized alternative was skipped, the unfinished wave was not resumed, or a receipt is missing, reject closure and require retargeting.
+
+Derive coverage qualification and finality from source inventories, mappings, rows, and retained evidence, not caller claims. Reject closure when a raw candidate or observation has no corresponding distinct input control, spawned surface, state-boundary transition, finding lineage, or explicit debt/rejected/out-of-scope disposition. Compare complete raw candidate inventories, observations, and execution receipts with the ledger, not only IDs or semantic-key strings. Re-open the final readiness-ledger.json and report-input.json from disk: readiness-ledger.json contains the canonical top-level `path_frontier`; report-input.json is exactly the `shipworthy/readiness-report-input` 1.1 wrapper, and its `source_ledger` is structurally identical. Execute both bundled schemas. Require `owner_lane`, reasons/evidence for every non-covered terminal row, exact parent/key lineage, and direct proof for safe material controls. Reject `closed_multi_source` for inventory/frontier mismatch, unresolved rows, count drift, reconciliation differences, fewer than two source-backed zero-yield passes from distinct canonical method families, or covered rows without proof. Without a frontend path-walk, require a constrained qualification. Report lifecycle, finality, qualification, and release disposition separately; only the orchestrator derives the disposition.
+
+Before allowing goal completion, inspect the final `orchestration-checkpoint.json` rather than a narrative summary. Require resolved raw lane/verifier files, source-backed runtime/static candidate inventories whose mapped union reconciles to the frontier, supporting censuses, the exact final `zero_yield_pass_ids`, one action row per evidence-debt ID, and valid failover receipts whenever needed. Reject `goal_completion_status: complete` unless `audit_status: complete`, ledger completion, exhausted finality, frontier qualification, full frontend path-walk, approved verifier, and failover state agree. A complete audit may still conclude `not_ready`.
+```

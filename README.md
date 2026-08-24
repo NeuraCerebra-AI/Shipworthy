@@ -101,6 +101,30 @@ Start a new session so the host discovers them. Then ask:
 Are we shipworthy?
 ```
 
+### Install the bundled plugin
+
+For a single namespaced install, use the packaged plugin and its marketplace:
+
+**Codex**
+
+```text
+codex plugin marketplace add NeuraCerebra-AI/Shipworthy --sparse .agents/plugins
+codex plugin add shipworthy@shipworthy
+```
+
+**Claude Code**
+
+```text
+claude plugin marketplace add NeuraCerebra-AI/Shipworthy
+claude plugin install shipworthy@shipworthy
+```
+
+Claude Code exposes the bundled skills under the `shipworthy:` namespace. The
+standalone folders above remain available for hosts that install individual
+`SKILL.md` directories directly. The plugin package is generated from those
+canonical folders; maintainers should run
+`python3 tools/sync_plugin_package.py --write` after skill changes.
+
 That's the trigger for a full run — automated **end-to-end testing** across your whole frontend. It walks every safe path it can find (and flags the ones users expect but that don't exist), checks the backend under each one, has an **independent verifier** sign off, and writes the HTML report. A full run is a **minimum of three independently-verified waves**: it keeps going until two separate sweeps turn up nothing new — not a fixed number of rounds or a timer — and it labels every path with one of **seven coverage statuses** (from `covered` to `evidence_debt`). Want something lighter? Ask for a **rapid**, **narrow**, **changed-only**, or **static** pass. The full mechanics live in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## 🧩 The four skills
@@ -171,6 +195,7 @@ If Shipworthy caught something before your users did, a star helps other teams f
 ## 📚 Docs
 
 - **[Architecture](ARCHITECTURE.md)** — the control stack: who owns evidence, wave barriers, verifier gates.
+- **[Plugin publishing](PLUGIN_PUBLISHING.md)** — package layout, validation, release, and marketplace steps.
 
 ## 📄 License
 

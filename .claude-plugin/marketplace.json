@@ -1,0 +1,29 @@
+{
+  "name": "shipworthy",
+  "owner": {
+    "name": "NeuraCerebra-AI",
+    "url": "https://github.com/NeuraCerebra-AI"
+  },
+  "description": "Read-only, proof-backed product readiness testing for web apps and AI-built products.",
+  "plugins": [
+    {
+      "name": "shipworthy",
+      "source": "./plugins/shipworthy",
+      "description": "Walk safe user paths, inspect frontend and backend symptoms, and return one evidence-backed readiness verdict.",
+      "author": {
+        "name": "NeuraCerebra-AI",
+        "url": "https://github.com/NeuraCerebra-AI"
+      },
+      "homepage": "https://github.com/NeuraCerebra-AI/Shipworthy",
+      "repository": "https://github.com/NeuraCerebra-AI/Shipworthy",
+      "license": "MIT",
+      "category": "Quality",
+      "tags": [
+        "testing",
+        "readiness",
+        "e2e",
+        "frontend"
+      ]
+    }
+  ]
+}

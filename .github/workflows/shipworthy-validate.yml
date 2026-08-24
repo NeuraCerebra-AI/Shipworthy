@@ -33,6 +33,14 @@ jobs:
           ship-readiness-orchestrator/scripts/make_bundle.py
           ship-readiness-orchestrator/scripts/to_sarif.py
           ship-readiness-orchestrator/tests/test_render_report.py
+      - name: Verify packaged plugin mirror
+        run: python tools/sync_plugin_package.py
+      - name: Validate plugin and marketplace JSON
+        run: |
+          python -m json.tool plugins/shipworthy/.codex-plugin/plugin.json >/dev/null
+          python -m json.tool plugins/shipworthy/.claude-plugin/plugin.json >/dev/null
+          python -m json.tool .agents/plugins/marketplace.json >/dev/null
+          python -m json.tool .claude-plugin/marketplace.json >/dev/null
       - name: Validate bundled JSON and schemas
         run: |
           python -m json.tool ship-readiness-orchestrator/references/schemas/readiness-ledger.schema.json >/dev/null

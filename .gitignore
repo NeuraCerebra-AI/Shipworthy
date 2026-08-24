@@ -30,6 +30,7 @@ npm-debug.log*
 /tmp/ship-*/
 **/audit-ledger.md
 !ship-product-workflows/templates/audit-ledger.md
+!plugins/shipworthy/skills/ship-product-workflows/templates/audit-ledger.md
 evidence/
 outputs/
 
@@ -49,8 +50,6 @@ readiness-report.html
 *.readiness-report.html
 
 # Intentionally excluded repository infrastructure
-/.agents/
-/.claude-plugin/
 /.gitattributes
 /.github/workflows/*
 !/.github/workflows/shipworthy-validate.yml
@@ -58,6 +57,13 @@ readiness-report.html
 /CONTRIBUTING.md
 /docs/
 /install.sh
-/plugins/
 /tests/
 /ship-*/README.md
+
+# Published plugin packages and marketplace catalogs
+/.agents/*
+!/.agents/plugins/
+/.agents/plugins/*
+!/.agents/plugins/marketplace.json
+/.claude-plugin/*
+!/.claude-plugin/marketplace.json

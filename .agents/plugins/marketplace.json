@@ -1,0 +1,20 @@
+{
+  "name": "shipworthy",
+  "interface": {
+    "displayName": "Shipworthy"
+  },
+  "plugins": [
+    {
+      "name": "shipworthy",
+      "source": {
+        "source": "local",
+        "path": "./plugins/shipworthy"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

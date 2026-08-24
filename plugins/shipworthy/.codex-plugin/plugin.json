@@ -1,0 +1,37 @@
+{
+  "name": "shipworthy",
+  "version": "0.1.0",
+  "description": "Proof-backed, read-only frontend and end-to-end readiness testing for web apps and AI-built products.",
+  "author": {
+    "name": "NeuraCerebra-AI",
+    "url": "https://github.com/NeuraCerebra-AI"
+  },
+  "homepage": "https://github.com/NeuraCerebra-AI/Shipworthy",
+  "repository": "https://github.com/NeuraCerebra-AI/Shipworthy",
+  "license": "MIT",
+  "keywords": [
+    "testing",
+    "quality",
+    "readiness",
+    "e2e",
+    "frontend"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Shipworthy",
+    "shortDescription": "Proof-backed, read-only product readiness testing.",
+    "longDescription": "Walks safe user paths across frontend and end-to-end workflows, traces backend symptoms, uses independent evidence verification, and returns one honest ship-or-don't verdict without changing the product.",
+    "developerName": "NeuraCerebra-AI",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Are we shipworthy?",
+      "Run a rapid Shipworthy audit.",
+      "Audit the changed product paths for release readiness."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

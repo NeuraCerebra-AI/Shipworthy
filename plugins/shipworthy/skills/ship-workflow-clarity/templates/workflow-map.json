@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "",
+    "type": "web|mobile|desktop|native|prototype|game|creative|cli-like|mixed|unknown",
+    "frameworks": [],
+    "entrypoints": [],
+    "launch": {
+      "command": "",
+      "baseUrl": "",
+      "artifactPath": ""
+    },
+    "safeTestConstraints": []
+  },
+  "audit": {
+    "processRoute": "tiny|standard|major|validation",
+    "mode": "audit_all|audit_selected|audit_top_tasks|audit_high_risk|audit_changed_only|unspecified",
+    "evidencePath": "screenshot-static|repo-diff|browser-runtime|native-desktop|design-artifact|transcript-cli|user-research|mixed|unknown",
+    "riskGate": "none|low|medium|high|unknown",
+    "modeRationale": "",
+    "routeRationale": "",
+    "reroutedFrom": "",
+    "rerouteReason": "",
+    "evidenceLimits": [],
+    "excludedAreas": []
+  },
+  "orchestration": {
+    "agentsUsed": [],
+    "wavesUsed": [],
+    "playwrightUsed": false,
+    "computerUseUsed": false,
+    "skippedRationale": ""
+  },
+  "actors": [
+    {
+      "actorId": "",
+      "label": "",
+      "authState": "anonymous|authenticated|seeded|manual|unknown",
+      "permissions": [],
+      "evidence": "USER-STATED|DOC-SUPPORTED|CODE-INFERRED|SCREEN-INFERRED|ANALYTICS-SUPPORTED|UNVERIFIED|CONFLICT"
+    }
+  ],
+  "surfaces": [
+    {
+      "surfaceId": "",
+      "kind": "route|screen|modal|panel|drawer|tab|dialog|component|command|overlay|unknown",
+      "pathOrName": "",
+      "source": "static-scan|runtime-crawl|manual-seed|trace|screenshot|design-artifact|transcript",
+      "actors": [],
+      "states": [],
+      "entrypoints": [],
+      "riskFlags": []
+    }
+  ],
+  "workflowAreas": [
+    {
+      "workflowId": "",
+      "name": "",
+      "userGoal": "",
+      "businessOrSystemGoal": "",
+      "goalEvidence": "USER-STATED|DOC-SUPPORTED|CODE-INFERRED|SCREEN-INFERRED|ANALYTICS-SUPPORTED|UNVERIFIED|CONFLICT",
+      "surfaces": [],
+      "primaryActions": [],
+      "stateCoverage": [],
+      "archetypes": [],
+      "variantsRelevant": [],
+      "riskBand": "high|medium|low|unscored",
+      "auditPriority": "high|medium|low"
+    }
+  ],
+  "actions": [
+    {
+      "actionId": "",
+      "surfaceId": "",
+      "label": "",
+      "kind": "navigate|reveal|submit|mutate|delete|export|invite|pay|publish|approve|unknown",
+      "selectorOrLocator": "",
+      "accessibleName": "",
+      "keyboardReachable": null,
+      "mutationRisk": "none|low|medium|high",
+      "reversibility": "reversible|costly-to-reverse|irreversible|unknown"
+    }
+  ],
+  "states": [
+    {
+      "stateId": "",
+      "kind": "loading|empty|success|error|denied|offline|validation|stale|dirty|conflict|edge|unknown",
+      "trigger": "natural|mock|fixture|manual|network|unknown",
+      "verified": false
+    }
+  ],
+  "artifacts": [
+    {
+      "artifactId": "",
+      "kind": "screenshot|recording|dom|ui-tree|a11y|trace|network|console|code|doc|transcript|manual-note",
+      "pathOrRef": "",
+      "workflowId": "",
+      "stateId": "",
+      "viewportOrDevice": "",
+      "confidence": "confirmed|strong|provisional|hypothesis"
+    }
+  ],
+  "exclusions": []
+}

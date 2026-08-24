@@ -1,0 +1,101 @@
+{
+  "artifact_kind": "provisional_candidate_inventory_seed",
+  "authority": "discovery_source_only_not_canonical_frontier",
+  "normalization_version": "shipworthy-semantic-v1",
+  "method_taxonomy_version": "shipworthy-methods-v1",
+  "audit": {
+    "product": "",
+    "environment": "",
+    "process_route": "",
+    "audit_mode": "",
+    "evidence_path": "",
+    "risk_gate": "",
+    "safe_test_boundary": {
+      "authorized_actions": [],
+      "forbidden_actions": [],
+      "verified_nonproduction_reset_contract": "",
+      "resume_conditions": []
+    }
+  },
+  "candidate_inventories": [
+    {
+      "inventory_id": "INV-RUNTIME-001",
+      "method_taxonomy_version": "shipworthy-methods-v1",
+      "method_family": "runtime_structural_inventory",
+      "role": "member",
+      "state": "normal",
+      "viewport": "desktop",
+      "fixture": "verified-nonproduction-fixture",
+      "source_locator": "runtime accessibility/DOM snapshot for /settings",
+      "source_artifacts": [
+        {
+          "ref": "evidence/raw-runtime-structure.json",
+          "sha256": "replace-with-sha256"
+        }
+      ],
+      "artifact_ref": "evidence/runtime-candidate-extract.json",
+      "artifact_sha256": "replace-with-sha256",
+      "candidate_digest": "replace-with-canonical-candidate-digest",
+      "action_signaling_candidate_count": 1,
+      "candidates": [
+        {
+          "candidate_id": "CAND-RUNTIME-001",
+          "kind": "control",
+          "raw_locator": "role=button; accessible-name=Save",
+          "material": true,
+          "semantic_key": "control:surface:/settings:editing:member:desktop:save:button:persist",
+          "frontier_row_id": "PF-C-001",
+          "disposition": "mapped",
+          "reason": "Direct runtime structural candidate.",
+          "evidence_refs": ["evidence/raw-runtime-structure.json"]
+        }
+      ]
+    },
+    {
+      "inventory_id": "INV-STATIC-001",
+      "method_taxonomy_version": "shipworthy-methods-v1",
+      "method_family": "static_implementation_inventory",
+      "role": "member",
+      "state": "normal",
+      "viewport": "desktop",
+      "fixture": "verified-nonproduction-fixture",
+      "source_locator": "repository route/component/handler scan",
+      "source_artifacts": [
+        {
+          "ref": "evidence/raw-static-scan.txt",
+          "sha256": "replace-with-sha256"
+        }
+      ],
+      "artifact_ref": "evidence/static-candidate-extract.json",
+      "artifact_sha256": "replace-with-sha256",
+      "candidate_digest": "replace-with-canonical-candidate-digest",
+      "candidates": [
+        {
+          "candidate_id": "CAND-STATIC-001",
+          "kind": "surface",
+          "raw_locator": "src/routes/settings.tsx#SettingsRoute",
+          "material": true,
+          "semantic_key": "surface:/settings:normal:member:desktop",
+          "frontier_row_id": "PF-S-001",
+          "disposition": "mapped",
+          "reason": "Static route candidate corroborates runtime inventory.",
+          "evidence_refs": ["evidence/raw-static-scan.txt"]
+        }
+      ]
+    }
+  ],
+  "mapping_queue": [
+    {
+      "candidate_id": "CAND-UNMAPPED-001",
+      "required_disposition": "map_to_frontier_or_retain_reconciliation_difference",
+      "owner_lane": "ship-product-workflows",
+      "reason": "Every raw candidate remains visible until exactly reconciled."
+    }
+  ],
+  "negative_discovery_passes": [],
+  "notes": [
+    "Do not copy frontier rows into this file.",
+    "The orchestrator writes the only canonical path_frontier and coverage manifest.",
+    "Replace placeholder hashes and digests before using an inventory as evidence."
+  ]
+}

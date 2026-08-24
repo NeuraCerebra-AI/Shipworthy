@@ -1,0 +1,532 @@
+{
+  "$defs": {
+    "BrowserEvidenceArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "maxLength": 67,
+          "minLength": 5,
+          "pattern": "^ART-[A-Z0-9][A-Z0-9._-]{0,62}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "channel": {
+          "$ref": "#/$defs/BrowserEvidenceChannel"
+        },
+        "descriptor": {
+          "$ref": "#/$defs/LocalArtifactDescriptor"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "channel",
+        "descriptor"
+      ],
+      "title": "BrowserEvidenceArtifact",
+      "type": "object"
+    },
+    "BrowserEvidenceChannel": {
+      "enum": [
+        "screenshot",
+        "dom_accessibility",
+        "console",
+        "network",
+        "trace",
+        "recording"
+      ],
+      "title": "BrowserEvidenceChannel",
+      "type": "string"
+    },
+    "BrowserEvidenceHost": {
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Driver",
+          "type": "string"
+        },
+        "family": {
+          "$ref": "#/$defs/HostFamily"
+        }
+      },
+      "required": [
+        "family",
+        "driver"
+      ],
+      "title": "BrowserEvidenceHost",
+      "type": "object"
+    },
+    "BrowserEvidenceMode": {
+      "enum": [
+        "exploratory",
+        "deterministic_replay"
+      ],
+      "title": "BrowserEvidenceMode",
+      "type": "string"
+    },
+    "BrowserEvidenceStep": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "observed_outcome": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Observed Outcome",
+          "type": "string"
+        },
+        "step_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Step Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "action",
+        "observed_outcome"
+      ],
+      "title": "BrowserEvidenceStep",
+      "type": "object"
+    },
+    "BrowserEvidenceTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "path_intent": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Path Intent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fingerprint",
+        "path_intent"
+      ],
+      "title": "BrowserEvidenceTarget",
+      "type": "object"
+    },
+    "HostFamily": {
+      "enum": [
+        "codex",
+        "claude_code",
+        "other"
+      ],
+      "title": "HostFamily",
+      "type": "string"
+    },
+    "LocalArtifactDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_size": {
+          "maximum": 1073741824,
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "declared_media_type": {
+          "maxLength": 255,
+          "minLength": 3,
+          "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$",
+          "title": "Declared Media Type",
+          "type": "string"
+        },
+        "digest": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "digest_algorithm": {
+          "pattern": "^sha256$",
+          "title": "Digest Algorithm",
+          "type": "string"
+        },
+        "relative_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*$",
+          "title": "Relative Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative_path",
+        "declared_media_type",
+        "digest_algorithm",
+        "digest",
+        "byte_size"
+      ],
+      "title": "LocalArtifactDescriptor",
+      "type": "object"
+    },
+    "Producer": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "Producer",
+      "type": "object"
+    }
+  },
+  "$id": "https://shipworthy.local/schemas/v1/browser-evidence-envelope.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "channel": {
+                  "const": "screenshot"
+                }
+              },
+              "required": [
+                "channel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unavailable_channels": {
+            "not": {
+              "contains": {
+                "const": "screenshot"
+              }
+            }
+          }
+        },
+        "required": [
+          "unavailable_channels"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "channel": {
+                  "const": "dom_accessibility"
+                }
+              },
+              "required": [
+                "channel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unavailable_channels": {
+            "not": {
+              "contains": {
+                "const": "dom_accessibility"
+              }
+            }
+          }
+        },
+        "required": [
+          "unavailable_channels"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "channel": {
+                  "const": "console"
+                }
+              },
+              "required": [
+                "channel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unavailable_channels": {
+            "not": {
+              "contains": {
+                "const": "console"
+              }
+            }
+          }
+        },
+        "required": [
+          "unavailable_channels"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "channel": {
+                  "const": "network"
+                }
+              },
+              "required": [
+                "channel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unavailable_channels": {
+            "not": {
+              "contains": {
+                "const": "network"
+              }
+            }
+          }
+        },
+        "required": [
+          "unavailable_channels"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "channel": {
+                  "const": "trace"
+                }
+              },
+              "required": [
+                "channel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unavailable_channels": {
+            "not": {
+              "contains": {
+                "const": "trace"
+              }
+            }
+          }
+        },
+        "required": [
+          "unavailable_channels"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "channel": {
+                  "const": "recording"
+                }
+              },
+              "required": [
+                "channel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unavailable_channels": {
+            "not": {
+              "contains": {
+                "const": "recording"
+              }
+            }
+          }
+        },
+        "required": [
+          "unavailable_channels"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/BrowserEvidenceArtifact"
+      },
+      "maxItems": 64,
+      "title": "Artifacts",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "finding_ids": {
+      "items": {
+        "maxLength": 67,
+        "minLength": 5,
+        "pattern": "^FND-[A-Z0-9][A-Z0-9._-]{0,62}$",
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Finding Ids",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "generated_at": {
+      "format": "date-time",
+      "maxLength": 20,
+      "minLength": 20,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "host": {
+      "$ref": "#/$defs/BrowserEvidenceHost"
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Limitations",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "mode": {
+      "$ref": "#/$defs/BrowserEvidenceMode"
+    },
+    "not_proven": {
+      "items": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Not Proven",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "producer": {
+      "$ref": "#/$defs/Producer"
+    },
+    "schema_name": {
+      "pattern": "^shipworthy/browser-evidence-envelope$",
+      "title": "Schema Name",
+      "type": "string"
+    },
+    "schema_version": {
+      "pattern": "^1\\.0$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/BrowserEvidenceStep"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "target": {
+      "$ref": "#/$defs/BrowserEvidenceTarget"
+    },
+    "unavailable_channels": {
+      "items": {
+        "$ref": "#/$defs/BrowserEvidenceChannel"
+      },
+      "maxItems": 6,
+      "title": "Unavailable Channels",
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_name",
+    "schema_version",
+    "generated_at",
+    "producer",
+    "host",
+    "mode",
+    "target",
+    "steps",
+    "artifacts",
+    "unavailable_channels",
+    "limitations",
+    "not_proven",
+    "finding_ids"
+  ],
+  "title": "BrowserEvidenceEnvelope",
+  "type": "object",
+  "x-shipworthy-runtime-constraints": {
+    "artifact_id_uniqueness": "Runtime enforces unique artifacts[*].artifact_id values; JSON Schema uniqueItems compares whole array items and cannot express uniqueness of one property across nonidentical objects.",
+    "step_id_uniqueness": "Runtime enforces unique steps[*].step_id values; JSON Schema uniqueItems compares whole array items and cannot express uniqueness of one property across nonidentical objects."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "shipworthy",
+  "description": "Proof-backed, read-only frontend and end-to-end readiness testing for web apps and AI-built products.",
+  "author": {
+    "name": "NeuraCerebra-AI",
+    "url": "https://github.com/NeuraCerebra-AI"
+  },
+  "homepage": "https://github.com/NeuraCerebra-AI/Shipworthy",
+  "repository": "https://github.com/NeuraCerebra-AI/Shipworthy",
+  "license": "MIT",
+  "keywords": [
+    "testing",
+    "quality",
+    "readiness",
+    "e2e",
+    "frontend"
+  ],
+  "skills": "./skills/"
+}
